@@ -291,6 +291,7 @@ let system = 'Western';
 let tempo = 110;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
+let neyOrientation = 'horizontal';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
@@ -500,12 +501,19 @@ function buildNeyChart(){
   neyHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
-  svg.setAttribute('viewBox','0 0 60 160');
+  const isHoriz = neyOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
   svg.setAttribute('class','mx-auto');
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
-    const x = i===0 ? 20 : 30;
-    const y = 20 + i*22;
+    let x,y;
+    if(isHoriz){
+      x = 20 + i*22;
+      y = 30;
+    } else {
+      x = i===0 ? 20 : 30;
+      y = 20 + i*22;
+    }
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
     c.setAttribute('r','8');
@@ -514,11 +522,20 @@ function buildNeyChart(){
     c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
     svg.appendChild(c);
   });
+  neyHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='neyFlip';
+  flip.textContent='Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  neyHost.appendChild(flip);
   const lbl=document.createElement('div');
   lbl.className='mt-2 text-center text-xs text-slate-400';
   lbl.textContent=`Fingering for ${sharp}`;
-  neyHost.appendChild(svg);
   neyHost.appendChild(lbl);
+  document.getElementById('neyFlip').onclick = () => {
+    neyOrientation = neyOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildNeyChart();
+  };
 }
 
 // ========================= EXPORT HELPERS =========================
