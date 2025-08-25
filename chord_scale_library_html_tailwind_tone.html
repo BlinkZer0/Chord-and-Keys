@@ -545,14 +545,31 @@ function refreshInstruments(){
   recorderHost.classList.toggle('hidden', !isRecorder);
   kotoHost.classList.toggle('hidden', !isKoto);
   neyHost.classList.toggle('hidden', !isNey);
-  if(isViolin) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
-  if(isFlute) buildFluteChart();
-  if(isRecorder) buildRecorderChart();
-  if(isKoto) buildKotoBoard();
-  if(isNey) buildNeyChart();
+  if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
+  if(!fluteHost.classList.contains('hidden')) buildFluteChart();
+  if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
+  if(!kotoHost.classList.contains('hidden')) buildKotoBoard();
+  if(!neyHost.classList.contains('hidden')) buildNeyChart();
   btnPlayStrum.classList.toggle('hidden', !isGuitar);
 }
-function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)'); if(!fluteHost.classList.contains('hidden')) buildFluteChart(); if(!recorderHost.classList.contains('hidden')) buildRecorderChart(); if(!kotoHost.classList.contains('hidden')) buildKotoBoard(); if(!neyHost.classList.contains('hidden')) buildNeyChart(); }
+function updateAll(){
+  renderHighlights();
+  updateBadges();
+  if(!guitarHost.classList.contains('hidden'))
+    buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)');
+  if(!bassHost.classList.contains('hidden'))
+    buildFretboard(bassHost, BASS_STD,'Bass (12 frets)');
+  if(!violinHost.classList.contains('hidden'))
+    buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
+  if(!fluteHost.classList.contains('hidden'))
+    buildFluteChart();
+  if(!recorderHost.classList.contains('hidden'))
+    buildRecorderChart();
+  if(!kotoHost.classList.contains('hidden'))
+    buildKotoBoard();
+  if(!neyHost.classList.contains('hidden'))
+    buildNeyChart();
+}
 
 // Build UI
 buildPiano(); refreshInstruments(); updateAll(); runTests();
