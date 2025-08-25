@@ -70,6 +70,7 @@
         <div id="fluteHost" class="hidden"></div>
         <div id="recorderHost" class="hidden"></div>
         <div id="trumpetHost" class="hidden"></div>
+        <div id="saxophoneHost" class="hidden"></div>
         <div id="kotoHost" class="hidden"></div>
         <div id="neyHost" class="hidden"></div>
 
@@ -146,6 +147,7 @@ const INSTRUMENTS = [
   "Flute",
   "Recorder",
   "Trumpet",
+  "Saxophone",
   "Koto",
   "Oud",
   "Ney",
@@ -259,6 +261,7 @@ let _synth=null; let _started=false; const ENV={
   Flute:{a:.04,d:.12,s:.8,r:.5,osc:'sine'},
   Recorder:{a:.03,d:.15,s:.7,r:.4,osc:'sine'},
   Trumpet:{a:.01,d:.2,s:.6,r:.5,osc:'sawtooth'},
+  Saxophone:{a:.02,d:.2,s:.6,r:.3,osc:'sawtooth'},
   Koto:{a:.002,d:.3,s:0,r:1.6,osc:'triangle'},
   Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle'},
   Ney:{a:.08,d:.12,s:.7,r:.5,osc:'sine'},
@@ -303,7 +306,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
-const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost');
+const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const saxophoneHost = $('#saxophoneHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost');
 const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
@@ -328,6 +331,8 @@ let recorderOrientation = 'horizontal';
 let neyOrientation = 'horizontal';
 let trumpetLeftToRight = true;
 let trumpetOrientation = 'horizontal';
+let saxophoneLeftToRight = true;
+let saxophoneOrientation = 'horizontal';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
@@ -622,6 +627,82 @@ function buildTrumpetChart(){
   };
 }
 
+// ========================= SAXOPHONE CHART =========================
+const SAX_FINGERINGS = {
+  C:[1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1],
+  D:[0,1,1,1,1,1],
+  'D#':[0,0,1,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,1,1],
+  'G#':[0,0,0,0,0,1],
+  A:[0,0,0,0,0,1],
+  'A#':[0,0,0,0,0,0],
+  B:[0,0,0,0,0,0]
+};
+/*
+  Saxophone chart layout
+  - ViewBox: 0 0 160 60 (overall diagram size)
+  - Key spacing: i*22 (positioning)
+  - Key radius: r=10
+  Adjust these values to resize the chart or reposition keys.
+*/
+function buildSaxophoneChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = SAX_FINGERINGS[sharp] || [0,0,0,0,0,0];
+  saxophoneHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = saxophoneOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
+  svg.setAttribute('class','mx-auto');
+  fing.forEach((closed,i)=>{
+    const c=document.createElementNS(svgNS,'circle');
+    let x,y;
+    if(isHoriz){
+      x = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
+      y = 30;
+    } else {
+      y = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
+      x = 30;
+    }
+    c.setAttribute('cx', String(x));
+    c.setAttribute('cy', String(y));
+    c.setAttribute('r','10');
+    c.setAttribute('stroke','#fbbf24');
+    c.setAttribute('stroke-width','2');
+    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    svg.appendChild(c);
+  });
+  saxophoneHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='saxophoneFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  saxophoneHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='saxophoneOrient';
+  orient.textContent = saxophoneOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  saxophoneHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  saxophoneHost.appendChild(lbl);
+  document.getElementById('saxophoneFlip').onclick = () => {
+    saxophoneLeftToRight = !saxophoneLeftToRight;
+    buildSaxophoneChart();
+  };
+  document.getElementById('saxophoneOrient').onclick = () => {
+    saxophoneOrientation = saxophoneOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildSaxophoneChart();
+  };
+}
+
 // ========================= NEY CHART =========================
 const NEY_FINGERINGS = {
   C:[1,1,1,1,1,1,1],
@@ -747,6 +828,7 @@ function refreshInstruments(){
   const isFlute = selInstr.value.startsWith('Flute');
   const isRecorder = selInstr.value.startsWith('Recorder');
   const isTrumpet = selInstr.value.startsWith('Trumpet');
+  const isSaxophone = selInstr.value.startsWith('Saxophone');
   const isKoto = selInstr.value.startsWith('Koto');
   const isNey = selInstr.value.startsWith('Ney');
   guitarHost.classList.toggle('hidden', !isGuitar);
@@ -755,12 +837,14 @@ function refreshInstruments(){
   fluteHost.classList.toggle('hidden', !isFlute);
   recorderHost.classList.toggle('hidden', !isRecorder);
   trumpetHost.classList.toggle('hidden', !isTrumpet);
+  saxophoneHost.classList.toggle('hidden', !isSaxophone);
   kotoHost.classList.toggle('hidden', !isKoto);
   neyHost.classList.toggle('hidden', !isNey);
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
   if(!fluteHost.classList.contains('hidden')) buildFluteChart();
   if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
   if(!trumpetHost.classList.contains('hidden')) buildTrumpetChart();
+  if(!saxophoneHost.classList.contains('hidden')) buildSaxophoneChart();
   if(!kotoHost.classList.contains('hidden')) buildKotoBoard();
   if(!neyHost.classList.contains('hidden')) buildNeyChart();
   btnPlayStrum.classList.toggle('hidden', !isGuitar);
@@ -780,6 +864,8 @@ function updateAll(){
     buildRecorderChart();
   if(!trumpetHost.classList.contains('hidden'))
     buildTrumpetChart();
+  if(!saxophoneHost.classList.contains('hidden'))
+    buildSaxophoneChart();
   if(!kotoHost.classList.contains('hidden'))
     buildKotoBoard();
   if(!neyHost.classList.contains('hidden'))
