@@ -24,6 +24,7 @@
           <div class="inline-flex rounded-xl overflow-hidden border border-slate-700">
             <button id="btnModeChord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
             <button id="btnModeScale" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
+            <button id="btnModeSequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -105,6 +106,28 @@
           <input id="heldSustainSnap" type="checkbox" class="h-4 w-4" checked>
           <label for="heldSustainSnap" class="text-sm text-slate-300">Snap held note sustain to 1/16 note</label>
         </div>
+      </div>
+    </section>
+
+    <!-- ============ Sequencer ============ -->
+    <section id="sequencerHost" class="mb-6 hidden">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">Sequencer</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
+        <div class="flex flex-wrap gap-3 items-center">
+          <button id="seqPlay" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
+          <button id="seqStop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
+          <label class="text-sm text-slate-300 flex items-center gap-2">BPM
+            <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqLoop" type="checkbox" class="h-4 w-4">Loop
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqClick" type="checkbox" class="h-4 w-4">Click
+          </label>
+        </div>
+        <canvas id="pianoRoll" width="800" height="200" class="w-full h-64 bg-slate-900 border border-slate-700"></canvas>
+        <div id="seqTracks" class="space-y-2"></div>
       </div>
     </section>
 
@@ -317,12 +340,16 @@ const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const ba
 const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
-const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale');
+const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale'); const btnModeSequencer = $('#btnModeSequencer');
 const wrapChord = $('#wrapChord'); const wrapScale = $('#wrapScale');
 const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); const btnPlayStrum = $('#btnPlayStrum');
 const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
+const sequencerHost = $('#sequencerHost');
+const seqPlay = $('#seqPlay'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
+const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
+const pianoRoll = $('#pianoRoll'); const seqTracks = $('#seqTracks');
 
 let mode = 'Chord';
 let instrument = 'Piano';
@@ -344,6 +371,43 @@ let saxophoneOrientation = 'horizontal';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
+
+const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymbal ClosedHat','Clap Short','Hand Conga'];
+
+function drawPianoRoll(){
+  const ctx = pianoRoll.getContext('2d');
+  const notes = 4*12; // C2–C6
+  const rows = notes + 1;
+  ctx.clearRect(0,0,pianoRoll.width,pianoRoll.height);
+  ctx.strokeStyle = '#334155';
+  const rowH = pianoRoll.height / rows;
+  for(let i=0;i<=rows;i++){
+    const y=i*rowH; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(pianoRoll.width,y); ctx.stroke();
+  }
+  const cols = 64;
+  const colW = pianoRoll.width / cols;
+  for(let i=0;i<=cols;i++){
+    const x=i*colW; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,pianoRoll.height); ctx.stroke();
+  }
+}
+
+function initSequencer(){
+  seqTracks.innerHTML='';
+  for(const name of defaultSeqTracks){
+    const row=document.createElement('div');
+    row.className='flex items-center gap-2';
+    row.innerHTML=
+      `<span class="w-32">${name}</span>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute>M</button>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo>S</button>`+
+      `<input type="range" min="0" max="1" step="0.01" value="0.8" class="w-24" />`+
+      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
+      defaultSeqTracks.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('')+
+      `</select>`;
+    seqTracks.appendChild(row);
+  }
+  drawPianoRoll();
+}
 
 function updateSelButtons(){
   const empty = selection.size === 0;
@@ -889,10 +953,44 @@ function updateAll(){
 }
 
 // Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests();
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer();
 
-btnModeChord.addEventListener('click', ()=>{ mode='Chord'; btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70'; btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50'; wrapChord.classList.remove('hidden'); wrapScale.classList.add('hidden'); listenChord.classList.remove('hidden'); listenScale.classList.add('hidden'); updateAll(); });
-btnModeScale.addEventListener('click', ()=>{ mode='Scale/Mode'; btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70'; btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50'; wrapScale.classList.remove('hidden'); wrapChord.classList.add('hidden'); listenScale.classList.remove('hidden'); listenChord.classList.add('hidden'); updateAll(); });
+btnModeChord.addEventListener('click', ()=>{
+  mode='Chord';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.remove('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.remove('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeScale.addEventListener('click', ()=>{
+  mode='Scale/Mode';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapScale.classList.remove('hidden');
+  wrapChord.classList.add('hidden');
+  listenScale.classList.remove('hidden');
+  listenChord.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeSequencer.addEventListener('click', ()=>{
+  mode='Sequencer';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.add('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.add('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.remove('hidden');
+  updateAll();
+});
 
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
