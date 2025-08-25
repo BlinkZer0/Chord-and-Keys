@@ -265,7 +265,30 @@ async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
 function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
-async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, arpeggiate=false, strum=false}={}){ await ensureTone(instrument); const beat=60/tempo; const now=Tone.now(); if(asChord){ _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now); return; } if(strum){ list.forEach((m,i)=>{ const t=now + i*(beat/6); _synth.triggerAttackRelease(midiToFreq(m), beat*1.2, t); }); return; } const seq=list; seq.forEach((m,i)=>{ const t=now + i*(beat*0.6); _synth.triggerAttackRelease(midiToFreq(m), beat*0.9, t); }); }
+// Plays MIDI notes using the synth. Notes are sequenced by default;
+// use `asChord` to trigger them simultaneously or `strum` for a quick
+// guitar-style roll.
+async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false}={}){
+  await ensureTone(instrument);
+  const beat=60/tempo;
+  const now=Tone.now();
+  if(asChord){
+    _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now);
+    return;
+  }
+  if(strum){
+    list.forEach((m,i)=>{
+      const t=now + i*(beat/6);
+      _synth.triggerAttackRelease(midiToFreq(m), beat*1.2, t);
+    });
+    return;
+  }
+  const seq=list;
+  seq.forEach((m,i)=>{
+    const t=now + i*(beat*0.6);
+    _synth.triggerAttackRelease(midiToFreq(m), beat*0.9, t);
+  });
+}
 // Limitation: only oscillator-based synth; sample instruments would require per-voice pitch bend.
 async function pluck(m, instrument, tempo){ await ensureTone(instrument); _synth.triggerAttackRelease(midiToFreq(m), 0.25); }
 
@@ -693,11 +716,11 @@ $('#btnClearSel').addEventListener('click', clearSelection);
 
 // Listen buttons
 $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
-$('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
+$('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
 $('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, strum:true}); });
-$('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
+$('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
 $('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
-$('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
+$('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo}); });
 
 // Export buttons
 $('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
