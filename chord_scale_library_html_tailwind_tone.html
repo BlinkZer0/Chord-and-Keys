@@ -291,6 +291,8 @@ let system = 'Western';
 let tempo = 110;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
+let fluteOrientation = 'horizontal';
+let recorderOrientation = 'horizontal';
 let neyOrientation = 'horizontal';
 
 // Selection for chord identification
@@ -381,14 +383,21 @@ function buildFluteChart(){
   fluteHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
-  svg.setAttribute('viewBox','0 0 160 60');
+  const isHoriz = fluteOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
   svg.setAttribute('class','mx-auto');
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
-    const cx = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
-    const cy = 30;
-    c.setAttribute('cx', String(cx));
-    c.setAttribute('cy', String(cy));
+    let x,y;
+    if(isHoriz){
+      x = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
+      y = 30;
+    } else {
+      y = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
+      x = 30;
+    }
+    c.setAttribute('cx', String(x));
+    c.setAttribute('cy', String(y));
     c.setAttribute('r','10');
     c.setAttribute('stroke','#fbbf24');
     c.setAttribute('stroke-width','2');
@@ -398,15 +407,24 @@ function buildFluteChart(){
   fluteHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='fluteFlip';
-  flip.textContent='Flip ↔';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
   flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
   fluteHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='fluteOrient';
+  orient.textContent = fluteOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  fluteHost.appendChild(orient);
   const lbl=document.createElement('div');
   lbl.className='mt-2 text-center text-xs text-slate-400';
   lbl.textContent=`Fingering for ${sharp}`;
   fluteHost.appendChild(lbl);
   document.getElementById('fluteFlip').onclick = () => {
     fluteLeftToRight = !fluteLeftToRight;
+    buildFluteChart();
+  };
+  document.getElementById('fluteOrient').onclick = () => {
+    fluteOrientation = fluteOrientation === 'horizontal' ? 'vertical' : 'horizontal';
     buildFluteChart();
   };
 }
@@ -441,14 +459,21 @@ function buildRecorderChart(){
   recorderHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
-  svg.setAttribute('viewBox','0 0 180 60');
+  const isHoriz = recorderOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 180 60' : '0 0 60 180');
   svg.setAttribute('class','mx-auto');
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
-    const cx = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
-    const cy = 30;
-    c.setAttribute('cx', String(cx));
-    c.setAttribute('cy', String(cy));
+    let x,y;
+    if(isHoriz){
+      x = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
+      y = 30;
+    } else {
+      y = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
+      x = 30;
+    }
+    c.setAttribute('cx', String(x));
+    c.setAttribute('cy', String(y));
     c.setAttribute('r','8');
     c.setAttribute('stroke','#fbbf24');
     c.setAttribute('stroke-width','2');
@@ -458,15 +483,24 @@ function buildRecorderChart(){
   recorderHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='recorderFlip';
-  flip.textContent='Flip ↔';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
   flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
   recorderHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='recorderOrient';
+  orient.textContent = recorderOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  recorderHost.appendChild(orient);
   const lbl=document.createElement('div');
   lbl.className='mt-2 text-center text-xs text-slate-400';
   lbl.textContent=`Fingering for ${sharp}`;
   recorderHost.appendChild(lbl);
   document.getElementById('recorderFlip').onclick = () => {
     recorderLeftToRight = !recorderLeftToRight;
+    buildRecorderChart();
+  };
+  document.getElementById('recorderOrient').onclick = () => {
+    recorderOrientation = recorderOrientation === 'horizontal' ? 'vertical' : 'horizontal';
     buildRecorderChart();
   };
 }
