@@ -291,6 +291,7 @@ let system = 'Western';
 let tempo = 110;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
+let neyLeftToRight = true;
 let fluteOrientation = 'horizontal';
 let recorderOrientation = 'horizontal';
 let neyOrientation = 'horizontal';
@@ -542,11 +543,11 @@ function buildNeyChart(){
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
     if(isHoriz){
-      x = 20 + i*22;
+      x = neyLeftToRight ? 20 + i*22 : 140 - i*22;
       y = 30;
     } else {
       x = i===0 ? 20 : 30;
-      y = 20 + i*22;
+      y = neyLeftToRight ? 20 + i*22 : 140 - i*22;
     }
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
@@ -559,14 +560,23 @@ function buildNeyChart(){
   neyHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='neyFlip';
-  flip.textContent='Flip ↕';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
   flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
   neyHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='neyOrient';
+  orient.textContent = neyOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  neyHost.appendChild(orient);
   const lbl=document.createElement('div');
   lbl.className='mt-2 text-center text-xs text-slate-400';
   lbl.textContent=`Fingering for ${sharp}`;
   neyHost.appendChild(lbl);
   document.getElementById('neyFlip').onclick = () => {
+    neyLeftToRight = !neyLeftToRight;
+    buildNeyChart();
+  };
+  document.getElementById('neyOrient').onclick = () => {
     neyOrientation = neyOrientation === 'horizontal' ? 'vertical' : 'horizontal';
     buildNeyChart();
   };
