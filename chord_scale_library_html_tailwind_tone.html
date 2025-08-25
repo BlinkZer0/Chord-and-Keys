@@ -129,7 +129,15 @@ const PITCH_STEP = 0.5; // smallest interval in semitones
 const OCTAVE = 12;      // semitones per octave
 const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
 const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
-const INSTRUMENTS = ["Piano","Guitar","Bass","Flute (beta)"];
+const INSTRUMENTS = [
+  "Piano",
+  "Guitar",
+  "Bass",
+  "Flute (beta)",
+  "Oud",
+  "Ney",
+  "Hammond Organ"
+];
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 const MODES = {
   Ionian: [0,2,4,5,7,9,11],
@@ -230,7 +238,15 @@ function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mo
 function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
 
 // ========================= AUDIO (Tone.js) =========================
-let _synth=null; let _started=false; const ENV={ Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'}, Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'}, Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'}, 'Flute (beta)':{a:.08,d:.1,s:.7,r:.6,osc:'sine'} };
+let _synth=null; let _started=false; const ENV={
+  Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'},
+  Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'},
+  Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'},
+  'Flute (beta)':{a:.08,d:.1,s:.7,r:.6,osc:'sine'},
+  Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle'},
+  Ney:{a:.08,d:.12,s:.7,r:.5,osc:'sine'},
+  'Hammond Organ':{a:.03,d:.2,s:.8,r:.7,osc:'square'}
+};
 async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).toDestination(); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
@@ -362,7 +378,14 @@ function runTests(){
 }
 
 // ========================= WIRING =========================
-function refreshInstruments(){ const isGuitar = selInstr.value.startsWith('Guitar'); const isBass = selInstr.value.startsWith('Bass'); guitarHost.classList.toggle('hidden', !isGuitar); bassHost.classList.toggle('hidden', !isBass); fluteNote.classList.toggle('hidden', !selInstr.value.startsWith('Flute')); btnPlayStrum.classList.toggle('hidden', !isGuitar); }
+function refreshInstruments(){
+  const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
+  const isBass = selInstr.value.startsWith('Bass');
+  guitarHost.classList.toggle('hidden', !isGuitar);
+  bassHost.classList.toggle('hidden', !isBass);
+  fluteNote.classList.toggle('hidden', !selInstr.value.startsWith('Flute'));
+  btnPlayStrum.classList.toggle('hidden', !isGuitar);
+}
 function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); }
 
 // Build UI
