@@ -125,7 +125,25 @@ const OCTAVE = 12;      // semitones per octave
 const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
 const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
 const INSTRUMENTS = ["Piano","Guitar","Bass","Flute (beta)"];
-const MODES = { Ionian:[0,2,4,5,7,9,11], Dorian:[0,2,3,5,7,9,10], Phrygian:[0,1,3,5,7,8,10], Lydian:[0,2,4,6,7,9,11], Mixolydian:[0,2,4,5,7,9,10], Aeolian:[0,2,3,5,7,8,10], Locrian:[0,1,3,5,6,8,10], "Major Pentatonic":[0,2,4,7,9], "Minor Pentatonic":[0,3,5,7,10], Blues:[0,3,5,6,7,10] };
+// Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
+const MODES = {
+  Ionian: [0,2,4,5,7,9,11],
+  Dorian: [0,2,3,5,7,9,10],
+  Phrygian: [0,1,3,5,7,8,10],
+  Lydian: [0,2,4,6,7,9,11],
+  Mixolydian: [0,2,4,5,7,9,10],
+  Aeolian: [0,2,3,5,7,8,10],
+  Locrian: [0,1,3,5,6,8,10],
+  "Major Pentatonic": [0,2,4,7,9],
+  "Minor Pentatonic": [0,3,5,7,10],
+  Blues: [0,3,5,6,7,10],
+  // Common maqamat using 24-TET intervals (0.5 = quarter-tone)
+  "Maqam Rast": [0,2,3.5,5,7,9,10.5],      // Rast: E half-flat, B half-flat
+  "Maqam Bayati": [0,1.5,3,5,7,8.5,10],    // Bayati: D half-flat, B half-flat
+  "Maqam Hijaz": [0,1,4,5,7,8,11],         // Hijaz: augmented second between 2nd & 3rd
+  "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
+  "Maqam Nahawand": [0,2,3,5,7,8,10]       // Nahawand: natural minor
+};
 const CHORD_QUALITIES = { Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], Sus2:[0,2,7], Sus4:[0,5,7], "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], m7b5:[0,3,6,10], Dim7:[0,3,6,9] };
 function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
 function pcIndex(note){
@@ -301,6 +319,8 @@ function runTests(){
   addTest(t,'E Blues has A#', buildScale('E','Blues').includes('A#'));
   addTest(t,'G Mixolydian len=7', buildScale('G','Mixolydian').length===7);
   addTest(t,'A Major Pentatonic len=5', buildScale('A','Major Pentatonic').length===5);
+  addTest(t,'C Maqam Rast has D#+', buildScale('C','Maqam Rast').includes('D#+'));
+  addTest(t,'D Maqam Bayati has D#+', buildScale('D','Maqam Bayati')[1]==='D#+');
   addTest(t,'C Maj chord', JSON.stringify(buildChord('C','Maj'))===JSON.stringify(['C','E','G']));
   addTest(t,'G7 chord', JSON.stringify(buildChord('G','7'))===JSON.stringify(['G','B','D','F']));
   addTest(t,'Bm7b5 chord', JSON.stringify(buildChord('B','m7b5'))===JSON.stringify(['B','D','F','A']));
