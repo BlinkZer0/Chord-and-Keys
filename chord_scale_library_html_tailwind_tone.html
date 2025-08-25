@@ -365,6 +365,13 @@ const FLUTE_FINGERINGS = {
   'A#':[0,0,0,0,0,0],
   B:[0,0,0,0,0,0]
 };
+/*
+  Flute chart layout
+  - ViewBox: 0 0 160 60 (overall diagram size)
+  - Hole spacing: i*22 (horizontal positioning)
+  - Hole radius: r=10
+  Change these numbers to resize the chart or adjust hole placement for custom layouts.
+*/
 function buildFluteChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
@@ -418,6 +425,13 @@ const RECORDER_FINGERINGS = {
   'A#':[0,0,0,0,0,0,1,1],
   B:[0,0,0,0,0,0,1,1]
 };
+/*
+  Recorder chart layout
+  - ViewBox: 0 0 180 60 (overall diagram size)
+  - Hole spacing: i*20 (horizontal positioning)
+  - Hole radius: r=8
+  Adjust these values to change chart size, spacing, or hole size for custom recorders.
+*/
 function buildRecorderChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
@@ -471,6 +485,13 @@ const NEY_FINGERINGS = {
   'A#':[0,0,0,0,0,0,1],
   B:[0,0,0,0,0,0,0]
 };
+/*
+  Ney chart layout
+  - ViewBox: 0 0 60 160 (overall diagram size)
+  - Hole spacing: 20 + i*22 (vertical positioning; first hole x=20, others x=30)
+  - Hole radius: r=8
+  Tweak these parameters to alter chart size, hole spacing, or radius for custom ney designs.
+*/
 function buildNeyChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
