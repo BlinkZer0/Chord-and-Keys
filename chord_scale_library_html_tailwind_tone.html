@@ -27,6 +27,11 @@
           </div>
 
           <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">System</label>
+            <select id="selSystem" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+          </div>
+
+          <div class="flex items-center gap-2">
             <label class="text-sm text-slate-300">Key / Root</label>
             <select id="selKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
             <span id="badgeRoot" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-emerald-600/20 text-emerald-300 border-emerald-600/40"></span>
@@ -144,6 +149,14 @@ const MODES = {
   "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
   "Maqam Nahawand": [0,2,3,5,7,8,10]       // Nahawand: natural minor
 };
+// Group modes by musical system for UI filtering
+const MODE_SYSTEMS = {
+  Western: [
+    "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian",
+    "Major Pentatonic","Minor Pentatonic","Blues"
+  ],
+  Maqam: ["Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand"]
+};
 const CHORD_QUALITIES = { Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], Sus2:[0,2,7], Sus4:[0,5,7], "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], m7b5:[0,3,6,10], Dim7:[0,3,6,9] };
 function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
 function pcIndex(note){
@@ -220,8 +233,11 @@ function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—"
 let _synth=null; let _started=false; const ENV={ Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'}, Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'}, Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'}, 'Flute (beta)':{a:.08,d:.1,s:.7,r:.6,osc:'sine'} };
 async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).toDestination(); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
-async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, arpeggiate=false, strum=false}={}){ await ensureTone(instrument); const beat=60/tempo; const now=Tone.now(); if(asChord){ _synth.triggerAttackRelease(list.map(midiName), beat*2, now); return; } if(strum){ list.forEach((m,i)=>{ const t=now + i*(beat/6); _synth.triggerAttackRelease(midiName(m), beat*1.2, t); }); return; } const seq=list; seq.forEach((m,i)=>{ const t=now + i*(beat*0.6); _synth.triggerAttackRelease(midiName(m), beat*0.9, t); }); }
-async function pluck(m, instrument, tempo){ await ensureTone(instrument); _synth.triggerAttackRelease(midiName(m), 0.25); }
+// Convert (possibly fractional) MIDI note numbers to Hz
+function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, arpeggiate=false, strum=false}={}){ await ensureTone(instrument); const beat=60/tempo; const now=Tone.now(); if(asChord){ _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now); return; } if(strum){ list.forEach((m,i)=>{ const t=now + i*(beat/6); _synth.triggerAttackRelease(midiToFreq(m), beat*1.2, t); }); return; } const seq=list; seq.forEach((m,i)=>{ const t=now + i*(beat*0.6); _synth.triggerAttackRelease(midiToFreq(m), beat*0.9, t); }); }
+// Limitation: only oscillator-based synth; sample instruments would require per-voice pitch bend.
+async function pluck(m, instrument, tempo){ await ensureTone(instrument); _synth.triggerAttackRelease(midiToFreq(m), 0.25); }
 
 // ========================= MIDI (SMF Type 0) =========================
 function encVarLen(v){ let buffer=v & 0x7F; const out=[]; while((v >>= 7)){ buffer <<= 8; buffer |= ((v & 0x7F) | 0x80); } while(true){ out.push(buffer & 0xFF); if(buffer & 0x80) buffer >>= 8; else break; } return new Uint8Array(out); }
@@ -232,7 +248,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
 const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const fluteNote = $('#fluteNote');
-const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr');
+const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
 const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale');
@@ -245,6 +261,7 @@ let instrument = 'Piano';
 let keyRoot = 'C';
 let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
+let system = 'Western';
 let tempo = 110;
 
 // Selection for chord identification
@@ -254,7 +271,13 @@ const selection = new Set(); // midi numbers
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
 fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument;
 fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
-fillSelect(selMode, Object.keys(MODES)); selMode.value=scaleMode;
+fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
+function populateModeOptions(){
+  fillSelect(selMode, MODE_SYSTEMS[system]);
+  if(!MODE_SYSTEMS[system].includes(scaleMode)) scaleMode = MODE_SYSTEMS[system][0];
+  selMode.value = scaleMode;
+}
+populateModeOptions();
 
 function updateBadges(){
   badgeRoot.textContent = 'Root: '+toSharpName(keyRoot);
@@ -329,6 +352,11 @@ function runTests(){
   addTest(t,'ChordToMidi >=3', cm.length>=3, cm.join(','));
   const sc=scaleToMidi(['C','D','E','F','G','A','B'],'C',4);
   addTest(t,'ScaleToMidi >=14', sc.length>=14, String(sc.length));
+  const maq=scaleToMidi(buildScale('C','Maqam Rast'),'C',4);
+  addTest(t,'ScaleToMidi quarter-tone', maq.includes(63.5));
+  const fq=midiToFreq(60.5);
+  addTest(t,'midiToFreq 60.5', Math.abs(fq - 440*Math.pow(2,(60.5-69)/12))<0.01, fq.toFixed(2));
+  addTest(t,'MODE_SYSTEMS maqam', MODE_SYSTEMS.Maqam.includes('Maqam Rast'));
   const testsEl=document.getElementById('tests'); testsEl.innerHTML='';
   t.forEach((r)=>{ const li=document.createElement('div'); li.className='px-3 py-2 rounded-lg border '+ (r.pass?'border-emerald-700 bg-emerald-900/30 text-emerald-200':'border-rose-700 bg-rose-900/30 text-rose-200'); li.innerHTML = '<span class="font-semibold">'+(r.pass?'PASS':'FAIL')+'</span> — '+r.name + (r.details? ('<div class="text-xs opacity-75">'+r.details+'</div>'):''); testsEl.appendChild(li); });
 }
@@ -347,6 +375,7 @@ selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); 
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
+selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
 tempoInput.addEventListener('change', (e)=>{ tempo = Number(e.target.value)||110; });
 $('#btnClearSel').addEventListener('click', clearSelection);
 
