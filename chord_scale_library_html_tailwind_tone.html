@@ -66,6 +66,7 @@
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
           <span id="badgeSelNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Notes: —</span>
+          <button id="btnClearSel" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Clear Selection</button>
           <span class="text-xs text-slate-400">Tip: click keys to pluck • <span class="font-semibold">Shift+click</span> toggles selection</span>
         </div>
       </div>
@@ -192,6 +193,7 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
   pianoHost.appendChild(container);
 }
 function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); }
+function clearSelection(){ selection.clear(); updateBadges(); renderHighlights(); }
 function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
   // Whites (robust selector — no Tailwind arbitrary value in query)
   pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=m%12; const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
@@ -231,6 +233,7 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
 tempoInput.addEventListener('change', (e)=>{ tempo = Number(e.target.value)||110; });
+$('#btnClearSel').addEventListener('click', clearSelection);
 
 // Listen buttons
 $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument: instrument.replace(' (beta)',''), tempo, asChord:true}); });
