@@ -54,7 +54,7 @@
             <label class="text-sm text-slate-300">Instrument</label>
             <select id="selInstr" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
             <label class="text-sm text-slate-300">Tempo</label>
-            <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="110" />
+            <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
           </div>
         </div>
       </div>
@@ -357,7 +357,7 @@ let keyRoot = 'C';
 let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
 let system = 'Western';
-let tempo = 110;
+let tempo = 120;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
 let neyLeftToRight = true;
@@ -373,6 +373,84 @@ let saxophoneOrientation = 'horizontal';
 const selection = new Set(); // midi numbers
 
 const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymbal ClosedHat','Clap Short','Hand Conga'];
+
+/**
+ * @typedef {Object} SeqNote
+ * @property {number} tick    Note start position in ticks
+ * @property {number} dur     Duration in ticks
+ * @property {number} midi    MIDI note number
+ * @property {number} vel     Velocity from 0–1
+ */
+
+/**
+ * @typedef {Object} SeqClip
+ * @property {number} start   Clip start in ticks
+ * @property {number} length  Clip length in ticks
+ * @property {SeqNote[]} notes
+ */
+
+/**
+ * @typedef {Object} SeqTrack
+ * @property {string} instrument
+ * @property {SeqClip[]} clips
+ */
+
+/**
+ * @typedef {Object} SeqSong
+ * @property {number} ppq
+ * @property {number} bpm
+ * @property {[number,number]} loop   // measure range [start,end)
+ * @property {SeqTrack[]} tracks
+ */
+
+/** @type {SeqSong} */
+const song = {
+  ppq: 192,
+  bpm: 120,
+  loop: [0, 4],
+  tracks: defaultSeqTracks.map(name => ({
+    instrument: name,
+    clips: [{ start: 0, length: 192 * 16, notes: [] }]
+  }))
+};
+
+Tone.Transport.PPQ = song.ppq;
+
+function setBpm(val){
+  song.bpm = tempo = val;
+  tempoInput.value = seqBpm.value = String(val);
+  Tone.Transport.bpm.value = val;
+}
+
+function updateLoop(){
+  Tone.Transport.loopStart = `${song.loop[0]}m`;
+  Tone.Transport.loopEnd = `${song.loop[1]}m`;
+  Tone.Transport.loop = seqLoop.checked;
+}
+
+function scheduleSong(){
+  Tone.Transport.cancel();
+  song.tracks.forEach(track => {
+    const env = ENV[track.instrument] || ENV.Piano;
+    track.clips.forEach(clip => {
+      clip.notes.forEach(note => {
+        const when = clip.start + note.tick;
+        Tone.Transport.schedule(time => {
+          _synth.set({
+            envelope: {attack: env.a, decay: env.d, sustain: env.s, release: env.r},
+            oscillator: {type: env.osc}
+          });
+          _synth.triggerAttackRelease(midiToFreq(note.midi), `${note.dur}i`, time, note.vel ?? 0.8);
+        }, `${when}i`);
+      });
+    });
+  });
+}
+
+let clickId = null;
+
+setBpm(song.bpm);
+updateLoop();
 
 function drawPianoRoll(){
   const ctx = pianoRoll.getContext('2d');
@@ -997,7 +1075,9 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
-tempoInput.addEventListener('change', (e)=>{ tempo = Number(e.target.value)||110; });
+tempoInput.addEventListener('change', e => setBpm(Number(e.target.value) || song.bpm));
+seqBpm.addEventListener('change', e => setBpm(Number(e.target.value) || song.bpm));
+seqLoop.addEventListener('change', updateLoop);
 $('#btnClearSel').addEventListener('click', clearSelection);
 
 // Listen buttons
@@ -1007,6 +1087,26 @@ $('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); 
 $('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
 $('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
 $('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo}); });
+
+seqPlay.addEventListener('click', async ()=>{
+  await ensureTone('Piano');
+  scheduleSong();
+  if(seqClick.checked){
+    clickId = Tone.Transport.scheduleRepeat(time => {
+      const p = ENV.Piano;
+      _synth.set({ envelope:{attack:p.a,decay:p.d,sustain:p.s,release:p.r}, oscillator:{type:p.osc} });
+      _synth.triggerAttackRelease(midiToFreq(midiFrom('C',5)), '16n', time);
+    }, '4n');
+  }
+  updateLoop();
+  Tone.Transport.start();
+});
+
+seqStop.addEventListener('click', ()=>{
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+  if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
+});
 
 // Export buttons
 $('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
