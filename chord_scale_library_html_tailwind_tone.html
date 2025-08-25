@@ -69,6 +69,7 @@
         <div id="fluteHost" class="hidden"></div>
         <div id="recorderHost" class="hidden"></div>
         <div id="kotoHost" class="hidden"></div>
+        <div id="neyHost" class="hidden"></div>
 
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
@@ -269,7 +270,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
-const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const kotoHost = $('#kotoHost');
+const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost');
 const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
@@ -428,6 +429,50 @@ function buildRecorderChart(){
   recorderHost.appendChild(lbl);
 }
 
+// ========================= NEY CHART =========================
+const NEY_FINGERINGS = {
+  C:[1,1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1,1],
+  D:[0,1,1,1,1,1,1],
+  'D#':[0,0,1,1,1,1,1],
+  E:[0,0,1,1,1,1,1],
+  F:[0,0,0,1,1,1,1],
+  'F#':[0,0,0,0,1,1,1],
+  G:[0,0,0,0,1,1,1],
+  'G#':[0,0,0,0,0,1,1],
+  A:[0,0,0,0,0,1,1],
+  'A#':[0,0,0,0,0,0,1],
+  B:[0,0,0,0,0,0,0]
+};
+function buildNeyChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = NEY_FINGERINGS[sharp] || [0,0,0,0,0,0,0];
+  neyHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox','0 0 60 160');
+  svg.setAttribute('class','mx-auto');
+  fing.forEach((closed,i)=>{
+    const c=document.createElementNS(svgNS,'circle');
+    const x = i===0 ? 20 : 30;
+    const y = 20 + i*22;
+    c.setAttribute('cx', String(x));
+    c.setAttribute('cy', String(y));
+    c.setAttribute('r','8');
+    c.setAttribute('stroke','#fbbf24');
+    c.setAttribute('stroke-width','2');
+    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    svg.appendChild(c);
+  });
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  neyHost.appendChild(svg);
+  neyHost.appendChild(lbl);
+}
+
 // ========================= EXPORT HELPERS =========================
 function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
 function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
@@ -476,17 +521,20 @@ function refreshInstruments(){
   const isFlute = selInstr.value.startsWith('Flute');
   const isRecorder = selInstr.value.startsWith('Recorder');
   const isKoto = selInstr.value.startsWith('Koto');
+  const isNey = selInstr.value.startsWith('Ney');
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
   fluteHost.classList.toggle('hidden', !isFlute);
   recorderHost.classList.toggle('hidden', !isRecorder);
   kotoHost.classList.toggle('hidden', !isKoto);
+  neyHost.classList.toggle('hidden', !isNey);
   if(isFlute) buildFluteChart();
   if(isRecorder) buildRecorderChart();
   if(isKoto) buildKotoBoard();
+  if(isNey) buildNeyChart();
   btnPlayStrum.classList.toggle('hidden', !isGuitar);
 }
-function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); if(!fluteHost.classList.contains('hidden')) buildFluteChart(); if(!recorderHost.classList.contains('hidden')) buildRecorderChart(); if(!kotoHost.classList.contains('hidden')) buildKotoBoard(); }
+function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); if(!fluteHost.classList.contains('hidden')) buildFluteChart(); if(!recorderHost.classList.contains('hidden')) buildRecorderChart(); if(!kotoHost.classList.contains('hidden')) buildKotoBoard(); if(!neyHost.classList.contains('hidden')) buildNeyChart(); }
 
 // Build UI
 buildPiano(); refreshInstruments(); updateAll(); runTests();
