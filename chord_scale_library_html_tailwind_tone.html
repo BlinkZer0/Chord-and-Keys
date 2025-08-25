@@ -119,6 +119,11 @@
           <label class="text-sm text-slate-300 flex items-center gap-2">BPM
             <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
           </label>
+          <label class="text-sm text-slate-300 flex items-center gap-1">Time Sig
+            <input id="seqTimeNum" type="number" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+            <span>/</span>
+            <input id="seqTimeDen" type="number" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+          </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">
             <input id="seqLoop" type="checkbox" class="h-4 w-4">Loop
           </label>
@@ -533,11 +538,15 @@ const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
+const seqTimeNum = $('#seqTimeNum'); const seqTimeDen = $('#seqTimeDen');
 const pianoRoll = $('#pianoRoll'); const seqTracks = $('#seqTracks');
 const seqExportJson = $('#seqExportJson');
 const seqImportJson = $('#seqImportJson');
 const seqImportFile = $('#seqImportFile');
 const seqExportMid = $('#seqExportMid');
+
+seqTimeNum.value = song.timeSig.num;
+seqTimeDen.value = song.timeSig.den;
 const seqStatus = $('#seqStatus');
 
 let mode = 'Chord';
@@ -601,6 +610,7 @@ const song = {
   ppq: 192,
   bpm: 120,
   loop: [0, 4],
+  timeSig: { num: 4, den: 4 },
   tracks: defaultSeqTracks.map(name => ({
     instrument: name,
     clips: [{ start: 0, length: 192 * 16, notes: [] }],
@@ -618,6 +628,11 @@ const MIN_MIDI = midiFrom('C',2);
 const MAX_MIDI = MIN_MIDI + 4*12;
 let activeTrack = 0;
 let dragNote = null;
+
+function calcNoteCols(){
+  const bars = song.loop[1] - song.loop[0];
+  return bars * song.timeSig.num * 16 / song.timeSig.den;
+}
 
 function setBpm(val){
   song.bpm = tempo = val;
@@ -665,10 +680,13 @@ function loadSong(data){
   song.ppq = data.ppq;
   song.bpm = data.bpm;
   song.loop = data.loop;
+  song.timeSig = data.timeSig || { num: 4, den: 4 };
   song.tracks = data.tracks.map(t=>({ ...t, player:null }));
   Tone.Transport.PPQ = song.ppq;
   setBpm(song.bpm);
   updateLoop();
+  seqTimeNum.value = song.timeSig.num;
+  seqTimeDen.value = song.timeSig.den;
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
@@ -702,15 +720,21 @@ function drawPianoRoll(){
   const ctx = pianoRoll.getContext('2d');
   const notes = 4*12; // C2–C6
   ctx.clearRect(0,0,pianoRoll.width,pianoRoll.height);
-  ctx.strokeStyle = '#334155';
   const noteH = pianoRoll.height / notes;
+  ctx.strokeStyle = '#334155';
   for(let i=0;i<=notes;i++){
     const y=i*noteH; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(pianoRoll.width,y); ctx.stroke();
   }
+  const noteCols = calcNoteCols();
+  const measureCols = song.timeSig.num * 16 / song.timeSig.den;
   const colW = pianoRoll.width / noteCols;
   for(let i=0;i<=noteCols;i++){
-    const x=i*colW; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,pianoRoll.height); ctx.stroke();
+    const x=i*colW; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,pianoRoll.height);
+    ctx.lineWidth = i % measureCols === 0 ? 2 : 1;
+    ctx.strokeStyle = i % measureCols === 0 ? '#475569' : '#334155';
+    ctx.stroke();
   }
+  ctx.lineWidth = 1; ctx.strokeStyle = '#334155';
   const midiMax = MAX_MIDI;
   song.tracks.forEach((track, idx) => {
     const color = idx===activeTrack? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.25)';
@@ -732,9 +756,8 @@ function drawPianoRoll(){
   }
 }
 
-const noteCols = 64;
 pianoRoll.addEventListener('pointerdown', ev => {
-  const colW = pianoRoll.width / noteCols;
+  const colW = pianoRoll.width / calcNoteCols();
   const noteH = pianoRoll.height / (4*12);
   const rect = pianoRoll.getBoundingClientRect();
   const x = ev.clientX - rect.left;
@@ -747,7 +770,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
 });
 pianoRoll.addEventListener('pointermove', ev => {
   if(!dragNote) return;
-  const colW = pianoRoll.width / noteCols;
+  const colW = pianoRoll.width / calcNoteCols();
   const rect = pianoRoll.getBoundingClientRect();
   const x = ev.clientX - rect.left;
   const endCol = Math.floor(x/colW)+1;
@@ -1408,6 +1431,16 @@ selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateMod
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', updateLoop);
+seqTimeNum.addEventListener('change', e=>{
+  song.timeSig.num = Number(e.target.value) || song.timeSig.num;
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+});
+seqTimeDen.addEventListener('change', e=>{
+  song.timeSig.den = Number(e.target.value) || song.timeSig.den;
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+});
 $('#btnClearSel').addEventListener('click', clearSelection);
 
 // Listen buttons
