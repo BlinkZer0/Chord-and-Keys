@@ -114,33 +114,94 @@
 
 <script>
 // ========================= UTIL: THEORY =========================
-const NOTES_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; // 0..11
+// Quarter‑tone pitch map (0.5‑semitone steps = 24 pitch classes)
+const NOTES_SHARP = [
+  "C","C+","C#","C#+","D","D+","D#","D#+",
+  "E","E+","F","F+","F#","F#+","G","G+",
+  "G#","G#+","A","A+","A#","A#+","B","B+"
+];
+const PITCH_STEP = 0.5; // smallest interval in semitones
+const OCTAVE = 12;      // semitones per octave
 const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
 const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
 const INSTRUMENTS = ["Piano","Guitar","Bass","Flute (beta)"];
 const MODES = { Ionian:[0,2,4,5,7,9,11], Dorian:[0,2,3,5,7,9,10], Phrygian:[0,1,3,5,7,8,10], Lydian:[0,2,4,6,7,9,11], Mixolydian:[0,2,4,5,7,9,10], Aeolian:[0,2,3,5,7,8,10], Locrian:[0,1,3,5,6,8,10], "Major Pentatonic":[0,2,4,7,9], "Minor Pentatonic":[0,3,5,7,10], Blues:[0,3,5,6,7,10] };
 const CHORD_QUALITIES = { Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], Sus2:[0,2,7], Sus4:[0,5,7], "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], m7b5:[0,3,6,10], Dim7:[0,3,6,9] };
 function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
-function pcIndex(note){ const n = toSharpName(String(note).trim()); const m = n.match(/^([A-G])(#|b)?/); if(!m) return null; const name=(m[1]||"")+(m[2]||""); return NOTES_SHARP.indexOf(name); }
-function pcName(i){ return NOTES_SHARP[((i%12)+12)%12]; }
-function midiFrom(note, octave=4){ const i=pcIndex(note); if(i==null) return null; return 12*(octave+1)+i; }
+function pcIndex(note){
+  const n = String(note).trim();
+  const m = n.match(/^([A-G])([#b+-]*)/);
+  if(!m) return null;
+  const BASE = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  let val = BASE[m[1]];
+  for(const ch of (m[2]||"")){
+    if(ch==="#") val += 1;
+    else if(ch==="b") val -= 1;
+    else if(ch==="+") val += PITCH_STEP;
+    else if(ch==="-") val -= PITCH_STEP;
+  }
+  return val;
+}
+function pcName(i){
+  const norm = ((i % OCTAVE) + OCTAVE) % OCTAVE;
+  const idx = Math.round(norm / PITCH_STEP) % NOTES_SHARP.length;
+  return NOTES_SHARP[idx];
+}
+function midiFrom(note, octave=4){
+  const i = pcIndex(note);
+  if(i==null) return null;
+  return OCTAVE*(octave+1)+i;
+}
 function buildScale(tonic, modeName){ const rootPc=pcIndex(tonic); const pattern = MODES[modeName]||MODES.Ionian; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
 function buildChord(root, quality){ const rootPc=pcIndex(root); const pattern = CHORD_QUALITIES[quality]||CHORD_QUALITIES.Maj; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
 function makePcSet(notes){ return new Set(notes.map(pcIndex).filter(x=>x!=null)); }
-function chordToMidi(notes, root, baseOct=4){ const rootMidi=midiFrom(root,baseOct); if(rootMidi==null) return []; const rootPc=pcIndex(root); if(rootPc==null) return []; const pcs=notes.map(pcIndex).filter(x=>x!=null); const ordered=pcs.map(pc=>{ let best=rootMidi - ((rootPc - pc + 12)%12); while(best<rootMidi-5) best+=12; while(best>rootMidi+12) best-=12; return best; }).sort((a,b)=>a-b); return Array.from(new Set(ordered)); }
-function scaleToMidi(scaleNotes, tonic, startOct=4){ const pcs=scaleNotes.map(pcIndex).filter(x=>x!=null); const tonicPc=pcIndex(tonic); if(tonicPc==null) return []; const seq=[]; for(let o=startOct; o<=startOct+1; o++){ for(const pc of pcs){ seq.push(12*(o+1)+pc); } } const startIdx=pcs.indexOf(tonicPc); if(startIdx>0){ const perOct=pcs.length; const out=[]; for(let i=0;i<seq.length;i+=perOct){ const chunk=seq.slice(i,i+perOct); out.push(...chunk.slice(startIdx), ...chunk.slice(0,startIdx)); } return out; } return seq; }
+function mod(n,m){ return ((n % m) + m) % m; }
+function chordToMidi(notes, root, baseOct=4){
+  const rootMidi = midiFrom(root, baseOct);
+  if(rootMidi==null) return [];
+  const rootPc = pcIndex(root);
+  if(rootPc==null) return [];
+  const pcs = notes.map(pcIndex).filter(x=>x!=null);
+  const ordered = pcs.map(pc=>{
+    let best = rootMidi - mod(rootPc - pc, OCTAVE);
+    while(best < rootMidi-5) best += OCTAVE;
+    while(best > rootMidi+OCTAVE) best -= OCTAVE;
+    return best;
+  }).sort((a,b)=>a-b);
+  return Array.from(new Set(ordered));
+}
+function scaleToMidi(scaleNotes, tonic, startOct=4){
+  const pcs = scaleNotes.map(pcIndex).filter(x=>x!=null);
+  const tonicPc = pcIndex(tonic);
+  if(tonicPc==null) return [];
+  const seq = [];
+  for(let o=startOct; o<=startOct+1; o++){
+    for(const pc of pcs){ seq.push(OCTAVE*(o+1)+pc); }
+  }
+  const startIdx = pcs.indexOf(tonicPc);
+  if(startIdx>0){
+    const perOct = pcs.length;
+    const out=[];
+    for(let i=0;i<seq.length;i+=perOct){
+      const chunk=seq.slice(i,i+perOct);
+      out.push(...chunk.slice(startIdx), ...chunk.slice(0,startIdx));
+    }
+    return out;
+  }
+  return seq;
+}
 
 // Identify chord from selection
 const CHORD_DICT = CHORD_QUALITIES; // reuse
 function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
 function intersection(a,b){ return a.filter(x=>b.includes(x)); }
-function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=((bass%12)-rootPc+12)%12; if(d===0) return "root position"; if(d===3||d===4) return "1st inv"; if(d===7||d===8||d===6) return "2nd inv"; return "inversion"; }
-function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>n%12))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> (pc-root+12)%12).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>x%12))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
+function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={ Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'}, Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'}, Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'}, 'Flute (beta)':{a:.08,d:.1,s:.7,r:.6,osc:'sine'} };
 async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).toDestination(); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
-function midiName(m){ const pc=m%12, oct=Math.floor(m/12)-1; return pcName(pc)+oct; }
+function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, arpeggiate=false, strum=false}={}){ await ensureTone(instrument); const beat=60/tempo; const now=Tone.now(); if(asChord){ _synth.triggerAttackRelease(list.map(midiName), beat*2, now); return; } if(strum){ list.forEach((m,i)=>{ const t=now + i*(beat/6); _synth.triggerAttackRelease(midiName(m), beat*1.2, t); }); return; } const seq=list; seq.forEach((m,i)=>{ const t=now + i*(beat*0.6); _synth.triggerAttackRelease(midiName(m), beat*0.9, t); }); }
 async function pluck(m, instrument, tempo){ await ensureTone(instrument); _synth.triggerAttackRelease(midiName(m), 0.25); }
 
@@ -177,46 +238,80 @@ fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMEN
 fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
 fillSelect(selMode, Object.keys(MODES)); selMode.value=scaleMode;
 
-function updateBadges(){ badgeRoot.textContent = 'Root: '+toSharpName(keyRoot); const selected = computeSelected(); if(mode==='Chord'){ badgeChordNotes.textContent = 'Notes: '+selected.notes.join('-'); } else { badgeScaleNotes.textContent = 'Scale: '+selected.notes.join('-'); } const arr=[...selection].sort((a,b)=>a-b); const id=chordNameFromNotes(arr); badgeId.textContent = 'Selection: '+id.name+(id.detail?(' '+id.detail):''); badgeSelNotes.textContent = 'Notes: ' + (arr.length? arr.map(m=> pcName(m%12)+(Math.floor(m/12)-1)).join(' '): '—'); }
+function updateBadges(){
+  badgeRoot.textContent = 'Root: '+toSharpName(keyRoot);
+  const selected = computeSelected();
+  if(mode==='Chord'){ badgeChordNotes.textContent = 'Notes: '+selected.notes.join('-'); }
+  else { badgeScaleNotes.textContent = 'Scale: '+selected.notes.join('-'); }
+  const arr=[...selection].sort((a,b)=>a-b);
+  const id=chordNameFromNotes(arr);
+  badgeId.textContent = 'Selection: '+id.name+(id.detail?(' '+id.detail):'');
+  badgeSelNotes.textContent = 'Notes: ' + (arr.length? arr.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '): '—');
+}
 
 function computeSelected(){ if(mode==='Chord'){ const notes=buildChord(keyRoot, chordQuality); return {type:'chord', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } else { const notes=buildScale(keyRoot, scaleMode); return {type:'scale', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } }
 
 // ========================= PIANO =========================
 function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
   // White keys row
-  const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(m%12));
+  const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
-  whites.forEach(m=>{ const pc=m%12; const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/12)-1); k.appendChild(lbl); k.addEventListener('click', async (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { await pluck(m, instrument, tempo); } updateBadges(); renderHighlights(); }); whiteRow.appendChild(k); });
+  whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl); k.addEventListener('click', async (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { await pluck(m, instrument, tempo); } updateBadges(); renderHighlights(); }); whiteRow.appendChild(k); });
   // Black overlay (pointer-enabled only on keys)
   const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2 flex'; shell.appendChild(overlay);
-  keys.filter(m=>[1,3,6,8,10].includes(m%12)).forEach(m=>{ const pc=m%12; const wrap=document.createElement('div'); wrap.className='relative w-[6.66%] mx-[1.67%]'; wrap.style.visibility = [1,3,6,8,10].includes(pc)?'visible':'hidden'; const blk=document.createElement('div'); blk.dataset.midi=String(m); blk.dataset.pc=String(pc); blk.className='black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border bg-black border-black pointer-events-auto'; blk.title = pcName(pc)+(Math.floor(m/12)-1); const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; lbl.textContent=''; blk.appendChild(lbl); blk.addEventListener('click', async (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { await pluck(m, instrument, tempo); } updateBadges(); renderHighlights(); }); wrap.appendChild(blk); overlay.appendChild(wrap); });
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const wrap=document.createElement('div'); wrap.className='relative w-[6.66%] mx-[1.67%]'; wrap.style.visibility = [1,3,6,8,10].includes(pc)?'visible':'hidden'; const blk=document.createElement('div'); blk.dataset.midi=String(m); blk.dataset.pc=String(pc); blk.className='black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border bg-black border-black pointer-events-auto'; blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; lbl.textContent=''; blk.appendChild(lbl); blk.addEventListener('click', async (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { await pluck(m, instrument, tempo); } updateBadges(); renderHighlights(); }); wrap.appendChild(blk); overlay.appendChild(wrap); });
   pianoHost.appendChild(container);
 }
 function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); }
 function clearSelection(){ selection.clear(); updateBadges(); renderHighlights(); }
 function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
   // Whites (robust selector — no Tailwind arbitrary value in query)
-  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=m%12; const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
+  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
     const rootBadge = el.querySelector('.rootbadge'); if(rootBadge) rootBadge.remove(); if(rootPc===pc){ const b=document.createElement('div'); b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; b.textContent='ROOT'; el.appendChild(b); } });
   // Blacks (robust selector)
-  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=m%12; const active=pcset.has(pc); el.className = 'black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
+  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
 }
 
 // ========================= FRETBOARDS =========================
 const GUITAR_STD=[40,45,50,55,59,64]; const BASS_STD=[28,33,38,43];
-function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent = `${title} • Tuning: ` + tuning.map(m=> pcName(m%12)+(Math.floor(m/12)-1)).join(' '); outer.appendChild(titleEl); const box=document.createElement('div'); box.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const grid=document.createElement('div'); grid.className='grid'; const frets=13; grid.style.gridTemplateColumns = `repeat(${frets+1}, minmax(0,1fr))`; box.appendChild(grid); // header row
+function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent = `${title} • Tuning: ` + tuning.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const box=document.createElement('div'); box.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const grid=document.createElement('div'); grid.className='grid'; const frets=13; grid.style.gridTemplateColumns = `repeat(${frets+1}, minmax(0,1fr))`; box.appendChild(grid); // header row
   grid.appendChild(document.createElement('div')); for(let f=0; f<frets; f++){ const d=document.createElement('div'); d.className='text-center text-[10px] text-slate-400'; d.textContent=String(f); grid.appendChild(d); }
-  const {pcset, rootPc} = computeSelected(); const strings=tuning.length; for(let s=0; s<strings; s++){ const stringIndex=strings-1-s; const openMidi=tuning[stringIndex]; const lab=document.createElement('div'); lab.className='text-right pr-2 text-[11px] text-slate-400'; lab.textContent=pcName(openMidi%12); grid.appendChild(lab); for(let f=0; f<frets; f++){ const midi=openMidi+f; const pc=midi%12; const cell=document.createElement('div'); cell.className='relative h-10 border border-slate-700/70'; if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className = 'absolute inset-1 rounded-full flex items-center justify-center text-[10px] font-semibold '+ (rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.title = `${pcName(pc)} @ string ${stringIndex+1}, fret ${f}`; dot.textContent = (rootPc===pc? 'R': pcName(pc)); cell.appendChild(dot); } grid.appendChild(cell); } }
+  const {pcset, rootPc} = computeSelected(); const strings=tuning.length; for(let s=0; s<strings; s++){ const stringIndex=strings-1-s; const openMidi=tuning[stringIndex]; const lab=document.createElement('div'); lab.className='text-right pr-2 text-[11px] text-slate-400'; lab.textContent=pcName(mod(openMidi,OCTAVE)); grid.appendChild(lab); for(let f=0; f<frets; f++){ const midi=openMidi+f; const pc=mod(midi,OCTAVE); const cell=document.createElement('div'); cell.className='relative h-10 border border-slate-700/70'; if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className = 'absolute inset-1 rounded-full flex items-center justify-center text-[10px] font-semibold '+ (rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.title = `${pcName(pc)} @ string ${stringIndex+1}, fret ${f}`; dot.textContent = (rootPc===pc? 'R': pcName(pc)); cell.appendChild(dot); } grid.appendChild(cell); } }
   outer.appendChild(box); const note=document.createElement('div'); note.className='mt-2 text-center text-xs text-slate-400'; note.textContent='Colored dots = playable notes on that string/fret. Red = root.'; outer.appendChild(note); host.appendChild(outer); }
 
 // ========================= EXPORT HELPERS =========================
 function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
-function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(m%12)+(Math.floor(m/12)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
+function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
 function downloadMID(){ const bytes=buildMidi(buildNoteEvents(),96,130); const blob=new Blob([bytes],{type:'audio/midi'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${keyRoot}-${mode==='chord'?chordQuality:scaleMode}.mid`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500); }
 
 // ========================= TESTS =========================
 function addTest(list, name, pass, details){ list.push({name,pass,details}); }
-function runTests(){ const t=[]; addTest(t,'pcIndex C = 0', pcIndex('C')===0); addTest(t,'pcIndex C# = 1', pcIndex('C#')===1); addTest(t,'toSharp(Db)=C#', toSharpName('Db')==='C#'); addTest(t,'toSharp(E#)=F', toSharpName('E#')==='F'); addTest(t,'toSharp(B#)=C', toSharpName('B#')==='C'); addTest(t,'toSharp(Cb)=B', toSharpName('Cb')==='B'); addTest(t,'C Ionian ok', JSON.stringify(buildScale('C','Ionian'))===JSON.stringify(['C','D','E','F','G','A','B'])); addTest(t,'A Dorian ok', JSON.stringify(buildScale('A','Dorian'))===JSON.stringify(['A','B','C','D','E','F#','G'])); addTest(t,'E Blues has A#', buildScale('E','Blues').includes('A#')); addTest(t,'G Mixolydian len=7', buildScale('G','Mixolydian').length===7); addTest(t,'A Major Pentatonic len=5', buildScale('A','Major Pentatonic').length===5); addTest(t,'C Maj chord', JSON.stringify(buildChord('C','Maj'))===JSON.stringify(['C','E','G'])); addTest(t,'G7 chord', JSON.stringify(buildChord('G','7'))===JSON.stringify(['G','B','D','F'])); addTest(t,'Bm7b5 chord', JSON.stringify(buildChord('B','m7b5'))===JSON.stringify(['B','D','F','A'])); addTest(t,'Dsus4 chord', JSON.stringify(buildChord('D','Sus4'))===JSON.stringify(['D','G','A'])); const cm=chordToMidi(['C','E','G'],'C',4); addTest(t,'ChordToMidi >=3', cm.length>=3, cm.join(',')); const sc=scaleToMidi(['C','D','E','F','G','A','B'],'C',4); addTest(t,'ScaleToMidi >=14', sc.length>=14, String(sc.length)); const testsEl=document.getElementById('tests'); testsEl.innerHTML=''; t.forEach((r)=>{ const li=document.createElement('div'); li.className='px-3 py-2 rounded-lg border '+ (r.pass?'border-emerald-700 bg-emerald-900/30 text-emerald-200':'border-rose-700 bg-rose-900/30 text-rose-200'); li.innerHTML = '<span class="font-semibold">'+(r.pass?'PASS':'FAIL')+'</span> — '+r.name + (r.details? ('<div class="text-xs opacity-75">'+r.details+'</div>'):''); testsEl.appendChild(li); }); }
+function runTests(){
+  const t=[];
+  addTest(t,'pcIndex C = 0', pcIndex('C')===0);
+  addTest(t,'pcIndex C# = 1', pcIndex('C#')===1);
+  addTest(t,'pcIndex C+ = 0.5', pcIndex('C+')===0.5);
+  addTest(t,'pcName 0.5 = C+', pcName(0.5)==='C+');
+  addTest(t,'toSharp(Db)=C#', toSharpName('Db')==='C#');
+  addTest(t,'toSharp(E#)=F', toSharpName('E#')==='F');
+  addTest(t,'toSharp(B#)=C', toSharpName('B#')==='C');
+  addTest(t,'toSharp(Cb)=B', toSharpName('Cb')==='B');
+  addTest(t,'C Ionian ok', JSON.stringify(buildScale('C','Ionian'))===JSON.stringify(['C','D','E','F','G','A','B']));
+  addTest(t,'A Dorian ok', JSON.stringify(buildScale('A','Dorian'))===JSON.stringify(['A','B','C','D','E','F#','G']));
+  addTest(t,'E Blues has A#', buildScale('E','Blues').includes('A#'));
+  addTest(t,'G Mixolydian len=7', buildScale('G','Mixolydian').length===7);
+  addTest(t,'A Major Pentatonic len=5', buildScale('A','Major Pentatonic').length===5);
+  addTest(t,'C Maj chord', JSON.stringify(buildChord('C','Maj'))===JSON.stringify(['C','E','G']));
+  addTest(t,'G7 chord', JSON.stringify(buildChord('G','7'))===JSON.stringify(['G','B','D','F']));
+  addTest(t,'Bm7b5 chord', JSON.stringify(buildChord('B','m7b5'))===JSON.stringify(['B','D','F','A']));
+  addTest(t,'Dsus4 chord', JSON.stringify(buildChord('D','Sus4'))===JSON.stringify(['D','G','A']));
+  const cm=chordToMidi(['C','E','G'],'C',4);
+  addTest(t,'ChordToMidi >=3', cm.length>=3, cm.join(','));
+  const sc=scaleToMidi(['C','D','E','F','G','A','B'],'C',4);
+  addTest(t,'ScaleToMidi >=14', sc.length>=14, String(sc.length));
+  const testsEl=document.getElementById('tests'); testsEl.innerHTML='';
+  t.forEach((r)=>{ const li=document.createElement('div'); li.className='px-3 py-2 rounded-lg border '+ (r.pass?'border-emerald-700 bg-emerald-900/30 text-emerald-200':'border-rose-700 bg-rose-900/30 text-rose-200'); li.innerHTML = '<span class="font-semibold">'+(r.pass?'PASS':'FAIL')+'</span> — '+r.name + (r.details? ('<div class="text-xs opacity-75">'+r.details+'</div>'):''); testsEl.appendChild(li); });
+}
 
 // ========================= WIRING =========================
 function refreshInstruments(){ const isGuitar = selInstr.value.startsWith('Guitar'); const isBass = selInstr.value.startsWith('Bass'); guitarHost.classList.toggle('hidden', !isGuitar); bassHost.classList.toggle('hidden', !isBass); fluteNote.classList.toggle('hidden', !selInstr.value.startsWith('Flute')); btnPlayStrum.classList.toggle('hidden', !isGuitar); }
