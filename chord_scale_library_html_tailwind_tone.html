@@ -289,6 +289,7 @@ let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
 let system = 'Western';
 let tempo = 110;
+let fluteLeftToRight = true;
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
@@ -371,23 +372,34 @@ function buildFluteChart(){
   fluteHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
-  svg.setAttribute('viewBox','0 0 60 160');
+  svg.setAttribute('viewBox','0 0 160 60');
   svg.setAttribute('class','mx-auto');
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
-    c.setAttribute('cx','30');
-    c.setAttribute('cy', String(20 + i*22));
+    const cx = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
+    const cy = 30;
+    c.setAttribute('cx', String(cx));
+    c.setAttribute('cy', String(cy));
     c.setAttribute('r','10');
     c.setAttribute('stroke','#fbbf24');
     c.setAttribute('stroke-width','2');
     c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
     svg.appendChild(c);
   });
+  fluteHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='fluteFlip';
+  flip.textContent='Flip ↔';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  fluteHost.appendChild(flip);
   const lbl=document.createElement('div');
   lbl.className='mt-2 text-center text-xs text-slate-400';
   lbl.textContent=`Fingering for ${sharp}`;
-  fluteHost.appendChild(svg);
   fluteHost.appendChild(lbl);
+  document.getElementById('fluteFlip').onclick = () => {
+    fluteLeftToRight = !fluteLeftToRight;
+    buildFluteChart();
+  };
 }
 
 // ========================= RECORDER CHART =========================
