@@ -298,6 +298,66 @@ async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
 function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+// Simple Tone.js drum recipes
+function makeMembrane(pitch, opts){
+  const synth = new Tone.MembraneSynth(opts).toDestination();
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='8n'){
+      synth.triggerAttackRelease(pitch, duration, time, velocity);
+    },
+    dispose(){ synth.dispose(); }
+  };
+}
+function makeNoise(filterOpts, envOpts){
+  const filter = new Tone.Filter(filterOpts).toDestination();
+  const synth = new Tone.NoiseSynth({envelope: envOpts}).connect(filter);
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='16n'){
+      synth.triggerAttackRelease(duration, time, velocity);
+    },
+    dispose(){ synth.dispose(); filter.dispose(); }
+  };
+}
+function makeMetal(opts){
+  const synth = new Tone.MetalSynth(opts).toDestination();
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='8n'){
+      synth.triggerAttackRelease(duration, time, velocity);
+    },
+    dispose(){ synth.dispose(); }
+  };
+}
+function makeClap({filterFreq, bursts, decay}){
+  const filter = new Tone.Filter({type:'bandpass', frequency:filterFreq, Q:1}).toDestination();
+  const noise = new Tone.NoiseSynth({envelope:{attack:0.001, decay:decay, sustain:0}}).connect(filter);
+  return {
+    trigger(note, time=Tone.now(), velocity=1){
+      for(let i=0;i<bursts;i++){
+        noise.triggerAttackRelease('16n', time + i*0.02, velocity);
+      }
+    },
+    dispose(){ noise.dispose(); filter.dispose(); }
+  };
+}
+const DRUMS = {
+  'Kick 808': makeMembrane('C1',{pitchDecay:.05,octaves:4,envelope:{attack:.001,decay:.5,sustain:0,release:.1}}),
+  'Kick Punchy': makeMembrane('C1',{pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Kick Soft': makeMembrane('C1',{pitchDecay:.02,octaves:2,envelope:{attack:.002,decay:.3,sustain:0,release:.2}}),
+  'Snare Tight': makeNoise({type:'highpass',frequency:1800},{attack:.001,decay:.15,sustain:0}),
+  'Snare Crack': makeNoise({type:'bandpass',frequency:2000},{attack:.001,decay:.1,sustain:0}),
+  'Snare Brush': makeNoise({type:'lowpass',frequency:1200},{attack:.005,decay:.3,sustain:0}),
+  'Cymbal ClosedHat': makeMetal({frequency:400,envelope:{attack:.001,decay:.1,release:.01}}),
+  'Cymbal OpenHat': makeMetal({frequency:300,envelope:{attack:.001,decay:.4,release:.2}}),
+  'Cymbal Ride': makeMetal({frequency:250,envelope:{attack:.001,decay:1.2,release:.5},harmonicity:5.1,resonance:7e3}),
+  'Clap Short': makeClap({filterFreq:1200,bursts:2,decay:.15}),
+  'Clap Wide': makeClap({filterFreq:1200,bursts:3,decay:.25}),
+  'Clap Vintage': makeClap({filterFreq:800,bursts:4,decay:.3}),
+  'Hand Conga': makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
+  'Hand Bongo': makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Hand Tabla': makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}})
+};
+const DRUM_NAMES = Object.keys(DRUMS);
 // Plays MIDI notes using the synth. Notes are sequenced by default;
 // use `asChord` to trigger them simultaneously or `strum` for a quick
 // guitar-style roll.
@@ -431,16 +491,21 @@ function updateLoop(){
 function scheduleSong(){
   Tone.Transport.cancel();
   song.tracks.forEach(track => {
+    const drum = DRUMS[track.instrument];
     const env = ENV[track.instrument] || ENV.Piano;
     track.clips.forEach(clip => {
       clip.notes.forEach(note => {
         const when = clip.start + note.tick;
         Tone.Transport.schedule(time => {
-          _synth.set({
-            envelope: {attack: env.a, decay: env.d, sustain: env.s, release: env.r},
-            oscillator: {type: env.osc}
-          });
-          _synth.triggerAttackRelease(midiToFreq(note.midi), `${note.dur}i`, time, note.vel ?? 0.8);
+          if(drum){
+            drum.trigger(note.midi, time, note.vel ?? 0.8, `${note.dur}i`);
+          }else{
+            _synth.set({
+              envelope:{attack: env.a, decay: env.d, sustain: env.s, release: env.r},
+              oscillator:{type: env.osc}
+            });
+            _synth.triggerAttackRelease(midiToFreq(note.midi), `${note.dur}i`, time, note.vel ?? 0.8);
+          }
         }, `${when}i`);
       });
     });
@@ -474,13 +539,16 @@ function initSequencer(){
   for(const name of defaultSeqTracks){
     const row=document.createElement('div');
     row.className='flex items-center gap-2';
+    const instrOpts = INSTRUMENTS.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('');
+    const drumOpts = DRUM_NAMES.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('');
     row.innerHTML=
       `<span class="w-32">${name}</span>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute>M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo>S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="0.8" class="w-24" />`+
       `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
-      defaultSeqTracks.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('')+
+      instrOpts+
+      `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
       `</select>`;
     seqTracks.appendChild(row);
   }
