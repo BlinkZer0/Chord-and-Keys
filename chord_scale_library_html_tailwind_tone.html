@@ -294,42 +294,150 @@ let _synth=null; let _started=false; const ENV={
   Ney:{a:.08,d:.12,s:.7,r:.5,osc:'sine'},
   'Hammond Organ':{a:.03,d:.2,s:.8,r:.7,osc:'square'}
 };
-async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).toDestination(); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
+const masterLim = new Tone.Limiter(-1).toDestination();
+
+function makePoly(env){
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const synth = new Tone.PolySynth(Tone.Synth,{
+    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
+    oscillator:{type:env.osc}
+  }).connect(gain);
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+    },
+    release(midi,time=Tone.now()){
+      synth.triggerRelease(midiToFreq(midi),time);
+    },
+    dispose(){ synth.dispose(); gain.dispose(); }
+  };
+}
+
+function makePluck(){
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const synth = new Tone.PluckSynth().connect(gain);
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+    },
+    dispose(){ synth.dispose(); gain.dispose(); }
+  };
+}
+
+function makeMono(env){
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const synth = new Tone.MonoSynth({
+    oscillator:{type:env.osc},
+    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}
+  }).connect(gain);
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+    },
+    release(midi,time=Tone.now()){
+      synth.triggerRelease(midiToFreq(midi),time);
+    },
+    dispose(){ synth.dispose(); gain.dispose(); }
+  };
+}
+
+function makeDuo(env){
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const vibrato = new Tone.Vibrato(5,0.2).connect(gain);
+  const synth = new Tone.DuoSynth({
+    voice0:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
+    voice1:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}}
+  }).connect(vibrato);
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+    },
+    release(midi,time=Tone.now()){
+      synth.triggerRelease(midiToFreq(midi),time);
+    },
+    dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); }
+  };
+}
+
+function makeAM(env){
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const reverb = new Tone.Reverb(2).connect(gain);
+  const synth = new Tone.AMSynth({
+    oscillator:{type:env.osc},
+    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
+    modulationEnvelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}
+  }).connect(reverb);
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+    },
+    release(midi,time=Tone.now()){
+      synth.triggerRelease(midiToFreq(midi),time);
+    },
+    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
+  };
+}
+
+const SEQ_INSTR = {
+  Piano: () => makePoly(ENV.Piano),
+  Guitar: () => makePluck(),
+  Bass: () => makeMono(ENV.Bass),
+  Violin: () => makeDuo(ENV.Violin),
+  Flute: () => makeAM(ENV.Flute),
+  Recorder: () => makeAM(ENV.Recorder),
+  Trumpet: () => makeMono(ENV.Trumpet),
+  Saxophone: () => makeDuo(ENV.Saxophone),
+  Koto: () => makePluck(),
+  Oud: () => makePluck(),
+  Ney: () => makeAM(ENV.Ney),
+  'Hammond Organ': () => makePoly(ENV['Hammond Organ'])
+};
+
+function createSeqInstrument(name){
+  const factory = SEQ_INSTR[name];
+  return factory ? factory() : makePoly(ENV[name] || ENV.Piano);
+}
+
+async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).connect(masterLim); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
 function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 // Simple Tone.js drum recipes
 function makeMembrane(pitch, opts){
-  const synth = new Tone.MembraneSynth(opts).toDestination();
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const synth = new Tone.MembraneSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(pitch, duration, time, velocity);
     },
-    dispose(){ synth.dispose(); }
+    dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
 function makeNoise(filterOpts, envOpts){
-  const filter = new Tone.Filter(filterOpts).toDestination();
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const filter = new Tone.Filter(filterOpts).connect(gain);
   const synth = new Tone.NoiseSynth({envelope: envOpts}).connect(filter);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='16n'){
       synth.triggerAttackRelease(duration, time, velocity);
     },
-    dispose(){ synth.dispose(); filter.dispose(); }
+    dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); }
   };
 }
 function makeMetal(opts){
-  const synth = new Tone.MetalSynth(opts).toDestination();
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const synth = new Tone.MetalSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(duration, time, velocity);
     },
-    dispose(){ synth.dispose(); }
+    dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
 function makeClap({filterFreq, bursts, decay}){
-  const filter = new Tone.Filter({type:'bandpass', frequency:filterFreq, Q:1}).toDestination();
+  const gain = new Tone.Gain(1).connect(masterLim);
+  const filter = new Tone.Filter({type:'bandpass', frequency:filterFreq, Q:1}).connect(gain);
   const noise = new Tone.NoiseSynth({envelope:{attack:0.001, decay:decay, sustain:0}}).connect(filter);
   return {
     trigger(note, time=Tone.now(), velocity=1){
@@ -337,25 +445,25 @@ function makeClap({filterFreq, bursts, decay}){
         noise.triggerAttackRelease('16n', time + i*0.02, velocity);
       }
     },
-    dispose(){ noise.dispose(); filter.dispose(); }
+    dispose(){ noise.dispose(); filter.dispose(); gain.dispose(); }
   };
 }
 const DRUMS = {
-  'Kick 808': makeMembrane('C1',{pitchDecay:.05,octaves:4,envelope:{attack:.001,decay:.5,sustain:0,release:.1}}),
-  'Kick Punchy': makeMembrane('C1',{pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
-  'Kick Soft': makeMembrane('C1',{pitchDecay:.02,octaves:2,envelope:{attack:.002,decay:.3,sustain:0,release:.2}}),
-  'Snare Tight': makeNoise({type:'highpass',frequency:1800},{attack:.001,decay:.15,sustain:0}),
-  'Snare Crack': makeNoise({type:'bandpass',frequency:2000},{attack:.001,decay:.1,sustain:0}),
-  'Snare Brush': makeNoise({type:'lowpass',frequency:1200},{attack:.005,decay:.3,sustain:0}),
-  'Cymbal ClosedHat': makeMetal({frequency:400,envelope:{attack:.001,decay:.1,release:.01}}),
-  'Cymbal OpenHat': makeMetal({frequency:300,envelope:{attack:.001,decay:.4,release:.2}}),
-  'Cymbal Ride': makeMetal({frequency:250,envelope:{attack:.001,decay:1.2,release:.5},harmonicity:5.1,resonance:7e3}),
-  'Clap Short': makeClap({filterFreq:1200,bursts:2,decay:.15}),
-  'Clap Wide': makeClap({filterFreq:1200,bursts:3,decay:.25}),
-  'Clap Vintage': makeClap({filterFreq:800,bursts:4,decay:.3}),
-  'Hand Conga': makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
-  'Hand Bongo': makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
-  'Hand Tabla': makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}})
+  'Kick 808': () => makeMembrane('C1',{pitchDecay:.05,octaves:4,envelope:{attack:.001,decay:.5,sustain:0,release:.1}}),
+  'Kick Punchy': () => makeMembrane('C1',{pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Kick Soft': () => makeMembrane('C1',{pitchDecay:.02,octaves:2,envelope:{attack:.002,decay:.3,sustain:0,release:.2}}),
+  'Snare Tight': () => makeNoise({type:'highpass',frequency:1800},{attack:.001,decay:.15,sustain:0}),
+  'Snare Crack': () => makeNoise({type:'bandpass',frequency:2000},{attack:.001,decay:.1,sustain:0}),
+  'Snare Brush': () => makeNoise({type:'lowpass',frequency:1200},{attack:.005,decay:.3,sustain:0}),
+  'Cymbal ClosedHat': () => makeMetal({frequency:400,envelope:{attack:.001,decay:.1,release:.01}}),
+  'Cymbal OpenHat': () => makeMetal({frequency:300,envelope:{attack:.001,decay:.4,release:.2}}),
+  'Cymbal Ride': () => makeMetal({frequency:250,envelope:{attack:.001,decay:1.2,release:.5},harmonicity:5.1,resonance:7e3}),
+  'Clap Short': () => makeClap({filterFreq:1200,bursts:2,decay:.15}),
+  'Clap Wide': () => makeClap({filterFreq:1200,bursts:3,decay:.25}),
+  'Clap Vintage': () => makeClap({filterFreq:800,bursts:4,decay:.3}),
+  'Hand Conga': () => makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
+  'Hand Bongo': () => makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Hand Tabla': () => makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}})
 };
 const DRUM_NAMES = Object.keys(DRUMS);
 // Plays MIDI notes using the synth. Notes are sequenced by default;
@@ -491,21 +599,14 @@ function updateLoop(){
 function scheduleSong(){
   Tone.Transport.cancel();
   song.tracks.forEach(track => {
-    const drum = DRUMS[track.instrument];
-    const env = ENV[track.instrument] || ENV.Piano;
+    if(track.player){ track.player.dispose(); }
+    const drumFactory = DRUMS[track.instrument];
+    track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
     track.clips.forEach(clip => {
       clip.notes.forEach(note => {
         const when = clip.start + note.tick;
         Tone.Transport.schedule(time => {
-          if(drum){
-            drum.trigger(note.midi, time, note.vel ?? 0.8, `${note.dur}i`);
-          }else{
-            _synth.set({
-              envelope:{attack: env.a, decay: env.d, sustain: env.s, release: env.r},
-              oscillator:{type: env.osc}
-            });
-            _synth.triggerAttackRelease(midiToFreq(note.midi), `${note.dur}i`, time, note.vel ?? 0.8);
-          }
+          track.player.trigger(note.midi, time, note.vel ?? 0.8, `${note.dur}i`);
         }, `${when}i`);
       });
     });
@@ -1174,6 +1275,7 @@ seqStop.addEventListener('click', ()=>{
   Tone.Transport.stop();
   Tone.Transport.cancel();
   if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
+  song.tracks.forEach(t=>{ if(t.player){ t.player.dispose(); t.player=null; } });
 });
 
 // Export buttons
