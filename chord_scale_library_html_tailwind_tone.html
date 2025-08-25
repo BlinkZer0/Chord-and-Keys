@@ -66,7 +66,7 @@
         <div id="pianoHost"></div>
         <div id="guitarHost" class="hidden"></div>
         <div id="bassHost" class="hidden"></div>
-        <div id="fluteNote" class="hidden text-center text-sm text-amber-300">Flute fingering chart not included — notes shown on the piano. Playback uses a smooth sine tone.</div>
+        <div id="fluteHost" class="hidden"></div>
 
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
@@ -133,7 +133,7 @@ const INSTRUMENTS = [
   "Piano",
   "Guitar",
   "Bass",
-  "Flute (beta)",
+  "Flute",
   "Oud",
   "Ney",
   "Hammond Organ"
@@ -242,7 +242,7 @@ let _synth=null; let _started=false; const ENV={
   Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'},
   Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'},
   Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'},
-  'Flute (beta)':{a:.08,d:.1,s:.7,r:.6,osc:'sine'},
+  Flute:{a:.04,d:.12,s:.8,r:.5,osc:'sine'},
   Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle'},
   Ney:{a:.08,d:.12,s:.7,r:.5,osc:'sine'},
   'Hammond Organ':{a:.03,d:.2,s:.8,r:.7,osc:'square'}
@@ -263,7 +263,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
-const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const fluteNote = $('#fluteNote');
+const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const fluteHost = $('#fluteHost');
 const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
@@ -336,6 +336,48 @@ function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=doc
   const {pcset, rootPc} = computeSelected(); const strings=tuning.length; for(let s=0; s<strings; s++){ const stringIndex=strings-1-s; const openMidi=tuning[stringIndex]; const lab=document.createElement('div'); lab.className='text-right pr-2 text-[11px] text-slate-400'; lab.textContent=pcName(mod(openMidi,OCTAVE)); grid.appendChild(lab); for(let f=0; f<frets; f++){ const midi=openMidi+f; const pc=mod(midi,OCTAVE); const cell=document.createElement('div'); cell.className='relative h-10 border border-slate-700/70'; if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className = 'absolute inset-1 rounded-full flex items-center justify-center text-[10px] font-semibold '+ (rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.title = `${pcName(pc)} @ string ${stringIndex+1}, fret ${f}`; dot.textContent = (rootPc===pc? 'R': pcName(pc)); cell.appendChild(dot); } grid.appendChild(cell); } }
   outer.appendChild(box); const note=document.createElement('div'); note.className='mt-2 text-center text-xs text-slate-400'; note.textContent='Colored dots = playable notes on that string/fret. Red = root.'; outer.appendChild(note); host.appendChild(outer); }
 
+// ========================= FLUTE CHART =========================
+const FLUTE_FINGERINGS = {
+  C:[1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1],
+  D:[0,1,1,1,1,1],
+  'D#':[0,0,1,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,1,1],
+  'G#':[0,0,0,0,0,1],
+  A:[0,0,0,0,0,1],
+  'A#':[0,0,0,0,0,0],
+  B:[0,0,0,0,0,0]
+};
+function buildFluteChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = FLUTE_FINGERINGS[sharp] || [0,0,0,0,0,0];
+  fluteHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('viewBox','0 0 60 160');
+  svg.setAttribute('class','mx-auto');
+  fing.forEach((closed,i)=>{
+    const c=document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx','30');
+    c.setAttribute('cy', String(20 + i*22));
+    c.setAttribute('r','10');
+    c.setAttribute('stroke','#fbbf24');
+    c.setAttribute('stroke-width','2');
+    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    svg.appendChild(c);
+  });
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  fluteHost.appendChild(svg);
+  fluteHost.appendChild(lbl);
+}
+
 // ========================= EXPORT HELPERS =========================
 function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
 function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
@@ -381,12 +423,14 @@ function runTests(){
 function refreshInstruments(){
   const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
   const isBass = selInstr.value.startsWith('Bass');
+  const isFlute = selInstr.value.startsWith('Flute');
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
-  fluteNote.classList.toggle('hidden', !selInstr.value.startsWith('Flute'));
+  fluteHost.classList.toggle('hidden', !isFlute);
+  if(isFlute) buildFluteChart();
   btnPlayStrum.classList.toggle('hidden', !isGuitar);
 }
-function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); }
+function updateAll(){ renderHighlights(); updateBadges(); if(!guitarHost.classList.contains('hidden')) buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)'); if(!bassHost.classList.contains('hidden')) buildFretboard(bassHost, BASS_STD,'Bass (12 frets)'); if(!fluteHost.classList.contains('hidden')) buildFluteChart(); }
 
 // Build UI
 buildPiano(); refreshInstruments(); updateAll(); runTests();
@@ -403,10 +447,10 @@ tempoInput.addEventListener('change', (e)=>{ tempo = Number(e.target.value)||110
 $('#btnClearSel').addEventListener('click', clearSelection);
 
 // Listen buttons
-$('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument: instrument.replace(' (beta)',''), tempo, asChord:true}); });
-$('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument: instrument.replace(' (beta)',''), tempo, arpeggiate:true}); });
-$('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument: instrument.replace(' (beta)',''), tempo, strum:true}); });
-$('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument: instrument.replace(' (beta)',''), tempo, arpeggiate:true}); });
+$('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
+$('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
+$('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, strum:true}); });
+$('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
 
 // Export buttons
 $('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
