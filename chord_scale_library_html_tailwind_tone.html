@@ -309,6 +309,7 @@ function makePoly(env){
     release(midi,time=Tone.now()){
       synth.triggerRelease(midiToFreq(midi),time);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -320,6 +321,7 @@ function makePluck(){
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
       synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -337,6 +339,7 @@ function makeMono(env){
     release(midi,time=Tone.now()){
       synth.triggerRelease(midiToFreq(midi),time);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -355,6 +358,7 @@ function makeDuo(env){
     release(midi,time=Tone.now()){
       synth.triggerRelease(midiToFreq(midi),time);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); }
   };
 }
@@ -374,6 +378,7 @@ function makeAM(env){
     release(midi,time=Tone.now()){
       synth.triggerRelease(midiToFreq(midi),time);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
   };
 }
@@ -411,6 +416,7 @@ function makeMembrane(pitch, opts){
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(pitch, duration, time, velocity);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -422,6 +428,7 @@ function makeNoise(filterOpts, envOpts){
     trigger(note, time=Tone.now(), velocity=1, duration='16n'){
       synth.triggerAttackRelease(duration, time, velocity);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); }
   };
 }
@@ -432,6 +439,7 @@ function makeMetal(opts){
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(duration, time, velocity);
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -445,6 +453,7 @@ function makeClap({filterFreq, bursts, decay}){
         noise.triggerAttackRelease('16n', time + i*0.02, velocity);
       }
     },
+    setVolume(v){ gain.gain.value = v; },
     dispose(){ noise.dispose(); filter.dispose(); gain.dispose(); }
   };
 }
@@ -561,6 +570,10 @@ const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymb
  * @typedef {Object} SeqTrack
  * @property {string} instrument
  * @property {SeqClip[]} clips
+ * @property {boolean} mute
+ * @property {boolean} solo
+ * @property {number} vol
+ * @property {?Object} player
  */
 
 /**
@@ -578,11 +591,21 @@ const song = {
   loop: [0, 4],
   tracks: defaultSeqTracks.map(name => ({
     instrument: name,
-    clips: [{ start: 0, length: 192 * 16, notes: [] }]
+    clips: [{ start: 0, length: 192 * 16, notes: [] }],
+    mute: false,
+    solo: false,
+    vol: 0.8,
+    player: null
   }))
 };
 
 Tone.Transport.PPQ = song.ppq;
+
+const SIXTEENTH = song.ppq / 4;
+const MIN_MIDI = midiFrom('C',2);
+const MAX_MIDI = MIN_MIDI + 4*12;
+let activeTrack = 0;
+let dragNote = null;
 
 function setBpm(val){
   song.bpm = tempo = val;
@@ -598,10 +621,14 @@ function updateLoop(){
 
 function scheduleSong(){
   Tone.Transport.cancel();
+  const anySolo = song.tracks.some(t => t.solo);
   song.tracks.forEach(track => {
-    if(track.player){ track.player.dispose(); }
+    if(track.player){ track.player.dispose(); track.player=null; }
+    const active = anySolo ? track.solo : !track.mute;
+    if(!active) return;
     const drumFactory = DRUMS[track.instrument];
     track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+    track.player.setVolume?.(track.vol ?? 0.8);
     track.clips.forEach(clip => {
       clip.notes.forEach(note => {
         const when = clip.start + note.tick;
@@ -621,38 +648,119 @@ updateLoop();
 function drawPianoRoll(){
   const ctx = pianoRoll.getContext('2d');
   const notes = 4*12; // C2–C6
-  const rows = notes + 1;
   ctx.clearRect(0,0,pianoRoll.width,pianoRoll.height);
   ctx.strokeStyle = '#334155';
-  const rowH = pianoRoll.height / rows;
-  for(let i=0;i<=rows;i++){
-    const y=i*rowH; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(pianoRoll.width,y); ctx.stroke();
+  const noteH = pianoRoll.height / notes;
+  for(let i=0;i<=notes;i++){
+    const y=i*noteH; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(pianoRoll.width,y); ctx.stroke();
   }
-  const cols = 64;
-  const colW = pianoRoll.width / cols;
-  for(let i=0;i<=cols;i++){
+  const colW = pianoRoll.width / noteCols;
+  for(let i=0;i<=noteCols;i++){
     const x=i*colW; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,pianoRoll.height); ctx.stroke();
+  }
+  const midiMax = MAX_MIDI;
+  song.tracks.forEach((track, idx) => {
+    const color = idx===activeTrack? 'rgba(16,185,129,0.9)' : 'rgba(16,185,129,0.25)';
+    ctx.fillStyle = color;
+    const clip = track.clips[0];
+    clip.notes.forEach(n => {
+      const x = n.tick / SIXTEENTH * colW;
+      const w = n.dur / SIXTEENTH * colW;
+      const y = (midiMax - n.midi - 1) * noteH;
+      ctx.fillRect(x,y,w,noteH);
+    });
+  });
+  if(dragNote){
+    ctx.fillStyle = 'rgba(236,72,153,0.6)';
+    const x = dragNote.tick / SIXTEENTH * colW;
+    const w = dragNote.dur / SIXTEENTH * colW;
+    const y = (MAX_MIDI - dragNote.midi - 1) * noteH;
+    ctx.fillRect(x,y,w,noteH);
   }
 }
 
+const noteCols = 64;
+pianoRoll.addEventListener('pointerdown', ev => {
+  const colW = pianoRoll.width / noteCols;
+  const noteH = pianoRoll.height / (4*12);
+  const rect = pianoRoll.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const y = ev.clientY - rect.top;
+  const startCol = Math.floor(x/colW);
+  const midi = MAX_MIDI - 1 - Math.floor(y/noteH);
+  dragNote = { startCol, tick: startCol * SIXTEENTH, dur: SIXTEENTH, midi };
+  pianoRoll.setPointerCapture(ev.pointerId);
+  drawPianoRoll();
+});
+pianoRoll.addEventListener('pointermove', ev => {
+  if(!dragNote) return;
+  const colW = pianoRoll.width / noteCols;
+  const rect = pianoRoll.getBoundingClientRect();
+  const x = ev.clientX - rect.left;
+  const endCol = Math.floor(x/colW)+1;
+  const durCols = Math.max(1, endCol - dragNote.startCol);
+  dragNote.dur = durCols * SIXTEENTH;
+  drawPianoRoll();
+});
+pianoRoll.addEventListener('pointerup', ev => {
+  if(!dragNote) return;
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes.push({ tick: dragNote.tick, dur: dragNote.dur, midi: dragNote.midi, vel: 0.8 });
+  dragNote = null;
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+});
+pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
+
 function initSequencer(){
   seqTracks.innerHTML='';
-  for(const name of defaultSeqTracks){
+  song.tracks.forEach((track, idx) => {
     const row=document.createElement('div');
     row.className='flex items-center gap-2';
-    const instrOpts = INSTRUMENTS.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('');
-    const drumOpts = DRUM_NAMES.map(t=>`<option${t===name?' selected':''}>${t}</option>`).join('');
+    const instrOpts = INSTRUMENTS.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
+    const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
     row.innerHTML=
-      `<span class="w-32">${name}</span>`+
+      `<span class="w-32">${track.instrument}</span>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute>M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo>S</button>`+
-      `<input type="range" min="0" max="1" step="0.01" value="0.8" class="w-24" />`+
+      `<input type="range" min="0" max="1" step="0.01" value="${track.vol}" class="w-24" />`+
       `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
       instrOpts+
       `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
       `</select>`;
     seqTracks.appendChild(row);
-  }
+    const muteBtn = row.querySelector('[data-mute]');
+    const soloBtn = row.querySelector('[data-solo]');
+    const volSlider = row.querySelector('input[type="range"]');
+    const sel = row.querySelector('select');
+    muteBtn.addEventListener('click', (e)=>{
+      track.mute = !track.mute;
+      muteBtn.classList.toggle('bg-rose-700', track.mute);
+      if(Tone.Transport.state==='started') scheduleSong();
+    });
+    soloBtn.addEventListener('click', ()=>{
+      track.solo = !track.solo;
+      soloBtn.classList.toggle('bg-emerald-700', track.solo);
+      if(Tone.Transport.state==='started') scheduleSong();
+    });
+    volSlider.addEventListener('input', e=>{
+      track.vol = Number(e.target.value);
+      if(track.player && track.player.setVolume) track.player.setVolume(track.vol);
+    });
+    sel.addEventListener('change', e=>{
+      track.instrument = e.target.value;
+      row.querySelector('span').textContent = track.instrument;
+      if(track.player){ track.player.dispose(); track.player=null; }
+      if(Tone.Transport.state==='started') scheduleSong();
+    });
+    row.addEventListener('click', e=>{
+      if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
+      activeTrack = idx;
+      [...seqTracks.children].forEach((r,i)=>r.classList.toggle('bg-slate-700/50', i===activeTrack));
+      drawPianoRoll();
+    });
+  });
+  [...seqTracks.children].forEach((r,i)=>r.classList.toggle('bg-slate-700/50', i===activeTrack));
   drawPianoRoll();
 }
 
@@ -1244,8 +1352,8 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
-tempoInput.addEventListener('change', e => setBpm(Number(e.target.value) || song.bpm));
-seqBpm.addEventListener('change', e => setBpm(Number(e.target.value) || song.bpm));
+tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
+seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', updateLoop);
 $('#btnClearSel').addEventListener('click', clearSelection);
 
