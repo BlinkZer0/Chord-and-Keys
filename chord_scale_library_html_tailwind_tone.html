@@ -95,6 +95,10 @@
           <button id="btnPlayScale" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Scale (asc.)</button>
           <div class="text-sm text-slate-400">Plays two octaves from the tonic.</div>
         </div>
+        <div id="listenSel" class="mt-4 flex flex-wrap gap-3 items-center">
+          <button id="btnPlaySelChord" disabled class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (chord)</button>
+          <button id="btnPlaySelArp" disabled class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (arp)</button>
+        </div>
       </div>
     </section>
 
@@ -280,6 +284,7 @@ const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
 const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale');
 const wrapChord = $('#wrapChord'); const wrapScale = $('#wrapScale');
 const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); const btnPlayStrum = $('#btnPlayStrum');
+const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp');
 const tempoInput = $('#tempo');
 
 let mode = 'Chord';
@@ -298,6 +303,12 @@ let neyOrientation = 'horizontal';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
+
+function updateSelButtons(){
+  const empty = selection.size === 0;
+  btnPlaySelChord.disabled = empty;
+  btnPlaySelArp.disabled = empty;
+}
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
@@ -320,6 +331,7 @@ function updateBadges(){
   const id=chordNameFromNotes(arr);
   badgeId.textContent = 'Selection: '+id.name+(id.detail?(' '+id.detail):'');
   badgeSelNotes.textContent = 'Notes: ' + (arr.length? arr.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '): '—');
+  updateSelButtons();
 }
 
 function computeSelected(){ if(mode==='Chord'){ const notes=buildChord(keyRoot, chordQuality); return {type:'chord', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } else { const notes=buildScale(keyRoot, scaleMode); return {type:'scale', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } }
@@ -684,6 +696,8 @@ $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); 
 $('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
 $('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, strum:true}); });
 $('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
+$('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
+$('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, arpeggiate:true}); });
 
 // Export buttons
 $('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
