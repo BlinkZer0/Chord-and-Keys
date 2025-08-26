@@ -361,9 +361,14 @@ function makePoly(env){
   };
 }
 
+// [fix] poly pluck
 function makePluck(){
   const gain = new Tone.Gain(1).connect(masterLim);
-  const synth = new Tone.PluckSynth().connect(gain);
+  const synth = new Tone.PolySynth(Tone.PluckSynth, {
+    attackNoise:1.0,
+    dampening:2200,
+    resonance:0.9
+  }).connect(gain);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
       synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
@@ -454,6 +459,24 @@ async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
 function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+// [fix] press/hold piano
+function pressHeld(midi){
+  ensureTone(instrument).then(()=>{
+    _synth.triggerAttack(midiToFreq(midi));
+  });
+}
+function releaseHeld(midi){
+  ensureTone(instrument).then(()=>{
+    const now=Tone.now();
+    const beat=60/tempo;
+    const sixteenth=beat/4;
+    const t=heldSustainSnap.checked? Math.ceil(now/sixteenth)*sixteenth : now;
+    _synth.triggerRelease(midiToFreq(midi), t);
+  });
+}
+function allNotesOff(){ _synth?.releaseAll(); }
+window.addEventListener('blur', allNotesOff);
 
 // Simple Tone.js drum recipes
 function makeMembrane(pitch, opts){
@@ -681,6 +704,11 @@ let activeTrack = 0;
 let dragNote = null;
 const ui = {zoomX:1, zoomY:1, scrollX:0, scrollY:0, scheme:'Classic'};
 
+// [fix] active track highlight
+function refreshActiveTrackHighlight(){
+  [...seqTracks.children].forEach((r,i)=>r.classList.toggle('bg-orange-500/20', i===activeTrack));
+}
+
 // === SEQUENCER: Color Schemes & Per-Track Colors ===
 const SEQ_COLOR_SCHEMES = {
   Classic:['#60a5fa','#f472b6','#34d399','#f59e0b','#a78bfa','#f87171','#22d3ee','#c084fc'],
@@ -693,11 +721,11 @@ function applySeqColorScheme(name){
   const scheme=SEQ_COLOR_SCHEMES[name]||SEQ_COLOR_SCHEMES.Classic;
   song.tracks.forEach((t,i)=>{ if(!t.colorOverridden){ t.color=scheme[i%scheme.length]; }});
   [...seqTracks.children].forEach((row,i)=>{
-    row.style.backgroundColor = (i===activeTrack? 'rgb(249 115 22 / 0.2)' : '');
     const inp=row.querySelector('input[type="color"]');
     if(inp && !song.tracks[i].colorOverridden) inp.value=song.tracks[i].color;
   });
   seqColorScheme.value=name;
+  refreshActiveTrackHighlight();
 }
 
 function setBpm(val){
@@ -920,15 +948,13 @@ function initSequencer(){
     row.addEventListener('click', e=>{
       if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
       activeTrack = idx;
-      [...seqTracks.children].forEach((r,i)=>{
-        r.classList.toggle('bg-orange-500/20', i===activeTrack);
-      });
+      refreshActiveTrackHighlight();
       seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
       drawPianoRoll();
     });
   });
-  [...seqTracks.children].forEach((r,i)=>r.classList.toggle('bg-orange-500/20', i===activeTrack));
   applySeqColorScheme('Classic');
+  refreshActiveTrackHighlight();
   seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
 }
@@ -972,15 +998,15 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
   const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
   whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
-    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); updateBadges(); renderHighlights(); } else { k.setPointerCapture(ev.pointerId); k.dataset.start=String(performance.now()); } });
-    const end=(ev)=>{ const s=k.dataset.start; if(!s) return; let dur=(performance.now()-Number(s))/1000; dur=Math.min(6, Math.max(0.05, dur)); if(heldSustainSnap.checked){ const beat=60/tempo; const sixteenth=beat/4; dur=Math.round(dur/sixteenth)*sixteenth; } playMidiNotes([m],{instrument, tempo, noteDur:dur}); delete k.dataset.start; updateBadges(); renderHighlights(); };
+    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); updateBadges(); renderHighlights(); } else { pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
+    const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
     whiteRow.appendChild(k); });
   // Black overlay (pointer-enabled only on keys)
   const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2 flex'; shell.appendChild(overlay);
   keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const wrap=document.createElement('div'); wrap.className='relative w-[6.66%] mx-[1.67%]'; wrap.style.visibility = [1,3,6,8,10].includes(pc)?'visible':'hidden'; const blk=document.createElement('div'); blk.dataset.midi=String(m); blk.dataset.pc=String(pc); blk.className='black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border bg-black border-black pointer-events-auto'; blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; lbl.textContent=''; blk.appendChild(lbl);
-    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); updateBadges(); renderHighlights(); } else { blk.setPointerCapture(ev.pointerId); blk.dataset.start=String(performance.now()); } });
-    const end=(ev)=>{ const s=blk.dataset.start; if(!s) return; let dur=(performance.now()-Number(s))/1000; dur=Math.min(6, Math.max(0.05, dur)); if(heldSustainSnap.checked){ const beat=60/tempo; const sixteenth=beat/4; dur=Math.round(dur/sixteenth)*sixteenth; } playMidiNotes([m],{instrument, tempo, noteDur:dur}); delete blk.dataset.start; updateBadges(); renderHighlights(); };
+    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); updateBadges(); renderHighlights(); } else { pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
+    const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
     wrap.appendChild(blk); overlay.appendChild(wrap); });
   pianoHost.appendChild(container);
