@@ -1423,16 +1423,20 @@ function updateLoop(){
   } else {
     // For one-shot playback, disable looping
     Tone.Transport.loop = false;
-    // Calculate song length based on actual notes
-    const maxNoteTick = Math.max(192*16, ...song.tracks.flatMap(t => 
-      t.clips[0].notes.map(n => t.clips[0].start + n.tick + n.dur)
-    ));
-    // Schedule a stop event at the end of the song
+    // Determine the latest note end across all tracks
+    const maxNoteTick = Math.max(
+      0,
+      ...song.tracks.flatMap(t =>
+        t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+      )
+    );
+    // Schedule a stop event slightly after the final note
+    const buffer = 192; // allow trailing releases
     autoStopId = Tone.Transport.scheduleOnce(() => {
       if(sequencerState === 'playing') {
         seqStop.click();
       }
-    }, `${maxNoteTick + 192}i`); // Add small buffer
+    }, `${maxNoteTick + buffer}i`);
   }
 }
 
