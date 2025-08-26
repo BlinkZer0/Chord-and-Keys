@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:svg="http://www.w3.org/2000/svg" id="svg2" viewBox="0 0 927.01 616.5" version="1.1">
+  <title id="title3706">Ney</title>
+  <defs id="defs6">
+    <linearGradient id="linearGradient3678">
+      <stop id="stop3680" stop-color="#fff" stop-opacity=".15294" offset="0"/>
+      <stop id="stop3682" stop-color="#fff" stop-opacity=".40392" offset="1"/>
+    </linearGradient>
+    <linearGradient id="linearGradient3684" y2="52.11" xlink:href="#linearGradient3678" gradientUnits="userSpaceOnUse" x2="44.495" gradientTransform="translate(-27.481 -30.663)" y1="52.11" x1="34.032"/>
+    <linearGradient id="linearGradient3704" y2="50.466" xlink:href="#linearGradient3678" gradientUnits="userSpaceOnUse" x2="56.361" gradientTransform="translate(-38.04 -26.546)" y1="91.837" x1="45.815"/>
+  </defs>
+  <path id="path2832" stroke="#000" stroke-width="1px" d="m52.775 2.1217c-11.166-3.8629-21.052-0.78313-31.494 8.7955-0.66542 0.61398-7.2975 0.86434-9.9828 1.5274-4.0786 2.4189-8.699 10.189-10.199 16.379 0.07027 2.7524 2.3331 7.2706 2.1058 8.8947-1.5616 9.957-7.4862 29.387 5.506 35.94 35.634 17.971 70.934-55.998 44.064-71.537z"/>
+  <path id="path2840" d="m900.89 568.87-831.33-532.32c-17.989 2.501-33.855 7.078-24.064 36.822l833.66 527.7c32.227 2.2092 23.889-16.596 21.725-32.203z" stroke="#000" stroke-width="1px" fill="#d7a163"/>
+  <path id="path2834" d="m46.971 22.875 22.47 13.618c-14.957-0.626-28.03 24.335-23.892 36.888l-23.031-13.416c-4.8893-17.829 6.506-37.229 24.453-37.09z" stroke="#000" stroke-width="1px" fill="#c9bfc0"/>
+  <path id="path2836" d="m923.85 582.81c8.8386 16.888-6.0254 35.347-19.928 32.99l-24.646-14.688c14.035-0.41983 30.571-18.159 18.647-34.103l25.927 15.802z" stroke="#000" stroke-width="1px" fill="#c9bfc0"/>
+  <path id="path2842" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 951.85 -39.214)"/>
+  <path id="path2842-1" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 741.01 -172.2)"/>
+  <path id="path2842-4" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 778.69 -148.27)"/>
+  <path id="path2842-9" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 819.52 -123.31)"/>
+  <path id="path2842-8" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 876.16 -86.906)"/>
+  <path id="path2842-2" d="m184.72 563.09a9.3462 9.3462 0 1 1 -18.692 0 9.3462 9.3462 0 1 1 18.692 0z" fill="#4a4a4a" transform="matrix(-.99970 .024432 .024432 .99970 914.2 -63.352)"/>
+  <path id="path2902" d="m38.064 23.93c-4.0627 1.6052-7.2322 3.971-9.461 6.3047l897.88 568.06c0.90812-4.1111 0.41207-7.2643 0.3031-8.0772l-888.72-566.29z" fill="#fff" fill-opacity=".32143"/>
+  <path id="path3676" d="m4.2781 19.858c2.0454-3.6586 4.7552-6.7488 6.839-7.8891 2.4335-0.60982 8.8131-0.93558 9.8439-1.4338-2.6379 2.2519-4.4837 4.3433-6.0498 6.1323-1.8746 2.1414-3.4397 4.0624-5.6132 7.3042-2.5309-0.20631-4.6179-1.1438-5.0198-4.1135z" fill="url(#linearGradient3684)"/>
+  <path id="path3696" d="m40.77 22.866c0.869-7.621-7.665-17.672-13.847-17.15-8.2 5.779-15.842 14.5-21.305 24.237-4.436 8.784-6.9098 20.254-4.6798 34.779 8.9793 1.737 18.418-0.77 21.093-4.806-3.876-8.294-1.731-31.201 18.739-37.06z" fill="url(#linearGradient3704)"/>
+  <metadata>
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+        <cc:license rdf:resource="http://creativecommons.org/licenses/publicdomain/"/>
+        <dc:publisher>
+          <cc:Agent rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title>Ney</dc:title>
+        <dc:date>2010-06-14T02:50:07</dc:date>
+        <dc:description>clip art, clipart, flute, instrument, music, musical, ney, reed, wind, </dc:description>
+        <dc:source>http://openclipart.org/detail/66697/ney-by-deluge</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Deluge</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>clip art</rdf:li>
+            <rdf:li>clipart</rdf:li>
+            <rdf:li>flute</rdf:li>
+            <rdf:li>instrument</rdf:li>
+            <rdf:li>music</rdf:li>
+            <rdf:li>musical</rdf:li>
+            <rdf:li>ney</rdf:li>
+            <rdf:li>reed</rdf:li>
+            <rdf:li>wind</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/licenses/publicdomain/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution"/>
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks"/>
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>
