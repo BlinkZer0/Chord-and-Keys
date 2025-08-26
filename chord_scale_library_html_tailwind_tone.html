@@ -27,65 +27,49 @@
     #devTests[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
     
-    /* === GLASS MORPHISM EFFECTS === */
+    /* === GLASS MORPHISM EFFECTS (SAFE VERSION) === */
     .glass-panel {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    }
-    
-    .glass-button {
       background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(5px);
       -webkit-backdrop-filter: blur(5px);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.3s ease;
+    }
+    
+    .glass-button {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
     }
     
     .glass-button:hover {
-      background: rgba(255, 255, 255, 0.15);
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px 0 rgba(31, 38, 135, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
     }
     
     .glass-card {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-      backdrop-filter: blur(15px);
-      -webkit-backdrop-filter: blur(15px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 
-        0 8px 32px 0 rgba(31, 38, 135, 0.37),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* 3D TRANSFORMS FOR INSTRUMENTS */
+    /* SIMPLIFIED 3D TRANSFORMS */
     .instrument-3d {
-      transform-style: preserve-3d;
-      transition: transform 0.3s ease;
+      transition: transform 0.2s ease;
     }
     
     .instrument-3d:hover {
-      transform: perspective(1000px) rotateX(10deg) rotateY(5deg) translateZ(20px);
+      transform: scale(1.02);
     }
     
     .piano-key-3d {
-      transition: all 0.2s ease;
-      transform-style: preserve-3d;
+      transition: all 0.1s ease;
     }
     
     .piano-key-3d:active {
-      transform: perspective(500px) translateZ(-5px) rotateX(5deg);
-    }
-    
-    /* ENHANCED VISUALIZER GLASS EFFECT */
-    #audioVisualizer {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      transform: translateY(2px);
     }
   </style>
 </head>
@@ -2394,9 +2378,9 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
   whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key piano-key-3d relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
     k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; 
-      // Create particle effect
-      const rect = k.getBoundingClientRect();
-      createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m); 
+      // Create particle effect (temporarily disabled)
+      // const rect = k.getBoundingClientRect();
+      // createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m); 
     } });
     const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
@@ -2449,9 +2433,9 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
     lbl.textContent=''; 
     blk.appendChild(lbl);
     blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1';
-      // Create particle effect  
-      const rect = blk.getBoundingClientRect();
-      createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m);
+      // Create particle effect (temporarily disabled)
+      // const rect = blk.getBoundingClientRect();
+      // createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m);
     } });
     const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
@@ -4542,10 +4526,10 @@ function startParticleAnimation() {
   animate();
 }
 
-// Initialize particle system
-setTimeout(() => {
-  initParticleSystem();
-}, 1000);
+// Initialize particle system (temporarily disabled to fix UI)
+// setTimeout(() => {
+//   initParticleSystem();
+// }, 1000);
 
 // === QOL UPGRADE: Smart Auto-Accompaniment ===
 function analyzeChordProgression() {
@@ -4821,59 +4805,87 @@ patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
 btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
 
-// Chord Progression Builder event listeners
-document.querySelectorAll('.progression-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const progressionString = btn.dataset.progression;
-    const romanNumerals = progressionString.split(',');
-    currentProgression = generateProgression(romanNumerals, keyRoot);
-    displayProgression(currentProgression);
-    
-    // Highlight selected button
-    document.querySelectorAll('.progression-btn').forEach(b => {
-      b.className = 'progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200';
+// Chord Progression Builder event listeners (with error handling)
+try {
+  document.querySelectorAll('.progression-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      try {
+        const progressionString = btn.dataset.progression;
+        const romanNumerals = progressionString.split(',');
+        currentProgression = generateProgression(romanNumerals, keyRoot);
+        displayProgression(currentProgression);
+        
+        // Highlight selected button
+        document.querySelectorAll('.progression-btn').forEach(b => {
+          b.className = 'progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200';
+        });
+        btn.className = 'progression-btn bg-blue-600/70 hover:bg-blue-500/70 border border-blue-500 rounded-lg px-3 py-2 text-sm text-white transition-all duration-200';
+      } catch(e) {
+        console.error('Error with progression button:', e);
+      }
     });
-    btn.className = 'progression-btn bg-blue-600/70 hover:bg-blue-500/70 border border-blue-500 rounded-lg px-3 py-2 text-sm text-white transition-all duration-200';
   });
-});
 
-document.getElementById('playProgression').addEventListener('click', () => {
-  if (currentProgression) {
-    playProgression(currentProgression);
-  }
-});
+  document.getElementById('playProgression')?.addEventListener('click', () => {
+    try {
+      if (currentProgression) {
+        playProgression(currentProgression);
+      }
+    } catch(e) {
+      console.error('Error playing progression:', e);
+    }
+  });
 
-document.getElementById('addProgressionToTrack').addEventListener('click', () => {
-  if (currentProgression) {
-    addProgressionToSequencer(currentProgression);
-  }
-});
+  document.getElementById('addProgressionToTrack')?.addEventListener('click', () => {
+    try {
+      if (currentProgression) {
+        addProgressionToSequencer(currentProgression);
+      }
+    } catch(e) {
+      console.error('Error adding progression to track:', e);
+    }
+  });
+} catch(e) {
+  console.error('Error setting up progression listeners:', e);
+}
 
-// Auto-Accompaniment event listeners
-document.getElementById('generateAccompaniment').addEventListener('click', () => {
-  const chords = analyzeChordProgression();
-  if (chords.length === 0) {
-    alert('No chords detected. Please add some chord notes to the sequencer first.');
-    return;
-  }
-  
-  const bassStyle = document.querySelector('input[name="bassStyle"]:checked').value;
-  const rhythmStyle = document.querySelector('input[name="rhythmStyle"]:checked').value;
-  
-  generateBassLine(chords, bassStyle);
-  generateDrumPattern(chords, rhythmStyle);
-  
-  drawPianoRoll();
-  if(Tone.Transport.state === 'started') scheduleSong();
-});
+// Auto-Accompaniment event listeners (with error handling)
+try {
+  document.getElementById('generateAccompaniment')?.addEventListener('click', () => {
+    try {
+      const chords = analyzeChordProgression();
+      if (chords.length === 0) {
+        alert('No chords detected. Please add some chord notes to the sequencer first.');
+        return;
+      }
+      
+      const bassStyle = document.querySelector('input[name="bassStyle"]:checked')?.value || 'root';
+      const rhythmStyle = document.querySelector('input[name="rhythmStyle"]:checked')?.value || 'basic';
+      
+      generateBassLine(chords, bassStyle);
+      generateDrumPattern(chords, rhythmStyle);
+      
+      drawPianoRoll();
+      if(Tone.Transport.state === 'started') scheduleSong();
+    } catch(e) {
+      console.error('Error generating accompaniment:', e);
+    }
+  });
 
-document.getElementById('clearAccompaniment').addEventListener('click', () => {
-  // Clear bass and drum tracks
-  song.tracks[1].clips[0].notes = [];
-  song.tracks[2].clips[0].notes = [];
-  drawPianoRoll();
-  if(Tone.Transport.state === 'started') scheduleSong();
-});
+  document.getElementById('clearAccompaniment')?.addEventListener('click', () => {
+    try {
+      // Clear bass and drum tracks
+      song.tracks[1].clips[0].notes = [];
+      song.tracks[2].clips[0].notes = [];
+      drawPianoRoll();
+      if(Tone.Transport.state === 'started') scheduleSong();
+    } catch(e) {
+      console.error('Error clearing accompaniment:', e);
+    }
+  });
+} catch(e) {
+  console.error('Error setting up accompaniment listeners:', e);
+}
 
 // Listen buttons
 $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
