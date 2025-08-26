@@ -701,6 +701,7 @@ const song = {
 Tone.Transport.PPQ = song.ppq;
 
 const SIXTEENTH = song.ppq / 4;
+let lastNoteDur = song.ppq * song.ts.num;
 const MIN_MIDI = midiFrom('C',2);
 const MAX_MIDI = MIN_MIDI + 4*12;
 let activeTrack = 0;
@@ -913,7 +914,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
     }
   }
   // otherwise create new note
-  dragNote={tick, dur:SIXTEENTH, midi, mode:'new'};
+  dragNote={tick, dur:lastNoteDur, midi, mode:'new'};
   pianoRoll.setPointerCapture(ev.pointerId);
   drawPianoRoll();
 });
@@ -935,7 +936,10 @@ pianoRoll.addEventListener('pointermove', ev=>{
 });
 pianoRoll.addEventListener('pointerup', ev=>{
   if(!dragNote) return; const track=song.tracks[activeTrack];
-  if(dragNote.mode==='new') track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8});
+  if(dragNote.mode==='new') {
+    track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8});
+    lastNoteDur = dragNote.dur;
+  }
   // keep notes ordered after edits
   track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
   dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); pianoRoll.releasePointerCapture(ev.pointerId);
