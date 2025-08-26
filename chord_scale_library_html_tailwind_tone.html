@@ -2058,6 +2058,40 @@ function updateBadges(){
 
 function computeSelected(){ if(mode==='Chord'){ const notes=buildChord(keyRoot, chordQuality); return {type:'chord', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } else { const notes=buildScale(keyRoot, scaleMode); return {type:'scale', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } }
 
+// --- Secret Lick detection ---
+const _lickPattern = [0,2,3,5,2,10,0];
+const _lickWindow = 3000; // ms
+const _recentKeys = [];
+let _lickLock = false;
+function _registerKey(m){
+  const now = performance.now();
+  const pc = mod(m, OCTAVE);
+  _recentKeys.push({pc, time: now});
+  while(_recentKeys.length && now - _recentKeys[0].time > _lickWindow){
+    _recentKeys.shift();
+  }
+  if(_recentKeys.length >= _lickPattern.length){
+    const slice = _recentKeys.slice(-_lickPattern.length);
+    if(slice[slice.length-1].time - slice[0].time <= _lickWindow){
+      const base = slice[0].pc;
+      if(slice.every((e,i)=> mod(e.pc - base, OCTAVE) === _lickPattern[i])){
+        _triggerLick();
+        _recentKeys.length = 0;
+      }
+    }
+  }
+}
+function _triggerLick(){
+  if(_lickLock) return;
+  _lickLock = true;
+  window.open('https://www.youtube.com/watch?v=lSXxEdaOqgU', '_blank');
+  const msg=document.createElement('div');
+  msg.textContent='Lick [Unlocked]';
+  msg.className='fixed top-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded shadow';
+  document.body.appendChild(msg);
+  setTimeout(()=>{ msg.remove(); _lickLock=false; }, 2000);
+}
+
 // ========================= PIANO =========================
 // === HELD-SUSTAIN: Piano pointer handlers ===
 function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
@@ -2065,14 +2099,14 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
   const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
   whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
-    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
+    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
     const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
     whiteRow.appendChild(k); });
   // Black overlay (pointer-enabled only on keys)
   const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2 flex'; shell.appendChild(overlay);
   keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const wrap=document.createElement('div'); wrap.className='relative w-[6.66%] mx-[1.67%]'; wrap.style.visibility = [1,3,6,8,10].includes(pc)?'visible':'hidden'; const blk=document.createElement('div'); blk.dataset.midi=String(m); blk.dataset.pc=String(pc); blk.className='black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border bg-black border-black pointer-events-auto'; blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; lbl.textContent=''; blk.appendChild(lbl);
-    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
+    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
     const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
     wrap.appendChild(blk); overlay.appendChild(wrap); });
