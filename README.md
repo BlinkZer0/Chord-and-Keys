@@ -1,6 +1,16 @@
 # Chord & Scale Library
 
-Welcome to the all‑in‑one music playground where chords, scales, sequencer, and a small brass band live together in one colossal HTML file. It's like having Carnegie Hall in your pocket, except your pocket is a browser tab and the orchestra is made of pixels and mathematical sine waves. It runs entirely in the browser using [Tailwind CSS](https://tailwindcss.com/) for style and [Tone.js](https://tonejs.github.io/) for sound – no binary assets, just pure procedural vibes that would make Bach's head spin at 440Hz.
+Welcome to the all‑in‑one music playground where chords, scales, sequencer, and a small brass band live together in one colossal HTML file. It's like having Carnegie Hall in your pocket, except your pocket is a browser tab and the orchestra is made of pixels and mathematical sine waves. It runs entirely in the browser using [Tailwind CSS](https://tailwindcss.com/) for style and [Tone.js](https://tonejs.github.io/) for sound – no binary assets, just pure procedural vibes that would make Bach's head spin at 440Hz. And unlike real concert halls, no usher will shush you—though your CPU might.
+
+## Feature Set
+
+Here's what the app currently does without any smoke, mirrors, or binary files:
+
+* **Chord & scale library** – explore Western harmony and far‑flung systems like Maqam right in your browser.
+* **Instrument visualizers** – orientation‑aware charts for wind, brass, and strings that redraw themselves procedurally.
+* **Eight‑track sequencer** – piano roll editing, pattern pasting, and transport controls for quick composition.
+* **MIDI in & out** – import multi‑track files and export your work for a DAW or your cousin's SoundCloud.
+* **Skins** – eleven mathematical gradients to suit every mood without loading a single PNG.
 
 ## Bells, Whistles, and Other Instruments
 
@@ -68,15 +78,17 @@ You can use it in another page in two ways:
 
 ## About the Band
 
+After the ill‑fated .SVG update and the keyboard UI failure that followed, ChatGPT and Blink held a meeting about Claude's performance. He asked for a higher salary, Blink wouldn't approve it, and the pink slip was inevitable. In his place we now have Gemini, who is already on strike one for not writing this paragraph themselves.
+
 This project is orchestrated by a trio of AIs:
 
 * **ChatGPT Codex** – the friendly conductor who occasionally waves the baton a bit too enthusiastically.
 * **Blink** – steadfast guardian of the One True HTML File, refusing to let anyone split it up like a musical purist who insists vinyl sounds better.
-* **Claude** – the diplomatic one who keeps everyone in harmony, fixes the black piano keys when they go rogue, and makes sure large MIDI files don't crash the party. Also writes overly elaborate commit messages.
+* **Gemini** – the new hire still finding the downbeat and already on HR's watchlist.
 
 Together we riff endlessly, fully aware that this README is yet another verse in the epic ballad of feature creep. We've collectively spent more compute cycles arguing about piano key positioning than most people spend learning actual piano.
 
-> Why did the musician break up with the metronome?  It just kept saying "It's not you, it's *timing*."
+> Why did the musician break up with the metronome?  It just kept saying "It's not you, it's *timing*." We even tried couples therapy, but it insisted on 120 BPM and zero improvisation.
 
 ## Contributing
 
