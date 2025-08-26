@@ -260,22 +260,47 @@ const MODES = {
   "Major Pentatonic": [0,2,4,7,9],
   "Minor Pentatonic": [0,3,5,7,10],
   Blues: [0,3,5,6,7,10],
+  "Harmonic Minor": [0,2,3,5,7,8,11],
+  "Melodic Minor (Asc)": [0,2,3,5,7,9,11],
+  "Melodic Minor (Desc)": [0,2,3,5,7,8,10],
+  "Whole Tone": [0,2,4,6,8,10],
+  "Diminished (Half-Whole)": [0,1,3,4,6,7,9,10],
+  "Diminished (Whole-Half)": [0,2,3,5,6,8,9,11],
   // Common maqamat using 24-TET intervals (0.5 = quarter-tone)
   "Maqam Rast": [0,2,3.5,5,7,9,10.5],      // Rast: E half-flat, B half-flat
   "Maqam Bayati": [0,1.5,3,5,7,8.5,10],    // Bayati: D half-flat, B half-flat
   "Maqam Hijaz": [0,1,4,5,7,8,11],         // Hijaz: augmented second between 2nd & 3rd
   "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
-  "Maqam Nahawand": [0,2,3,5,7,8,10]       // Nahawand: natural minor
+  "Maqam Nahawand": [0,2,3,5,7,8,10],       // Nahawand: natural minor
+  "Maqam Kurd": [0,1,3,5,7,8,10],          // Kurd: Phrygian base
+  "Maqam Huzam": [0,1.5,4,5,7,8.5,10],     // Huzam: tonic half-flat, sixth half-flat
+  "Maqam Hijazkar": [0,1,4,6,7,8,11]       // Hijazkar: raised fourth
 };
 // Group modes by musical system for UI filtering
 const MODE_SYSTEMS = {
   Western: [
     "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian",
-    "Major Pentatonic","Minor Pentatonic","Blues"
+    "Major Pentatonic","Minor Pentatonic","Blues","Harmonic Minor",
+    "Melodic Minor (Asc)","Melodic Minor (Desc)","Whole Tone",
+    "Diminished (Half-Whole)","Diminished (Whole-Half)"
   ],
-  Maqam: ["Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand"]
+  Maqam: [
+    "Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand",
+    "Maqam Kurd","Maqam Huzam","Maqam Hijazkar"
+  ]
 };
-const CHORD_QUALITIES = { Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], Sus2:[0,2,7], Sus4:[0,5,7], "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], m7b5:[0,3,6,10], Dim7:[0,3,6,9] };
+const CHORD_QUALITIES = {
+  Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8],
+  Sus2:[0,2,7], Sus4:[0,5,7],
+  "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10],
+  m7b5:[0,3,6,10], Dim7:[0,3,6,9],
+  "9":[0,4,7,10,14], Maj9:[0,4,7,11,14], Min9:[0,3,7,10,14],
+  "11":[0,4,7,10,14,17], Maj11:[0,4,7,11,14,17], Min11:[0,3,7,10,14,17],
+  "13":[0,4,7,10,14,17,21], Maj13:[0,4,7,11,14,17,21], Min13:[0,3,7,10,14,17,21],
+  "7b5":[0,4,6,10], "7#5":[0,4,8,10],
+  "7b9":[0,4,7,10,13], "7#9":[0,4,7,10,15],
+  "7#11":[0,4,7,10,18], "7b13":[0,4,7,10,20]
+};
 function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
 function pcIndex(note){
   const n = String(note).trim();
@@ -2149,12 +2174,21 @@ function runTests(){
   addTest(t,'E Blues has A#', buildScale('E','Blues').includes('A#'));
   addTest(t,'G Mixolydian len=7', buildScale('G','Mixolydian').length===7);
   addTest(t,'A Major Pentatonic len=5', buildScale('A','Major Pentatonic').length===5);
+  addTest(t,'C Harmonic Minor has B', buildScale('C','Harmonic Minor').includes('B'));
+  addTest(t,'C Whole Tone len=6', buildScale('C','Whole Tone').length===6);
+  addTest(t,'C Dim Half-Whole starts C,C#', buildScale('C','Diminished (Half-Whole)').slice(0,2).join(',')==='C,C#');
   addTest(t,'C Maqam Rast has D#+', buildScale('C','Maqam Rast').includes('D#+'));
   addTest(t,'D Maqam Bayati has D#+', buildScale('D','Maqam Bayati')[1]==='D#+');
+  addTest(t,'C Maqam Kurd second=C#', buildScale('C','Maqam Kurd')[1]==='C#');
+  addTest(t,'C Maqam Huzam second=C#+', buildScale('C','Maqam Huzam')[1]==='C#+');
+  addTest(t,'C Maqam Hijazkar has F#', buildScale('C','Maqam Hijazkar').includes('F#'));
   addTest(t,'C Maj chord', JSON.stringify(buildChord('C','Maj'))===JSON.stringify(['C','E','G']));
   addTest(t,'G7 chord', JSON.stringify(buildChord('G','7'))===JSON.stringify(['G','B','D','F']));
   addTest(t,'Bm7b5 chord', JSON.stringify(buildChord('B','m7b5'))===JSON.stringify(['B','D','F','A']));
   addTest(t,'Dsus4 chord', JSON.stringify(buildChord('D','Sus4'))===JSON.stringify(['D','G','A']));
+  addTest(t,'Cmaj9 chord', JSON.stringify(buildChord('C','Maj9'))===JSON.stringify(['C','E','G','B','D']));
+  addTest(t,'C13 chord len=7', buildChord('C','13').length===7);
+  addTest(t,'G7b9 has G#', buildChord('G','7b9').includes('G#'));
   const cm=chordToMidi(['C','E','G'],'C',4);
   addTest(t,'ChordToMidi >=3', cm.length>=3, cm.join(','));
   const sc=scaleToMidi(['C','D','E','F','G','A','B'],'C',4);
