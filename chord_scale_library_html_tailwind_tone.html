@@ -2341,7 +2341,8 @@ const FLUTE_FINGERINGS = {
   - Hole radius: r=10
   Change these numbers to resize the chart or adjust hole placement for custom layouts.
 */
-function buildFluteChart(){
+let fluteBodyPath = null;
+async function buildFluteChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
   const sharp = ENHARMONIC_MAP[note] || note;
@@ -2349,232 +2350,63 @@ function buildFluteChart(){
   fluteHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
-  const isHoriz = fluteOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 320 80' : '0 0 80 320');
+  svg.setAttribute('viewBox','0 0 320 80');
   svg.setAttribute('class','mx-auto');
-  
-  // Realistic flute body with sections and proper proportions
-  if(isHoriz){
-    // Main tube body (cylindrical appearance with gradient)
-    const grad = document.createElementNS(svgNS,'defs');
-    const gradDef = document.createElementNS(svgNS,'linearGradient');
-    gradDef.setAttribute('id','fluteGrad');
-    gradDef.setAttribute('x1','0%');
-    gradDef.setAttribute('y1','0%');
-    gradDef.setAttribute('x2','0%');
-    gradDef.setAttribute('y2','100%');
-    const stop1 = document.createElementNS(svgNS,'stop');
-    stop1.setAttribute('offset','0%');
-    stop1.setAttribute('stop-color','#e2e8f0');
-    const stop2 = document.createElementNS(svgNS,'stop');
-    stop2.setAttribute('offset','50%');
-    stop2.setAttribute('stop-color','#f8fafc');
-    const stop3 = document.createElementNS(svgNS,'stop');
-    stop3.setAttribute('offset','100%');
-    stop3.setAttribute('stop-color','#cbd5e1');
-    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
-    grad.appendChild(gradDef);
-    svg.appendChild(grad);
-    
-    // Head joint with embouchure
-    const headJoint = document.createElementNS(svgNS,'rect');
-    headJoint.setAttribute('x', fluteLeftToRight ? '10' : '250');
-    headJoint.setAttribute('y','25');
-    headJoint.setAttribute('width','60');
-    headJoint.setAttribute('height','30');
-    headJoint.setAttribute('rx','15');
-    headJoint.setAttribute('fill','url(#fluteGrad)');
-    headJoint.setAttribute('stroke','#64748b');
-    headJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(headJoint);
-    
-    // Embouchure hole
-    const embHole = document.createElementNS(svgNS,'ellipse');
-    embHole.setAttribute('cx', fluteLeftToRight ? '40' : '280');
-    embHole.setAttribute('cy','40');
-    embHole.setAttribute('rx','8');
-    embHole.setAttribute('ry','4');
-    embHole.setAttribute('fill','#1e293b');
-    embHole.setAttribute('stroke','#475569');
-    embHole.setAttribute('stroke-width','1');
-    svg.appendChild(embHole);
-    
-    // Body joint
-    const bodyJoint = document.createElementNS(svgNS,'rect');
-    bodyJoint.setAttribute('x', fluteLeftToRight ? '75' : '145');
-    bodyJoint.setAttribute('y','27');
-    bodyJoint.setAttribute('width','100');
-    bodyJoint.setAttribute('height','26');
-    bodyJoint.setAttribute('rx','13');
-    bodyJoint.setAttribute('fill','url(#fluteGrad)');
-    bodyJoint.setAttribute('stroke','#64748b');
-    bodyJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(bodyJoint);
-    
-    // Foot joint
-    const footJoint = document.createElementNS(svgNS,'rect');
-    footJoint.setAttribute('x', fluteLeftToRight ? '180' : '80');
-    footJoint.setAttribute('y','28');
-    footJoint.setAttribute('width','70');
-    footJoint.setAttribute('height','24');
-    footJoint.setAttribute('rx','12');
-    footJoint.setAttribute('fill','url(#fluteGrad)');
-    footJoint.setAttribute('stroke','#64748b');
-    footJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(footJoint);
-    
-    // Realistic tone hole positions and keys
-    const holePositions = fluteLeftToRight ? 
-      [90, 105, 125, 145, 165, 185] : 
-      [230, 215, 195, 175, 155, 135];
-    
-    fing.forEach((closed,i)=>{
-      const holeX = holePositions[i];
-      
-      // Key mechanism (small rectangle above hole)
-      const key = document.createElementNS(svgNS,'rect');
-      key.setAttribute('x', String(holeX - 8));
-      key.setAttribute('y','20');
-      key.setAttribute('width','16');
-      key.setAttribute('height','8');
-      key.setAttribute('rx','2');
-      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
-      key.setAttribute('stroke','#64748b');
-      key.setAttribute('stroke-width','1');
-      svg.appendChild(key);
-      
-      // Tone hole
-      const hole = document.createElementNS(svgNS,'circle');
-      hole.setAttribute('cx', String(holeX));
-      hole.setAttribute('cy','40');
-      hole.setAttribute('r','5');
-      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
-      hole.setAttribute('stroke','#64748b');
-      hole.setAttribute('stroke-width','1');
-      svg.appendChild(hole);
-      
-      // Key spring/mechanism rod
-      const rod = document.createElementNS(svgNS,'line');
-      rod.setAttribute('x1', String(holeX));
-      rod.setAttribute('y1','28');
-      rod.setAttribute('x2', String(holeX));
-      rod.setAttribute('y2','33');
-      rod.setAttribute('stroke','#94a3b8');
-      rod.setAttribute('stroke-width','1');
-      svg.appendChild(rod);
-    });
-    
-  } else {
-    // Vertical orientation - similar but rotated layout
-    // Main gradient for vertical
-    const grad = document.createElementNS(svgNS,'defs');
-    const gradDef = document.createElementNS(svgNS,'linearGradient');
-    gradDef.setAttribute('id','fluteGradV');
-    gradDef.setAttribute('x1','0%');
-    gradDef.setAttribute('y1','0%');
-    gradDef.setAttribute('x2','100%');
-    gradDef.setAttribute('y2','0%');
-    const stop1 = document.createElementNS(svgNS,'stop');
-    stop1.setAttribute('offset','0%');
-    stop1.setAttribute('stop-color','#e2e8f0');
-    const stop2 = document.createElementNS(svgNS,'stop');
-    stop2.setAttribute('offset','50%');
-    stop2.setAttribute('stop-color','#f8fafc');
-    const stop3 = document.createElementNS(svgNS,'stop');
-    stop3.setAttribute('offset','100%');
-    stop3.setAttribute('stop-color','#cbd5e1');
-    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
-    grad.appendChild(gradDef);
-    svg.appendChild(grad);
-    
-    // Head joint vertical
-    const headJoint = document.createElementNS(svgNS,'rect');
-    headJoint.setAttribute('x','25');
-    headJoint.setAttribute('y', fluteLeftToRight ? '10' : '250');
-    headJoint.setAttribute('width','30');
-    headJoint.setAttribute('height','60');
-    headJoint.setAttribute('rx','15');
-    headJoint.setAttribute('fill','url(#fluteGradV)');
-    headJoint.setAttribute('stroke','#64748b');
-    headJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(headJoint);
-    
-    // Embouchure hole vertical
-    const embHole = document.createElementNS(svgNS,'ellipse');
-    embHole.setAttribute('cx','40');
-    embHole.setAttribute('cy', fluteLeftToRight ? '40' : '280');
-    embHole.setAttribute('rx','4');
-    embHole.setAttribute('ry','8');
-    embHole.setAttribute('fill','#1e293b');
-    embHole.setAttribute('stroke','#475569');
-    embHole.setAttribute('stroke-width','1');
-    svg.appendChild(embHole);
-    
-    // Body joint vertical
-    const bodyJoint = document.createElementNS(svgNS,'rect');
-    bodyJoint.setAttribute('x','27');
-    bodyJoint.setAttribute('y', fluteLeftToRight ? '75' : '145');
-    bodyJoint.setAttribute('width','26');
-    bodyJoint.setAttribute('height','100');
-    bodyJoint.setAttribute('rx','13');
-    bodyJoint.setAttribute('fill','url(#fluteGradV)');
-    bodyJoint.setAttribute('stroke','#64748b');
-    bodyJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(bodyJoint);
-    
-    // Foot joint vertical
-    const footJoint = document.createElementNS(svgNS,'rect');
-    footJoint.setAttribute('x','28');
-    footJoint.setAttribute('y', fluteLeftToRight ? '180' : '80');
-    footJoint.setAttribute('width','24');
-    footJoint.setAttribute('height','70');
-    footJoint.setAttribute('rx','12');
-    footJoint.setAttribute('fill','url(#fluteGradV)');
-    footJoint.setAttribute('stroke','#64748b');
-    footJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(footJoint);
-    
-    // Tone holes vertical
-    const holePositions = fluteLeftToRight ? 
-      [90, 105, 125, 145, 165, 185] : 
-      [230, 215, 195, 175, 155, 135];
-    
-    fing.forEach((closed,i)=>{
-      const holeY = holePositions[i];
-      
-      // Key mechanism
-      const key = document.createElementNS(svgNS,'rect');
-      key.setAttribute('x','52');
-      key.setAttribute('y', String(holeY - 8));
-      key.setAttribute('width','8');
-      key.setAttribute('height','16');
-      key.setAttribute('rx','2');
-      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
-      key.setAttribute('stroke','#64748b');
-      key.setAttribute('stroke-width','1');
-      svg.appendChild(key);
-      
-      // Tone hole
-      const hole = document.createElementNS(svgNS,'circle');
-      hole.setAttribute('cx','40');
-      hole.setAttribute('cy', String(holeY));
-      hole.setAttribute('r','5');
-      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
-      hole.setAttribute('stroke','#64748b');
-      hole.setAttribute('stroke-width','1');
-      svg.appendChild(hole);
-      
-      // Key mechanism rod
-      const rod = document.createElementNS(svgNS,'line');
-      rod.setAttribute('x1','47');
-      rod.setAttribute('y1', String(holeY));
-      rod.setAttribute('x2','52');
-      rod.setAttribute('y2', String(holeY));
-      rod.setAttribute('stroke','#94a3b8');
-      rod.setAttribute('stroke-width','1');
-      svg.appendChild(rod);
-    });
+  svg.style.transformOrigin = 'center';
+  const isHoriz = fluteOrientation === 'horizontal';
+  svg.style.width = isHoriz ? '320px' : '80px';
+  svg.style.height = isHoriz ? '80px' : '320px';
+  svg.style.transform = (isHoriz? '' : 'rotate(90deg)') + (fluteLeftToRight ? '' : ' scaleX(-1)');
+
+  if(!fluteBodyPath){
+    const txt = await fetch('assets/instruments/flute.svg').then(r=>r.text());
+    const doc = new DOMParser().parseFromString(txt,'image/svg+xml');
+    fluteBodyPath = doc.querySelector('path').getAttribute('d');
   }
+  const body = document.createElementNS(svgNS,'path');
+  body.setAttribute('d', fluteBodyPath);
+  body.setAttribute('fill','#e2e8f0');
+  body.setAttribute('stroke','#64748b');
+  body.setAttribute('stroke-width','1.5');
+  svg.appendChild(body);
+
+  // hole gradients
+  const defs=document.createElementNS(svgNS,'defs');
+  const gradOpen=document.createElementNS(svgNS,'linearGradient');
+  gradOpen.setAttribute('id','fluteHoleOpen');
+  gradOpen.setAttribute('x1','0%'); gradOpen.setAttribute('y1','0%');
+  gradOpen.setAttribute('x2','0%'); gradOpen.setAttribute('y2','100%');
+  let stop=document.createElementNS(svgNS,'stop');
+  stop.setAttribute('offset','0%'); stop.setAttribute('stop-color','#1e293b'); gradOpen.appendChild(stop);
+  stop=document.createElementNS(svgNS,'stop');
+  stop.setAttribute('offset','100%'); stop.setAttribute('stop-color','#0f172a'); gradOpen.appendChild(stop);
+  const gradClosed=document.createElementNS(svgNS,'linearGradient');
+  gradClosed.setAttribute('id','fluteHoleClosed');
+  gradClosed.setAttribute('x1','0%'); gradClosed.setAttribute('y1','0%');
+  gradClosed.setAttribute('x2','0%'); gradClosed.setAttribute('y2','100%');
+  stop=document.createElementNS(svgNS,'stop');
+  stop.setAttribute('offset','0%'); stop.setAttribute('stop-color','#111827'); gradClosed.appendChild(stop);
+  stop=document.createElementNS(svgNS,'stop');
+  stop.setAttribute('offset','100%'); stop.setAttribute('stop-color','#000'); gradClosed.appendChild(stop);
+  defs.appendChild(gradOpen); defs.appendChild(gradClosed);
+  svg.appendChild(defs);
+
+  const base=[80,120,160,200,240,280];
+  base.forEach((pos,i)=>{
+    let cx=pos, cy=40;
+    if(fing[i]){
+      if(isHoriz) cy+=2; else cx+=2;
+    }
+    const hole=document.createElementNS(svgNS,'circle');
+    hole.setAttribute('cx',cx);
+    hole.setAttribute('cy',cy);
+    hole.setAttribute('r','8');
+    hole.setAttribute('fill', fing[i]? 'url(#fluteHoleClosed)' : 'url(#fluteHoleOpen)');
+    hole.setAttribute('stroke','#64748b');
+    hole.setAttribute('stroke-width','1');
+    svg.appendChild(hole);
+  });
+
   fluteHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='fluteFlip';
