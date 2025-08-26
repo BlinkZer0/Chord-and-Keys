@@ -1441,6 +1441,8 @@ function updateLoop(){
 }
 
 // Dynamic scheduling window
+const MAX_SCHEDULE_AHEAD_BARS = 256;
+const MAX_SONG_BARS = 1_000_000;
 let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
 let scheduledUntil = 0;
 let rescheduleId = null;
@@ -1475,7 +1477,7 @@ function scheduleSong(){
     t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
   ));
   const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
-  scheduleAheadBars = Math.max(16, Math.ceil(totalBars * 0.25));
+  scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
 
   Tone.Transport.cancel();
   scheduledUntil = Tone.Transport.ticks;
@@ -1609,11 +1611,12 @@ function importSongMidi(buffer){
   }
 
   const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
-  const maxTicksAllowed = song.ppq * 4 * 4096; // Increased to 4096 bars max (from 256)
+  const maxTicksAllowed = song.ppq * 4 * MAX_SONG_BARS;
   let songLen = maxTick || song.ppq * 4;
   let truncated = false;
   if(maxTick > maxTicksAllowed){
-    if(!confirm('MIDI exceeds 4096 bars. Import first 4096 bars?')){
+    const bars = MAX_SONG_BARS.toLocaleString();
+    if(!confirm(`MIDI exceeds ${bars} bars. Import first ${bars} bars?`)){
       seqStatus.textContent = '❌ Import canceled';
       return;
     }
@@ -1639,7 +1642,8 @@ function importSongMidi(buffer){
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
-  seqStatus.textContent = truncated ? '⚠️ MIDI truncated to 4096 bars' : '✅ Imported MIDI';
+  const bars = MAX_SONG_BARS.toLocaleString();
+  seqStatus.textContent = truncated ? `⚠️ MIDI truncated to ${bars} bars` : '✅ Imported MIDI';
 }
 
 function exportSongMidi(){
@@ -2449,8 +2453,10 @@ const RECORDER_FINGERINGS = {
   - Hole radius: r=8
   Adjust these values to change chart size, spacing, or hole size for custom recorders.
 */
+codex/update-recorder-chart-with-svg-and-gradients-vkzzw2
 let recorderSvgTxt = null;
 const RECORDER_SVG_FALLBACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100"><g id="instrument"><path id="body" d="M20 35h300a15 15 0 0 1 0 30H20a15 15 0 0 1 0-30z"/><circle id="hole0" cx="85" cy="50" r="6"/><circle id="hole1" cx="100" cy="50" r="6"/><circle id="hole2" cx="115" cy="50" r="6"/><circle id="hole3" cx="130" cy="50" r="6"/><circle id="hole4" cx="150" cy="50" r="6"/><circle id="hole5" cx="170" cy="50" r="6"/><circle id="hole6" cx="190" cy="50" r="6"/><circle id="hole7" cx="210" cy="50" r="6"/><ellipse id="thumb" cx="95" cy="32" rx="3" ry="2"/></g></svg>`;
+main
 async function buildRecorderChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
@@ -2462,6 +2468,7 @@ async function buildRecorderChart(){
   const wrapper=document.createElementNS(svgNS,'svg');
   wrapper.setAttribute('viewBox', isHoriz ? '0 0 340 100' : '0 0 100 340');
   wrapper.setAttribute('class','mx-auto');
+codex/update-recorder-chart-with-svg-and-gradients-vkzzw2
   wrapper.style.width = isHoriz ? '340px' : '100px';
   wrapper.style.height = isHoriz ? '100px' : '340px';
   if(!recorderSvgTxt){
@@ -2469,6 +2476,9 @@ async function buildRecorderChart(){
     catch(e){ recorderSvgTxt = RECORDER_SVG_FALLBACK; }
   }
   const doc=new DOMParser().parseFromString(recorderSvgTxt,'image/svg+xml');
+  const txt=await fetch('assets/instruments/recorder.svg').then(r=>r.text());
+  const doc=new DOMParser().parseFromString(txt,'image/svg+xml');
+main
   const instrument=doc.getElementById('instrument');
   const body=doc.getElementById('body');
   const holes=[...instrument.querySelectorAll('[id^=hole]')];

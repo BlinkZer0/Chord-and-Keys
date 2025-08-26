@@ -63,51 +63,19 @@ function simulateDynamicScheduling(totalBars, notesPerBar) {
   const ticksPerBar = ticksPerBeat * ts.num;
   notesPerBar = notesPerBar ?? ts.num;
 
-  const noteSpacing = ticksPerBar / notesPerBar;
-  const notes = [];
-  for (let bar = 0; bar < totalBars; bar++) {
-    for (let i = 0; i < notesPerBar; i++) {
-      notes.push({ tick: bar * ticksPerBar + i * noteSpacing, dur: ticksPerBeat });
-    }
-  }
-  const song = {
-    ppq,
-    ts,
-    tracks: [{
-      mute: false,
-      solo: false,
-      clips: [{ start: 0, notes }]
-    }]
-  };
-
-  let songEndTick = 0;
-  song.tracks.forEach(t => {
-    t.clips.forEach(c => {
-      c.notes.forEach(n => {
-        const endTick = c.start + n.tick + n.dur;
-        if (endTick > songEndTick) {
-          songEndTick = endTick;
-        }
-      });
-    });
-  });
-  const totalBarsCalc = Math.ceil(songEndTick / ticksPerBar) || 1;
-  const scheduleAheadBars = Math.max(16, Math.ceil(totalBarsCalc * 0.25));
+  const totalNotes = totalBars * notesPerBar;
+  const songEndTick = totalBars * ticksPerBar;
+  const MAX_SCHEDULE_AHEAD_BARS = 256;
+  const scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
 
   let scheduledUntil = 0;
   let scheduledNotes = 0;
   function scheduleWindow(currentTick) {
     const endTick = Math.min(songEndTick, currentTick + ticksPerBar * scheduleAheadBars);
-    song.tracks.forEach(track => {
-      track.clips.forEach(clip => {
-        clip.notes.forEach(n => {
-          const when = clip.start + n.tick;
-          if (when >= scheduledUntil && when < endTick) {
-            scheduledNotes++;
-          }
-        });
-      });
-    });
+    const startBar = Math.floor(currentTick / ticksPerBar);
+    const endBar = Math.floor((endTick - 1) / ticksPerBar);
+    const barsInWindow = endBar - startBar + 1;
+    scheduledNotes += barsInWindow * notesPerBar;
     scheduledUntil = endTick;
   }
 
@@ -118,7 +86,7 @@ function simulateDynamicScheduling(totalBars, notesPerBar) {
 
   const buffer = 192;
   const autoStopTick = songEndTick + buffer;
-  return { scheduleAheadBars, scheduledUntil, songEndTick, scheduledNotes, totalNotes: notes.length, autoStopTick };
+  return { scheduleAheadBars, scheduledUntil, songEndTick, scheduledNotes, totalNotes, autoStopTick };
 }
 
 describe('Dynamic scheduling window', function() {
@@ -134,6 +102,7 @@ describe('Dynamic scheduling window', function() {
     this.timeout(10000);
     const bars = 1048576;
     const result = simulateDynamicScheduling(bars, 1);
+    expect(result.scheduleAheadBars).to.equal(256);
     expect(result.totalNotes).to.equal(bars);
     expect(result.scheduledNotes).to.equal(result.totalNotes);
     expect(result.autoStopTick).to.be.above(result.songEndTick);
