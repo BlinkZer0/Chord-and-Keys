@@ -213,8 +213,9 @@
 
         <div id="pianoRollWrap" class="flex">
           <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
-          <div id="pianoRollScroll" class="overflow-auto">
-            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700"></canvas>
+          <div id="pianoRollScroll" class="overflow-auto relative">
+            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+            <div id="pianoRollSpacer"></div>
           </div>
         </div>
 
@@ -1146,6 +1147,7 @@ const seqColorScheme = $('#seqColorScheme');
 const pianoRoll = $('#pianoRoll');
 const pianoRollGutter = $('#pianoRollGutter');
 const pianoRollScroll = $('#pianoRollScroll');
+const pianoRollSpacer = $('#pianoRollSpacer');
 const seqTracks = $('#seqTracks');
 const seqZoomX = $('#seqZoomX'); const seqZoomY = $('#seqZoomY');
 const seqClearAll = $('#seqClearAll');
@@ -1167,7 +1169,9 @@ pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
   ui.scrollY = pianoRollScroll.scrollTop;
   pianoRollGutter.scrollTop = ui.scrollY;
+  drawPianoRoll();
 });
+window.addEventListener('resize', drawPianoRoll);
 
 let mode = 'Chord';
 let instrument = 'Piano';
@@ -1385,83 +1389,60 @@ function updateLoop(){
   }
 }
 
-function scheduleSong(changedIdx){
+const SCHEDULE_AHEAD_BARS = 4;
+let scheduledUntil = 0;
+let rescheduleId = null;
+
+function scheduleSong(){
   const anySolo = song.tracks.some(t => t.solo);
-  song.tracks.forEach((track, idx) => {
+  song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active){
-      if(track.part) {
-        track.part.dispose();
-        track.part = null;
-      }
+      track.player?.dispose?.();
+      track.player = null;
       return;
     }
-
-    // Create player if needed
     if(!track.player){
       try {
         const drumFactory = DRUMS[track.instrument];
         track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
-        if(track.player && track.player.setVolume) {
-          track.player.setVolume(track.volume ?? 0.8);
-        }
-      } catch(error) {
-        console.error(`Failed to create player for ${track.instrument}:`, error);
-        // Create fallback player
+        track.player?.setVolume?.(track.volume ?? 0.8);
+      } catch(err){
+        console.error(`Failed to create player for ${track.instrument}:`, err);
         track.player = createSeqInstrument('Piano');
-        track.player.setVolume?.(track.volume ?? 0.8);
-      }
-    }
-
-    if(changedIdx !== undefined && changedIdx !== idx && track.part){
-      if(seqLoop.checked && song.loop.enabled) {
-        track.part.loopStart = `${song.loop.start}i`;
-        track.part.loopEnd = `${song.loop.end}i`;
-        track.part.loop = true;
-      } else {
-        track.part.loop = false;
-      }
-      return;
-    }
-
-    // Dispose existing part
-    if(track.part) {
-      track.part.dispose();
-      track.part = null;
-    }
-    
-    // Collect all notes from all clips
-    const events = [];
-    track.clips.forEach(clip => {
-      clip.notes.forEach(note => {
-        const when = clip.start + note.tick;
-        events.push([`${when}i`, note]);
-      });
-    });
-
-    // Create part only if there are events
-    if(events.length > 0){
-      try {
-        const part = new Tone.Part((time, n) => {
-          if(track.player && track.player.trigger) {
-            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
-          }
-        }, events);
-        if(seqLoop.checked && song.loop.enabled) {
-          part.loopStart = `${song.loop.start}i`;
-          part.loopEnd = `${song.loop.end}i`;
-          part.loop = true;
-        } else {
-          part.loop = false;
-        }
-        part.start(0);
-        track.part = part;
-      } catch(error) {
-        console.error(`Failed to create part for track ${idx}:`, error);
-        track.part = null;
+        track.player?.setVolume?.(track.volume ?? 0.8);
       }
     }
   });
+
+  Tone.Transport.cancel();
+  scheduledUntil = Tone.Transport.ticks;
+  scheduleAhead();
+  if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
+  rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+}
+
+function scheduleAhead(){
+  const anySolo = song.tracks.some(t => t.solo);
+  const endTick = Tone.Transport.ticks + song.ppq * 4 * SCHEDULE_AHEAD_BARS;
+  song.tracks.forEach(track => {
+    const active = anySolo ? track.solo : !track.mute;
+    if(!active || !track.player) return;
+    track.clips.forEach(clip => {
+      clip.notes.forEach(n => {
+        let when = clip.start + n.tick;
+        if(song.loop.enabled){
+          if(when < song.loop.start || when >= song.loop.end) return;
+        }
+        if(when >= scheduledUntil && when < endTick){
+          Tone.Transport.schedule(time => {
+            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
+          }, `${when}i`);
+        }
+      });
+    });
+  });
+  scheduledUntil = endTick;
 }
 
 let clickId = null;
@@ -1560,11 +1541,22 @@ function importSongMidi(buffer){
   }
 
   const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
-  const songLen = maxTick || song.ppq * 4;
+  const maxTicksAllowed = song.ppq * 4 * 256; // 256 bars max
+  let songLen = maxTick || song.ppq * 4;
+  let truncated = false;
+  if(maxTick > maxTicksAllowed){
+    if(!confirm('MIDI exceeds 256 bars. Import first 256 bars?')){
+      seqStatus.textContent = '❌ Import canceled';
+      return;
+    }
+    songLen = maxTicksAllowed;
+    truncated = true;
+  }
 
   song.tracks.forEach((tr,i)=>{
     const src = tracks[i];
-    tr.clips[0].notes = src ? src.notes : [];
+    const notes = src ? src.notes.filter(n=>n.tick < songLen) : [];
+    tr.clips[0].notes = notes;
     tr.clips[0].length = songLen;
   });
 
@@ -1577,7 +1569,7 @@ function importSongMidi(buffer){
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
-  seqStatus.textContent = '✅ Imported MIDI';
+  seqStatus.textContent = truncated ? '⚠️ MIDI truncated to 256 bars' : '✅ Imported MIDI';
 }
 
 function exportSongMidi(){
@@ -1615,20 +1607,26 @@ function drawPianoRoll(){
   if(minClipLength > clip.length) {
     song.tracks.forEach(t => t.clips[0].length = minClipLength);
   }
-  const steps = clip.length / SIXTEENTH;
+  const totalSteps = clip.length / SIXTEENTH;
   const noteCount = MAX_MIDI - MIN_MIDI;
   const cellW = 20 * ui.zoomX;
   const cellH = 20 * ui.zoomY;
-  const width = steps * cellW;
+  const totalWidth = totalSteps * cellW;
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const viewportWidth = pianoRollScroll.clientWidth;
+  const startStep = Math.floor(scrollLeft / cellW);
+  const endStep = startStep + Math.ceil(viewportWidth / cellW) + 1;
+  const width = viewportWidth;
   const height = noteCount * cellH;
   const dpr = window.devicePixelRatio||1;
   pianoRoll.width = width*dpr; pianoRoll.height = height*dpr; pianoRoll.style.width=width+'px'; pianoRoll.style.height=height+'px';
+  pianoRollSpacer.style.width = totalWidth+'px'; pianoRollSpacer.style.height = height+'px';
   const ctx = pianoRoll.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height);
   // background lanes
   for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
   // grid vertical
-  for(let i=0;i<=steps;i++){
-    const x=i*cellW; ctx.strokeStyle='#2d3c4a'; if(i%(song.ppq/ SIXTEENTH)===0) ctx.strokeStyle='#395063'; if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#4a6379'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+  for(let i=startStep;i<=endStep;i++){
+    const x=i*cellW - scrollLeft; ctx.strokeStyle='#2d3c4a'; if(i%(song.ppq/ SIXTEENTH)===0) ctx.strokeStyle='#395063'; if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#4a6379'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
@@ -1636,23 +1634,22 @@ function drawPianoRoll(){
   song.tracks.forEach((track,idx)=>{
     const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
     track.clips[0].notes.forEach(n=>{
-      const x=n.tick/SIXTEENTH*cellW;
+      const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
-      
+      if(x+w<0 || x>width) return;
       // Highlight selected notes
       if(idx === activeTrack && selectedNotes.has(n)) {
-        ctx.fillStyle = '#ff6b9d'; // Pink highlight for selected notes
+        ctx.fillStyle = '#ff6b9d';
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
-      
       ctx.fillStyle = baseColor;
       ctx.fillRect(x,y,w,cellH);
     });
   });
   if(dragNote){
     ctx.fillStyle='rgba(236,72,153,0.6)';
-    const x=dragNote.tick/SIXTEENTH*cellW; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; ctx.fillRect(x,y,w,cellH);
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; if(x+w>=0 && x<=width) ctx.fillRect(x,y,w,cellH);
   }
   
   // Selection rectangle
@@ -1660,7 +1657,7 @@ function drawPianoRoll(){
     ctx.strokeStyle = '#ff6b9d';
     ctx.fillStyle = 'rgba(255, 107, 157, 0.1)';
     ctx.lineWidth = 2;
-    const rectX = Math.min(ui.selectStart.x, ui.selectEnd.x);
+    const rectX = Math.min(ui.selectStart.x, ui.selectEnd.x) - scrollLeft;
     const rectY = Math.min(ui.selectStart.y, ui.selectEnd.y);
     const rectW = Math.abs(ui.selectEnd.x - ui.selectStart.x);
     const rectH = Math.abs(ui.selectEnd.y - ui.selectStart.y);
