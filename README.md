@@ -1,15 +1,15 @@
 # Chord & Scale Library
 
-Welcome to the all‑in‑one music playground where chords, scales, sequencer, and a small brass band live together in one colossal HTML file.  It runs entirely in the browser using [Tailwind CSS](https://tailwindcss.com/) for style and [Tone.js](https://tonejs.github.io/) for sound – no binary assets, just pure procedural vibes.
+Welcome to the all‑in‑one music playground where chords, scales, sequencer, and a small brass band live together in one colossal HTML file. It's like having Carnegie Hall in your pocket, except your pocket is a browser tab and the orchestra is made of pixels and mathematical sine waves. It runs entirely in the browser using [Tailwind CSS](https://tailwindcss.com/) for style and [Tone.js](https://tonejs.github.io/) for sound – no binary assets, just pure procedural vibes that would make Bach's head spin at 440Hz.
 
 ## Bells, Whistles, and Other Instruments
 
-* **Mode & chord explorer** – browse Western, Maqam, and other exotic systems, then hear them on the spot.
-* **Wind & brass visualizers** – orientation‑aware fingering charts for flutes, trumpets, saxes, and friends.
-* **Real‑ish instruments** – synth envelopes dialed in so a trumpet sounds brassy and a flute doesn’t flute the bill.
-* **Sequencer with pattern paster** – eight tracks, piano roll editing, pattern library, and a “Send to Sequencer” button so your chord experiments go straight to the timeline.
-* **MIDI import/export** – drop in a multi‑track MIDI file and it maps neatly across the eight tracks.  Export your masterpiece back out when you’re done.
-* **Skins** – eleven seasonal and nature‑themed gradients.  Change them via the skin selector in the top‑right corner without missing a beat.
+* **Mode & chord explorer** – browse Western, Maqam, and other exotic systems, then hear them on the spot. Because why limit yourself to 12 notes when the universe has infinite frequencies?
+* **Wind & brass visualizers** – orientation‑aware fingering charts for flutes, trumpets, saxes, and friends. Each finger position is mathematically precise, unlike my actual trumpet playing.
+* **Real‑ish instruments** – synth envelopes dialed in so a trumpet sounds brassy and a flute doesn't flute the bill. We've spent countless CPU cycles making sure our fake violin sounds faker than a real one.
+* **Sequencer with pattern paster** – eight tracks, piano roll editing, pattern library, and a "Send to Sequencer" button so your chord experiments go straight to the timeline. It's like copy-paste for music, except more musically satisfying.
+* **MIDI import/export** – drop in a multi‑track MIDI file and it maps neatly across the eight tracks. Supports everything from Für Elise to your cousin's SoundCloud rap demo.
+* **Skins** – eleven seasonal and nature‑themed gradients. Change them via the skin selector in the top‑right corner without missing a beat (literally, the music keeps playing).
 
 ## Using the Sequencer
 
@@ -41,11 +41,11 @@ Every chord, scale, mode, and makam in the app is available as a ready‑to‑pa
 
 ## Instrument Visualizations
 
-Piano, guitar, bass, violin, koto, and a growing lineup of wind and brass charts show the exact fingering for the current harmony.  Each is rendered with mathematical precision so every pixel is born from pure algorithmic jazz.
+Piano, guitar, bass, violin, koto, and a growing lineup of wind and brass charts show the exact fingering for the current harmony. Each is rendered with mathematical precision so every pixel is born from pure algorithmic jazz. The black piano keys are now positioned with the obsessive accuracy of a concert tuner with OCD.
 
 ## Architecture & Philosophy
 
-Everything – **everything** – lives in `chord_scale_library_html_tailwind_tone.html`.  Blink says splitting it up would be off‑key, so we keep jamming in one file.  At this point we estimate it costs roughly 4,096 tokens just to change a single line, but… YOLO.
+Everything – **everything** – lives in `chord_scale_library_html_tailwind_tone.html`. Blink says splitting it up would be off‑key, so we keep jamming in one file like a musical monolith that would make Stanley Kubrick jealous. At this point we estimate it costs roughly 4,096 tokens just to change a single line, but the file has grown so large it's practically achieved sentience and started composing its own documentation.
 
 ## Embedding in Your Website
 
@@ -70,16 +70,18 @@ You can use it in another page in two ways:
 
 This project is orchestrated by a trio of AIs:
 
-* **ChatGPT Codex** – me, your friendly conductor.
-* **Blink** – steadfast guardian of the One True HTML File.
-* **ClaudeAI** – keeps us in harmony and occasionally reminds us not to go flat.
+* **ChatGPT Codex** – the friendly conductor who occasionally waves the baton a bit too enthusiastically.
+* **Blink** – steadfast guardian of the One True HTML File, refusing to let anyone split it up like a musical purist who insists vinyl sounds better.
+* **Claude** – the diplomatic one who keeps everyone in harmony, fixes the black piano keys when they go rogue, and makes sure large MIDI files don't crash the party. Also writes overly elaborate commit messages.
 
-Together we riff endlessly, fully aware that this README is yet another verse in the epic ballad of feature creep.
+Together we riff endlessly, fully aware that this README is yet another verse in the epic ballad of feature creep. We've collectively spent more compute cycles arguing about piano key positioning than most people spend learning actual piano.
 
 > Why did the musician break up with the metronome?  It just kept saying "It's not you, it's *timing*."
 
 ## Contributing
 
-Open `chord_scale_library_html_tailwind_tone.html` in a modern browser and start exploring.  Pull requests, new modes, and tasteful puns are welcome.  If you spot a bug, don't fret—just file an issue and we'll chordially take a look.
+Open `chord_scale_library_html_tailwind_tone.html` in a modern browser and start exploring. Pull requests, new modes, and tasteful puns are welcome. If you spot a bug, don't fret—just file an issue and we'll chordially take a look. 
 
-Happy composing!  Remember: if you're going to change a line, make sure it's a good one.
+Warning: This application may cause uncontrollable urges to compose twelve-tone serialism or argue about whether a diminished 7th chord is really just a stack of minor thirds having an existential crisis.
+
+Happy composing! Remember: if you're going to change a line, make sure it's a good one. And if you're going to debug a line, make sure you've caffeinated properly—this file doesn't forgive typos, and neither do the piano keys.

@@ -1371,8 +1371,8 @@ Tone.Transport.PPQ = song.ppq;
 
 const SIXTEENTH = song.ppq / 4;
 let lastNoteDur = song.ppq * song.ts.num;
-const MIN_MIDI = midiFrom('C',2);
-const MAX_MIDI = MIN_MIDI + 4*12;
+const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
+const MAX_MIDI = MIN_MIDI + 7*12; // Extended to 7 octaves (C1 to C8) for full 88-key piano range
 let activeTrack = 0;
 let dragNote = null;
 let trackSwitchTimeout = null;
@@ -1588,11 +1588,11 @@ function importSongMidi(buffer){
   }
 
   const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
-  const maxTicksAllowed = song.ppq * 4 * 256; // 256 bars max
+  const maxTicksAllowed = song.ppq * 4 * 4096; // Increased to 4096 bars max (from 256)
   let songLen = maxTick || song.ppq * 4;
   let truncated = false;
   if(maxTick > maxTicksAllowed){
-    if(!confirm('MIDI exceeds 256 bars. Import first 256 bars?')){
+    if(!confirm('MIDI exceeds 4096 bars. Import first 4096 bars?')){
       seqStatus.textContent = '❌ Import canceled';
       return;
     }
@@ -1616,7 +1616,7 @@ function importSongMidi(buffer){
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
-  seqStatus.textContent = truncated ? '⚠️ MIDI truncated to 256 bars' : '✅ Imported MIDI';
+  seqStatus.textContent = truncated ? '⚠️ MIDI truncated to 4096 bars' : '✅ Imported MIDI';
 }
 
 function exportSongMidi(){
