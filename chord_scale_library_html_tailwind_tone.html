@@ -371,7 +371,10 @@ function makePluck(){
   }).connect(gain);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+      const duration = Tone.Time(dur).toSeconds();
+      const vel = Math.max(0, Math.min(1, velocity));
+      console.log(`PluckSynth -> midi:${midi} dur:${duration}s vel:${vel}`);
+      synth.triggerAttackRelease(midiToFreq(midi),duration,time,vel);
     },
     setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
@@ -754,6 +757,7 @@ function scheduleSong(){
       clip.notes.forEach(note => {
         const when = clip.start + note.tick;
         Tone.Transport.schedule(time => {
+          console.log(`Note event -> midi:${note.midi} ticks:${note.dur} vel:${note.vel ?? 0.8}`);
           track.player.trigger(note.midi, time, note.vel ?? 0.8, `${note.dur}i`);
         }, `${when}i`);
       });
