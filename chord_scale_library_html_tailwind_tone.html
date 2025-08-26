@@ -34,102 +34,403 @@
       transition: all 0.1s ease;
     }
     
-    /* Enhanced grid visibility and scaling improvements */
-    #pianoRollScroll {
-      scrollbar-width: thin;
-      scrollbar-color: #475569 #1e293b;
+    /* Particle Effects */
+    .particle-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1000;
+      overflow: hidden;
     }
     
-    #pianoRollScroll::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      animation: particle-fade 1.5s ease-out forwards;
     }
     
-    #pianoRollScroll::-webkit-scrollbar-track {
+    @keyframes particle-fade {
+      0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.1) translateY(-50px);
+      }
+    }
+    
+    /* Channel Rack Styles */
+    .channel-rack {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 2px solid #475569;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .channel-strip {
+      background: linear-gradient(180deg, #374151 0%, #4b5563 100%);
+      border: 1px solid #6b7280;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+    }
+    
+    .channel-strip:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    
+    .channel-strip.active {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+    
+    .knob {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #6b7280 0deg, #9ca3af 180deg, #6b7280 360deg);
+      border: 3px solid #374151;
+      position: relative;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+    
+    .knob:hover {
+      transform: scale(1.05);
+    }
+    
+    .knob-indicator {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 15px;
+      background: #ffffff;
+      transform-origin: 50% 0;
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    
+    .pattern-ghost {
+      opacity: 0.3;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px dashed #3b82f6;
+    }
+    
+    .pattern-active {
+      opacity: 1;
+      background: rgba(59, 130, 246, 0.4);
+      border: 1px solid #3b82f6;
+    }
+    
+    /* Enhanced Piano Roll */
+    .piano-roll-container {
+      position: relative;
+      background: #0f172a;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .piano-roll-header {
+      background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
+      padding: 8px 12px;
+      border-bottom: 1px solid #475569;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .piano-roll-timeline {
       background: #1e293b;
+      border-bottom: 1px solid #475569;
+      height: 40px;
+      position: relative;
     }
     
-    #pianoRollScroll::-webkit-scrollbar-thumb {
+    .timeline-marker {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #ef4444;
+      z-index: 10;
+      transition: left 0.1s linear;
+    }
+    
+    /* Improved scrollbars */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #1e293b;
+      border-radius: 6px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
       background: #475569;
-      border-radius: 4px;
+      border-radius: 6px;
+      border: 2px solid #1e293b;
     }
     
-    #pianoRollScroll::-webkit-scrollbar-thumb:hover {
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: #64748b;
     }
     
-    /* Better grid visibility at different zoom levels */
-    #gridOverlay svg line {
-      stroke-dasharray: 1, 2;
-      stroke-opacity: 0.4;
+    /* Loading indicator */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
     }
     
-    /* Production mode improvements */
-    #channelRack {
-      scrollbar-width: thin;
-      scrollbar-color: #475569 #1e293b;
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #475569;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
     }
     
-    #channelRack::-webkit-scrollbar {
-      width: 6px;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
     
-    #channelRack::-webkit-scrollbar-track {
-      background: #1e293b;
+    /* QoL Improvements */
+    .note-tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #e2e8f0;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(8px);
     }
     
-    #channelRack::-webkit-scrollbar-thumb {
-      background: #475569;
+    .grid-snap-indicator {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    
+    .grid-snap-indicator.active {
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(20px - 1px),
+        rgba(59, 130, 246, 0.1) calc(20px - 1px),
+        rgba(59, 130, 246, 0.1) 20px
+      );
+    }
+    
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .quick-action-btn {
+      padding: 4px 8px;
+      background: #374151;
+      border: 1px solid #4b5563;
+      border-radius: 4px;
+      color: #e5e7eb;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .quick-action-btn:hover {
+      background: #4b5563;
+      border-color: #6b7280;
+    }
+    
+    .quick-action-btn.active {
+      background: #3b82f6;
+      border-color: #60a5fa;
+    }
+    
+    .snap-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      background: #374151;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    
+    .snap-indicator.active {
+      background: #059669;
+      color: #d1fae5;
+    }
+    
+    .velocity-indicator {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #3b82f6;
+      opacity: 0.8;
+    }
+    
+    .shortcuts-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(15, 23, 42, 0.98);
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      z-index: 2000;
+      backdrop-filter: blur(12px);
+    }
+    
+    .shortcuts-panel h3 {
+      margin: 0 0 16px 0;
+      color: #e2e8f0;
+      font-size: 18px;
+    }
+    
+    .shortcut-group {
+      margin-bottom: 16px;
+    }
+    
+    .shortcut-group h4 {
+      margin: 0 0 8px 0;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+    
+    .shortcut-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      font-size: 12px;
+    }
+    
+    .shortcut-key {
+      background: #374151;
+      border: 1px solid #4b5563;
       border-radius: 3px;
+      padding: 2px 6px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #e5e7eb;
     }
     
-    /* Responsive improvements */
-    @media (max-width: 768px) {
-      #pianoRollWrap {
-        flex-direction: column;
-      }
-      
-      #pianoRollGutter {
-        width: 100% !important;
-        height: 60px !important;
-      }
+    .overlay-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1999;
     }
     
-    /* Empty state improvements */
-    #emptyStateMessage {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8));
-      border: 1px solid rgba(71, 85, 105, 0.3);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
+    .zoom-to-selection-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 8px;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 4px;
+      color: #60a5fa;
+      font-size: 11px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    .piano-roll-container:hover .zoom-to-selection-btn {
+      opacity: 1;
+    }
+    
+    .undo-redo-status {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    
+    .undo-redo-btn {
+      padding: 2px 6px;
+      background: #374151;
+      border: 1px solid #4b5563;
+      border-radius: 3px;
+      color: #9ca3af;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .undo-redo-btn:hover:not(:disabled) {
+      background: #4b5563;
+      color: #e5e7eb;
+    }
+    
+    .undo-redo-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
+  <!-- Particle Effects Container -->
+  <div id="particleContainer" class="particle-container"></div>
+  
   <div class="max-w-6xl mx-auto p-6">
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
         <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
         <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
-        <div class="flex items-center gap-2">
-          <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
-            <option value="default">Default</option>
-            <option value="solarized">Solarized</option>
-            <option value="mono">Mono</option>
-            <option value="spring">Spring</option>
-            <option value="summer">Summer</option>
-            <option value="autumn">Autumn</option>
-            <option value="winter">Winter</option>
-            <option value="forest">Forest</option>
-            <option value="ocean">Ocean</option>
-            <option value="desert">Desert</option>
-            <option value="mountain">Mountain</option>
-            <option value="sunrise">Sunrise</option>
-            <option value="sunset">Sunset</option>
-          </select>
-          <button id="productionModeToggle" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition-colors">
-            🎛️ Production Mode
-          </button>
-          <span id="modeIndicator" class="text-xs text-slate-400">Basic Mode</span>
-        </div>
+        <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+          <option value="default">Default</option>
+          <option value="solarized">Solarized</option>
+          <option value="mono">Mono</option>
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+          <option value="autumn">Autumn</option>
+          <option value="winter">Winter</option>
+          <option value="forest">Forest</option>
+          <option value="ocean">Ocean</option>
+          <option value="desert">Desert</option>
+          <option value="mountain">Mountain</option>
+          <option value="sunrise">Sunrise</option>
+          <option value="sunset">Sunset</option>
+        </select>
       </header>
 
     <!-- ============ 1) Choose What To Explore ============ -->
@@ -231,6 +532,18 @@
     <!-- ============ Sequencer ============ -->
     <section id="sequencerHost" class="mb-6 hidden">
       <h2 class="text-lg font-semibold text-slate-100 mb-2">Sequencer</h2>
+      
+      <!-- FL Studio-style Channel Rack -->
+      <div class="channel-rack p-4 mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-lg font-semibold text-slate-100">Channel Rack</h3>
+          <button id="btnAddChannel" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg">Add Channel</button>
+        </div>
+        <div id="channelRack" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <!-- Channel strips will be dynamically generated here -->
+        </div>
+      </div>
+      
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
         <div class="flex flex-wrap gap-3 items-center">
           <button id="seqPlay" aria-label="Play" title="Play" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
@@ -299,28 +612,61 @@
 
         <div id="seqTracks" class="space-y-2"></div>
 
-        <div id="emptyStateMessage" class="text-center py-12 text-slate-400 hidden">
-          <div class="text-4xl mb-4">🎵</div>
-          <h3 class="text-lg font-semibold mb-2">Welcome to the Sequencer!</h3>
-          <p class="mb-4">Click anywhere on the grid to place your first note</p>
-          <div class="flex justify-center gap-2">
-            <button id="addSampleNote" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors">
-              Add Sample Note
-            </button>
-            <button id="importPattern" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
-              Import Pattern
-            </button>
+        <!-- Enhanced Piano Roll -->
+        <div class="piano-roll-container">
+          <div class="piano-roll-header">
+            <span class="text-sm font-medium text-slate-300">Piano Roll</span>
+            <div class="flex items-center gap-2 ml-auto">
+              <span id="pianoRollStatus" class="text-xs text-slate-400">Ready</span>
+              <div id="pianoRollLoading" class="loading-overlay hidden">
+                <div class="loading-spinner"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div id="pianoRollWrap" class="flex">
+            <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
+            <div id="pianoRollScroll" class="overflow-auto relative custom-scrollbar">
+              <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+              <div id="pianoRollSpacer"></div>
+              <div id="timelineMarker" class="timeline-marker"></div>
+              <div id="gridSnapIndicator" class="grid-snap-indicator"></div>
+              <button id="zoomToSelectionBtn" class="zoom-to-selection-btn">🔍</button>
+            </div>
           </div>
         </div>
-
-        <div id="pianoRollWrap" class="flex">
-          <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
-          <div id="pianoRollScroll" class="overflow-auto relative">
-            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-            <div id="pianoRollSpacer"></div>
-            <!-- Grid overlay for better visibility -->
-            <div id="gridOverlay" class="absolute top-0 left-0 pointer-events-none"></div>
+        
+        <!-- QoL Controls -->
+        <div class="flex flex-wrap gap-4 items-center p-3 bg-slate-800 rounded-lg">
+          <div class="quick-actions">
+            <span class="text-xs text-slate-300">Note Length:</span>
+            <button id="btnNote16" class="quick-action-btn" data-duration="48">1/16</button>
+            <button id="btnNote8" class="quick-action-btn" data-duration="96">1/8</button>
+            <button id="btnNote4" class="quick-action-btn" data-duration="192">1/4</button>
+            <button id="btnNote2" class="quick-action-btn" data-duration="384">1/2</button>
+            <button id="btnNote1" class="quick-action-btn" data-duration="768">1/1</button>
           </div>
+          
+          <div class="quick-actions">
+            <span class="text-xs text-slate-300">Quantize:</span>
+            <button id="btnQuantize16" class="quick-action-btn" data-snap="48">1/16</button>
+            <button id="btnQuantize8" class="quick-action-btn" data-snap="96">1/8</button>
+            <button id="btnQuantize4" class="quick-action-btn" data-snap="192">1/4</button>
+            <button id="btnQuantizeOff" class="quick-action-btn" data-snap="0">Off</button>
+          </div>
+          
+          <div class="snap-indicator" id="snapIndicator">
+            <span>🔗</span>
+            <span id="snapValue">1/16</span>
+          </div>
+          
+          <div class="undo-redo-status">
+            <button id="btnUndo" class="undo-redo-btn" disabled>↶ Undo</button>
+            <button id="btnRedo" class="undo-redo-btn" disabled>↷ Redo</button>
+            <span id="undoRedoCount" class="text-xs">0/0</span>
+          </div>
+          
+          <button id="btnShowShortcuts" class="quick-action-btn">⌨️ Shortcuts</button>
         </div>
 
         <div class="flex flex-wrap gap-3 items-center">
@@ -358,7 +704,7 @@
             <button id="btnCopyFL" aria-label="Copy for FL Paste (Score)" title="Copy for FL Paste (Score)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
             <button id="btnCopyCSV" aria-label="Copy CSV" title="Copy CSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
             <button id="btnMid" aria-label="Download .MID" title="Download .MID" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
-          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL’s Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
+          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL's Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
         </div>
         <div id="copyStatus" class="text-xs text-slate-300 mt-2"></div>
       </div>
@@ -437,84 +783,6 @@
         </div>
       </section>
     </details>
-
-    <!-- ============ Production Mode ============ -->
-    <section id="productionModeHost" class="mb-6 hidden">
-      <h2 class="text-lg font-semibold text-slate-100 mb-2">Production Studio</h2>
-      
-      <!-- Channel Rack -->
-      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 mb-4">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-md font-semibold text-slate-200">Channel Rack</h3>
-          <div class="flex gap-2">
-            <button id="addChannel" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors">
-              + Add Channel
-            </button>
-            <button id="importSample" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm transition-colors">
-              📁 Import Sample
-            </button>
-          </div>
-        </div>
-        
-        <div id="channelRack" class="space-y-2 max-h-64 overflow-y-auto">
-          <!-- Channels will be dynamically added here -->
-        </div>
-      </div>
-      
-      <!-- Pattern Library -->
-      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 mb-4">
-        <h3 class="text-md font-semibold text-slate-200 mb-4">Pattern Library</h3>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-            <div class="text-sm font-semibold text-slate-200 mb-2">Drum Patterns</div>
-            <div class="space-y-1">
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="four-on-floor">Four on Floor</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="breakbeat">Breakbeat</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="trap">Trap</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="house">House</button>
-            </div>
-          </div>
-          
-          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-            <div class="text-sm font-semibold text-slate-200 mb-2">Bass Lines</div>
-            <div class="space-y-1">
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="walking-bass">Walking Bass</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="trap-bass">Trap Bass</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="house-bass">House Bass</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="acid-bass">Acid Bass</button>
-            </div>
-          </div>
-          
-          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-            <div class="text-sm font-semibold text-slate-200 mb-2">Melodies</div>
-            <div class="space-y-1">
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="arpeggio">Arpeggio</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="pentatonic">Pentatonic</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="blues">Blues</button>
-              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="jazz">Jazz</button>
-            </div>
-          </div>
-          
-          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
-            <div class="text-sm font-semibold text-slate-200 mb-2">Custom Loops</div>
-            <div class="space-y-1">
-              <button id="saveLoop" class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs text-white transition-colors">Save Current</button>
-              <button id="loadLoop" class="w-full px-2 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white transition-colors">Load Loop</button>
-              <button id="clearLoop" class="w-full px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs text-white transition-colors">Clear</button>
-              <button id="exportLoop" class="w-full px-2 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs text-white transition-colors">Export</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Sample Library -->
-      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
-        <h3 class="text-md font-semibold text-slate-200 mb-4">Sample Library</h3>
-        <div id="sampleLibrary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <!-- Samples will be dynamically added here -->
-        </div>
-      </div>
-    </section>
 
     <details id="devTests">
       <summary class="flex items-center gap-1 cursor-pointer" title="Toggle automated self-tests" aria-expanded="false">
@@ -685,7 +953,7 @@ const CHORD_DICT = CHORD_QUALITIES; // reuse
 function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
 function intersection(a,b){ return a.filter(x=>b.includes(x)); }
 function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
-efunction chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
@@ -1028,6 +1296,16 @@ document.addEventListener('keydown', (ev) => {
     case 'Backspace':
       ev.preventDefault();
       deleteSelected();
+      break;
+      
+    case 'Home':
+      ev.preventDefault();
+      seqToStart.click();
+      break;
+      
+    case 'End':
+      ev.preventDefault();
+      seqToEnd.click();
       break;
       
     case 'KeyA':
@@ -1542,12 +1820,6 @@ let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
 let system = 'Western';
 let tempo = 120;
-
-// Production mode variables
-let productionMode = false;
-let productionSampleLibrary = new Map();
-let customLoops = new Map();
-let loopCounter = 0;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
 let neyLeftToRight = true;
@@ -1635,187 +1907,6 @@ const PATTERN_LIBRARY = createPatternLibrary({
     ]
   }
 });
-
-// Production mode patterns
-const PRODUCTION_PATTERNS = {
-  'four-on-floor': {
-    name: 'Four on Floor',
-    tracks: [
-      { instrument: 'Kick 808', notes: [
-        {tick: 0, dur: 48, midi: 36, vel: 0.9},
-        {tick: 192, dur: 48, midi: 36, vel: 0.9},
-        {tick: 384, dur: 48, midi: 36, vel: 0.9},
-        {tick: 576, dur: 48, midi: 36, vel: 0.9}
-      ]},
-      { instrument: 'Snare Tight', notes: [
-        {tick: 192, dur: 48, midi: 38, vel: 0.8},
-        {tick: 576, dur: 48, midi: 38, vel: 0.8}
-      ]},
-      { instrument: 'Cymbal ClosedHat', notes: [
-        {tick: 0, dur: 24, midi: 42, vel: 0.6},
-        {tick: 96, dur: 24, midi: 42, vel: 0.6},
-        {tick: 192, dur: 24, midi: 42, vel: 0.6},
-        {tick: 288, dur: 24, midi: 42, vel: 0.6},
-        {tick: 384, dur: 24, midi: 42, vel: 0.6},
-        {tick: 480, dur: 24, midi: 42, vel: 0.6},
-        {tick: 576, dur: 24, midi: 42, vel: 0.6},
-        {tick: 672, dur: 24, midi: 42, vel: 0.6}
-      ]}
-    ]
-  },
-  'trap': {
-    name: 'Trap Beat',
-    tracks: [
-      { instrument: 'Kick 808', notes: [
-        {tick: 0, dur: 48, midi: 36, vel: 0.9},
-        {tick: 144, dur: 48, midi: 36, vel: 0.9},
-        {tick: 384, dur: 48, midi: 36, vel: 0.9},
-        {tick: 528, dur: 48, midi: 36, vel: 0.9}
-      ]},
-      { instrument: 'Snare Tight', notes: [
-        {tick: 192, dur: 48, midi: 38, vel: 0.8},
-        {tick: 576, dur: 48, midi: 38, vel: 0.8}
-      ]},
-      { instrument: 'Clap Short', notes: [
-        {tick: 192, dur: 24, midi: 39, vel: 0.7},
-        {tick: 576, dur: 24, midi: 39, vel: 0.7}
-      ]}
-    ]
-  },
-  'breakbeat': {
-    name: 'Breakbeat',
-    tracks: [
-      { instrument: 'Kick 808', notes: [
-        {tick: 0, dur: 48, midi: 36, vel: 0.9},
-        {tick: 144, dur: 48, midi: 36, vel: 0.9},
-        {tick: 288, dur: 48, midi: 36, vel: 0.9},
-        {tick: 432, dur: 48, midi: 36, vel: 0.9}
-      ]},
-      { instrument: 'Snare Tight', notes: [
-        {tick: 96, dur: 48, midi: 38, vel: 0.8},
-        {tick: 240, dur: 48, midi: 38, vel: 0.8},
-        {tick: 384, dur: 48, midi: 38, vel: 0.8},
-        {tick: 528, dur: 48, midi: 38, vel: 0.8}
-      ]}
-    ]
-  },
-  'house': {
-    name: 'House',
-    tracks: [
-      { instrument: 'Kick 808', notes: [
-        {tick: 0, dur: 48, midi: 36, vel: 0.9},
-        {tick: 192, dur: 48, midi: 36, vel: 0.9},
-        {tick: 384, dur: 48, midi: 36, vel: 0.9},
-        {tick: 576, dur: 48, midi: 36, vel: 0.9}
-      ]},
-      { instrument: 'Cymbal ClosedHat', notes: [
-        {tick: 0, dur: 24, midi: 42, vel: 0.6},
-        {tick: 96, dur: 24, midi: 42, vel: 0.6},
-        {tick: 192, dur: 24, midi: 42, vel: 0.6},
-        {tick: 288, dur: 24, midi: 42, vel: 0.6},
-        {tick: 384, dur: 24, midi: 42, vel: 0.6},
-        {tick: 480, dur: 24, midi: 42, vel: 0.6},
-        {tick: 576, dur: 24, midi: 42, vel: 0.6},
-        {tick: 672, dur: 24, midi: 42, vel: 0.6}
-      ]}
-    ]
-  },
-  'walking-bass': {
-    name: 'Walking Bass',
-    tracks: [
-      { instrument: 'Bass', notes: [
-        {tick: 0, dur: 96, midi: 36, vel: 0.8},
-        {tick: 96, dur: 96, midi: 38, vel: 0.8},
-        {tick: 192, dur: 96, midi: 40, vel: 0.8},
-        {tick: 288, dur: 96, midi: 41, vel: 0.8}
-      ]}
-    ]
-  },
-  'trap-bass': {
-    name: 'Trap Bass',
-    tracks: [
-      { instrument: 'Bass', notes: [
-        {tick: 0, dur: 192, midi: 36, vel: 0.9},
-        {tick: 192, dur: 192, midi: 36, vel: 0.9},
-        {tick: 384, dur: 192, midi: 36, vel: 0.9},
-        {tick: 576, dur: 192, midi: 36, vel: 0.9}
-      ]}
-    ]
-  },
-  'house-bass': {
-    name: 'House Bass',
-    tracks: [
-      { instrument: 'Bass', notes: [
-        {tick: 0, dur: 48, midi: 36, vel: 0.8},
-        {tick: 48, dur: 48, midi: 36, vel: 0.8},
-        {tick: 96, dur: 48, midi: 36, vel: 0.8},
-        {tick: 144, dur: 48, midi: 36, vel: 0.8},
-        {tick: 192, dur: 48, midi: 36, vel: 0.8},
-        {tick: 240, dur: 48, midi: 36, vel: 0.8},
-        {tick: 288, dur: 48, midi: 36, vel: 0.8},
-        {tick: 336, dur: 48, midi: 36, vel: 0.8}
-      ]}
-    ]
-  },
-  'acid-bass': {
-    name: 'Acid Bass',
-    tracks: [
-      { instrument: 'Bass', notes: [
-        {tick: 0, dur: 96, midi: 36, vel: 0.9},
-        {tick: 96, dur: 96, midi: 43, vel: 0.9},
-        {tick: 192, dur: 96, midi: 36, vel: 0.9},
-        {tick: 288, dur: 96, midi: 43, vel: 0.9}
-      ]}
-    ]
-  },
-  'arpeggio': {
-    name: 'Arpeggio',
-    tracks: [
-      { instrument: 'Piano', notes: [
-        {tick: 0, dur: 48, midi: 60, vel: 0.7},
-        {tick: 48, dur: 48, midi: 64, vel: 0.7},
-        {tick: 96, dur: 48, midi: 67, vel: 0.7},
-        {tick: 144, dur: 48, midi: 72, vel: 0.7}
-      ]}
-    ]
-  },
-  'pentatonic': {
-    name: 'Pentatonic',
-    tracks: [
-      { instrument: 'Piano', notes: [
-        {tick: 0, dur: 96, midi: 60, vel: 0.7},
-        {tick: 96, dur: 96, midi: 62, vel: 0.7},
-        {tick: 192, dur: 96, midi: 64, vel: 0.7},
-        {tick: 288, dur: 96, midi: 67, vel: 0.7},
-        {tick: 384, dur: 96, midi: 69, vel: 0.7}
-      ]}
-    ]
-  },
-  'blues': {
-    name: 'Blues',
-    tracks: [
-      { instrument: 'Piano', notes: [
-        {tick: 0, dur: 96, midi: 60, vel: 0.7},
-        {tick: 96, dur: 96, midi: 63, vel: 0.7},
-        {tick: 192, dur: 96, midi: 65, vel: 0.7},
-        {tick: 288, dur: 96, midi: 66, vel: 0.7},
-        {tick: 384, dur: 96, midi: 67, vel: 0.7},
-        {tick: 480, dur: 96, midi: 70, vel: 0.7}
-      ]}
-    ]
-  },
-  'jazz': {
-    name: 'Jazz',
-    tracks: [
-      { instrument: 'Piano', notes: [
-        {tick: 0, dur: 96, midi: 60, vel: 0.7},
-        {tick: 96, dur: 96, midi: 64, vel: 0.7},
-        {tick: 192, dur: 96, midi: 67, vel: 0.7},
-        {tick: 288, dur: 96, midi: 71, vel: 0.7}
-      ]}
-    ]
-  }
-};
 
 /**
  * @typedef {Object} SeqNote
@@ -2009,6 +2100,16 @@ function scheduleAhead(){
         if(when >= scheduledUntil && when < endTick){
           Tone.Transport.schedule(time => {
             track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
+            
+            // Create particle effects for note playback
+            if (typeof particleSystem !== 'undefined') {
+              const noteX = n.tick / SIXTEENTH * 20 * ui.zoomX;
+              const noteY = (MAX_MIDI - n.midi - 1) * 20 * ui.zoomY;
+              const rect = pianoRoll.getBoundingClientRect();
+              const screenX = rect.left + noteX - pianoRollScroll.scrollLeft;
+              const screenY = rect.top + noteY - pianoRollScroll.scrollTop;
+              particleSystem.createNoteParticles(screenX, screenY, n.midi);
+            }
           }, `${when}i`);
         }
       });
@@ -2019,6 +2120,20 @@ function scheduleAhead(){
     Tone.Transport.clear(rescheduleId);
     rescheduleId = null;
   }
+  
+  // Update timeline marker position
+  updateTimelineMarker();
+}
+
+function updateTimelineMarker() {
+  const timelineMarker = document.getElementById('timelineMarker');
+  if (!timelineMarker) return;
+  
+  const currentTicks = Tone.Transport.ticks;
+  const cellW = 20 * ui.zoomX;
+  const x = (currentTicks / SIXTEENTH) * cellW - pianoRollScroll.scrollLeft;
+  
+  timelineMarker.style.left = x + 'px';
 }
 
 let clickId = null;
@@ -2188,6 +2303,9 @@ function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.sl
 function drawPianoRoll(){
   const clip = song.tracks[activeTrack].clips[0];
   
+  // Show loading indicator for large files
+  const pianoRollStatus = document.getElementById('pianoRollStatus');
+  
   // Auto-extend clip length if needed based on actual notes - generous buffer for large files
   const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t => 
     t.clips[0].notes.map(n => n.tick + n.dur)
@@ -2198,6 +2316,15 @@ function drawPianoRoll(){
   const minClipLength = Math.max(clip.length, maxNoteTick + bufferSize);
   if(minClipLength > clip.length) {
     song.tracks.forEach(t => t.clips[0].length = minClipLength);
+  }
+  
+  // Show loading for large files
+  if (maxNoteTick > song.ppq * 4 * 100) { // More than 100 bars
+    const pianoRollLoading = document.getElementById('pianoRollLoading');
+    if (pianoRollLoading) {
+      pianoRollLoading.classList.remove('hidden');
+    }
+    pianoRollStatus.textContent = 'Rendering large file...';
   }
   
   const totalSteps = clip.length / SIXTEENTH;
@@ -2225,12 +2352,11 @@ function drawPianoRoll(){
       console.log('Adjusted totalWidth:', totalWidth);
     }
     
-    // If still too large, truncate the display but keep the data
+    // If still too large, use virtual scrolling approach
     if(totalWidth > maxBrowserWidth) {
-      const maxSteps = Math.floor(maxBrowserWidth / (20 * ui.zoomX));
-      const maxTicks = maxSteps * SIXTEENTH;
-      console.warn('Truncating display to', maxSteps, 'steps, maxTicks:', maxTicks);
-      totalWidth = maxBrowserWidth;
+      console.warn('Using virtual scrolling for large MIDI file');
+      totalWidth = Math.min(maxBrowserWidth, totalWidth);
+      pianoRollStatus.textContent = `Large file: ${Math.round(totalSteps / 16)} bars (virtual scrolling enabled)`;
     }
   }
   
@@ -2290,6 +2416,29 @@ function drawPianoRoll(){
     // Show warning for large files
     if (visibleNotes.length > maxNotesPerTrack) {
       seqStatus.textContent = `⚠️ Large file: Showing ${notesToRender.length}/${visibleNotes.length} notes in viewport`;
+    }
+    
+    // Create particle effects for currently playing notes
+    if (sequencerState === 'playing') {
+      const currentTime = Tone.Transport.ticks;
+      notesToRender.forEach(note => {
+        const noteStart = track.clips[0].start + note.tick;
+        const noteEnd = noteStart + note.dur;
+        
+        // If note is currently playing, create particles
+        if (currentTime >= noteStart && currentTime <= noteEnd) {
+          const x = note.tick/SIXTEENTH*cellW - scrollLeft;
+          const y = (MAX_MIDI-note.midi-1)*cellH;
+          
+          // Convert canvas coordinates to screen coordinates
+          const rect = pianoRoll.getBoundingClientRect();
+          const screenX = rect.left + x;
+          const screenY = rect.top + y;
+          
+          // Create particles at note position
+          particleSystem.createNoteParticles(screenX, screenY, note.midi);
+        }
+      });
     }
     
     notesToRender.forEach(n=>{
@@ -2357,73 +2506,10 @@ function drawPianoRoll(){
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
   
-  // Add grid overlay for better visibility
-  drawGridOverlay();
-  updateEmptyState();
-}
-
-function drawGridOverlay() {
-  const overlay = document.getElementById('gridOverlay');
-  if (!overlay) return;
-  
-  const cellW = 20 * ui.zoomX;
-  const cellH = 20 * ui.zoomY;
-  const width = pianoRollScroll.clientWidth;
-  const height = (MAX_MIDI - MIN_MIDI) * cellH;
-  
-  overlay.style.width = width + 'px';
-  overlay.style.height = height + 'px';
-  
-  // Create SVG grid for better scaling
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('width', width);
-  svg.setAttribute('height', height);
-  svg.style.position = 'absolute';
-  svg.style.top = '0';
-  svg.style.left = '0';
-  
-  // Draw vertical grid lines
-  for (let i = 0; i <= width; i += cellW) {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', i);
-    line.setAttribute('y1', 0);
-    line.setAttribute('x2', i);
-    line.setAttribute('y2', height);
-    line.setAttribute('stroke', '#2d3c4a');
-    line.setAttribute('stroke-width', '1');
-    line.setAttribute('opacity', '0.3');
-    svg.appendChild(line);
-  }
-  
-  // Draw horizontal grid lines
-  for (let i = 0; i <= height; i += cellH) {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', 0);
-    line.setAttribute('y1', i);
-    line.setAttribute('x2', width);
-    line.setAttribute('y2', i);
-    line.setAttribute('stroke', '#2d3c4a');
-    line.setAttribute('stroke-width', '1');
-    line.setAttribute('opacity', '0.3');
-    svg.appendChild(line);
-  }
-  
-  overlay.innerHTML = '';
-  overlay.appendChild(svg);
-}
-
-function updateEmptyState() {
-  const emptyState = document.getElementById('emptyStateMessage');
-  if (!emptyState) return;
-  
-  const hasNotes = song.tracks.some(track => 
-    track.clips.some(clip => clip.notes.length > 0)
-  );
-  
-  if (hasNotes) {
-    emptyState.classList.add('hidden');
-  } else {
-    emptyState.classList.remove('hidden');
+  // Hide loading indicator when rendering is complete
+  const pianoRollLoading = document.getElementById('pianoRollLoading');
+  if (pianoRollLoading) {
+    pianoRollLoading.classList.add('hidden');
   }
 }
 
@@ -2780,346 +2866,35 @@ function initSequencer(){
       drawPianoRoll();
     });
   });
+  
+  // Initialize particle system and channel rack
+  if (typeof particleSystem !== 'undefined') {
+    particleSystem.init();
+  }
+  if (typeof channelRack !== 'undefined') {
+    channelRack.init();
+  }
+  
+  // Initialize QoL features
+  updateGridSnapIndicator();
+  updateUndoRedoStatus();
+  
+  // Set default note length button
+  document.getElementById('btnNote16').classList.add('active');
+  
+  // Set default quantize button
+  document.getElementById('btnQuantize16').classList.add('active');
+  
+  // Update piano roll status
+  const pianoRollStatus = document.getElementById('pianoRollStatus');
+  if (pianoRollStatus) {
+    pianoRollStatus.textContent = 'Ready';
+  }
+  
   applySeqColorScheme('Classic');
   refreshActiveTrackHighlight();
   seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
-}
-
-// Production mode functions
-function initializeProductionMode() {
-  createChannelRack();
-  setupPatternButtons();
-  setupProductionEventListeners();
-}
-
-function createChannelRack() {
-  const rack = document.getElementById('channelRack');
-  if (!rack) return;
-  
-  rack.innerHTML = '';
-  
-  song.tracks.forEach((track, index) => {
-    const channel = document.createElement('div');
-    channel.className = 'flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600';
-    channel.innerHTML = `
-      <div class="flex items-center gap-2 flex-1">
-        <button class="mute-btn px-2 py-1 rounded text-xs ${track.mute ? 'bg-red-600' : 'bg-slate-600'} transition-colors" data-track="${index}">
-          ${track.mute ? '🔇' : '🔊'}
-        </button>
-        <button class="solo-btn px-2 py-1 rounded text-xs ${track.solo ? 'bg-yellow-600' : 'bg-slate-600'} transition-colors" data-track="${index}">
-          ${track.solo ? '⭐' : '☆'}
-        </button>
-        <span class="text-sm font-semibold text-slate-200 min-w-[80px]">${track.name}</span>
-        <input type="range" class="volume-slider flex-1" min="0" max="1" step="0.1" value="${track.volume}" data-track="${index}">
-        <span class="text-xs text-slate-400 w-8">${Math.round(track.volume * 100)}%</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <select class="instrument-select bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs" data-track="${index}">
-          ${INSTRUMENTS.map(instr => `<option value="${instr}" ${track.instrument === instr ? 'selected' : ''}>${instr}</option>`).join('')}
-        </select>
-        <button class="delete-channel px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs text-white transition-colors" data-track="${index}">×</button>
-      </div>
-    `;
-    rack.appendChild(channel);
-  });
-  
-  setupChannelRackEvents();
-}
-
-function setupChannelRackEvents() {
-  // Mute/Solo buttons
-  document.querySelectorAll('.mute-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const trackIndex = parseInt(e.target.dataset.track);
-      song.tracks[trackIndex].mute = !song.tracks[trackIndex].mute;
-      e.target.textContent = song.tracks[trackIndex].mute ? '🔇' : '🔊';
-      e.target.className = `mute-btn px-2 py-1 rounded text-xs ${song.tracks[trackIndex].mute ? 'bg-red-600' : 'bg-slate-600'} transition-colors`;
-      if (Tone.Transport.state === 'started') scheduleSong();
-    });
-  });
-  
-  // Solo buttons
-  document.querySelectorAll('.solo-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const trackIndex = parseInt(e.target.dataset.track);
-      song.tracks[trackIndex].solo = !song.tracks[trackIndex].solo;
-      e.target.textContent = song.tracks[trackIndex].solo ? '⭐' : '☆';
-      e.target.className = `solo-btn px-2 py-1 rounded text-xs ${song.tracks[trackIndex].solo ? 'bg-yellow-600' : 'bg-slate-600'} transition-colors`;
-      if (Tone.Transport.state === 'started') scheduleSong();
-    });
-  });
-  
-  // Volume sliders
-  document.querySelectorAll('.volume-slider').forEach(slider => {
-    slider.addEventListener('input', (e) => {
-      const trackIndex = parseInt(e.target.dataset.track);
-      const volume = parseFloat(e.target.value);
-      song.tracks[trackIndex].volume = volume;
-      e.target.nextElementSibling.textContent = `${Math.round(volume * 100)}%`;
-      if (song.tracks[trackIndex].player) {
-        song.tracks[trackIndex].player.setVolume(volume);
-      }
-    });
-  });
-  
-  // Instrument selects
-  document.querySelectorAll('.instrument-select').forEach(select => {
-    select.addEventListener('change', (e) => {
-      const trackIndex = parseInt(e.target.dataset.track);
-      const instrument = e.target.value;
-      song.tracks[trackIndex].instrument = instrument;
-      song.tracks[trackIndex].name = instrument;
-      e.target.closest('.flex').querySelector('span').textContent = instrument;
-      if (song.tracks[trackIndex].player) {
-        song.tracks[trackIndex].player.dispose();
-        song.tracks[trackIndex].player = null;
-      }
-      if (Tone.Transport.state === 'started') scheduleSong(trackIndex);
-    });
-  });
-  
-  // Delete channel buttons
-  document.querySelectorAll('.delete-channel').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const trackIndex = parseInt(e.target.dataset.track);
-      if (confirm(`Delete track "${song.tracks[trackIndex].name}"?`)) {
-        song.tracks.splice(trackIndex, 1);
-        createChannelRack();
-        drawPianoRoll();
-      }
-    });
-  });
-}
-
-function setupPatternButtons() {
-  document.querySelectorAll('.pattern-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const patternName = e.target.dataset.pattern;
-      loadProductionPattern(patternName);
-    });
-  });
-}
-
-function loadProductionPattern(patternName) {
-  const pattern = PRODUCTION_PATTERNS[patternName];
-  if (!pattern) return;
-  
-  // Clear existing tracks
-  song.tracks = [];
-  
-  // Add pattern tracks
-  pattern.tracks.forEach((trackData, index) => {
-    const track = {
-      id: 'trk' + index,
-      name: trackData.instrument,
-      instrument: trackData.instrument,
-      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: trackData.notes }],
-      mute: false,
-      solo: false,
-      volume: 0.8,
-      pan: 0,
-      color: '',
-      player: null,
-      part: null
-    };
-    song.tracks.push(track);
-  });
-  
-  // Update UI
-  createChannelRack();
-  drawPianoRoll();
-  seqStatus.textContent = `Loaded: ${pattern.name}`;
-}
-
-function setupProductionEventListeners() {
-  // Add channel button
-  document.getElementById('addChannel')?.addEventListener('click', () => {
-    const newTrack = {
-      id: 'trk' + song.tracks.length,
-      name: 'New Track',
-      instrument: 'Piano',
-      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: [] }],
-      mute: false,
-      solo: false,
-      volume: 0.8,
-      pan: 0,
-      color: '',
-      player: null,
-      part: null
-    };
-    song.tracks.push(newTrack);
-    createChannelRack();
-    drawPianoRoll();
-  });
-  
-  // Import sample button
-  document.getElementById('importSample')?.addEventListener('click', () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.mp3,.wav,.ogg';
-    input.multiple = true;
-    
-    input.addEventListener('change', (e) => {
-      Array.from(e.target.files).forEach(file => {
-        importSample(file);
-      });
-    });
-    
-    input.click();
-  });
-  
-  // Save loop button
-  document.getElementById('saveLoop')?.addEventListener('click', () => {
-    const loopName = prompt('Enter loop name:');
-    if (loopName) {
-      const loopData = {
-        name: loopName,
-        tracks: song.tracks.map(track => ({
-          name: track.name,
-          instrument: track.instrument,
-          notes: track.clips[0].notes
-        }))
-      };
-      customLoops.set(loopName, loopData);
-      alert(`Loop "${loopName}" saved!`);
-    }
-  });
-  
-  // Load loop button
-  document.getElementById('loadLoop')?.addEventListener('click', () => {
-    if (customLoops.size === 0) {
-      alert('No saved loops found.');
-      return;
-    }
-    
-    const loopNames = Array.from(customLoops.keys());
-    const loopName = prompt(`Enter loop name to load:\nAvailable: ${loopNames.join(', ')}`);
-    
-    if (loopName && customLoops.has(loopName)) {
-      const loopData = customLoops.get(loopName);
-      song.tracks = loopData.tracks.map((trackData, index) => ({
-        id: 'trk' + index,
-        name: trackData.name,
-        instrument: trackData.instrument,
-        clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: trackData.notes }],
-        mute: false,
-        solo: false,
-        volume: 0.8,
-        pan: 0,
-        color: '',
-        player: null,
-        part: null
-      }));
-      createChannelRack();
-      drawPianoRoll();
-      seqStatus.textContent = `Loaded: ${loopData.name}`;
-    }
-  });
-  
-  // Clear loop button
-  document.getElementById('clearLoop')?.addEventListener('click', () => {
-    if (confirm('Clear all tracks?')) {
-      song.tracks.forEach(track => {
-        track.clips[0].notes = [];
-      });
-      drawPianoRoll();
-    }
-  });
-  
-  // Export loop button
-  document.getElementById('exportLoop')?.addEventListener('click', () => {
-    const loopData = {
-      name: 'Exported Loop',
-      tracks: song.tracks.map(track => ({
-        name: track.name,
-        instrument: track.instrument,
-        notes: track.clips[0].notes
-      }))
-    };
-    
-    const blob = new Blob([JSON.stringify(loopData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'loop.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-}
-
-async function importSample(file) {
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    const audioBuffer = await Tone.context.decodeAudioData(arrayBuffer);
-    
-    const sampleName = file.name.replace(/\.[^/.]+$/, '');
-    productionSampleLibrary.set(sampleName, {
-      buffer: audioBuffer,
-      name: sampleName,
-      duration: audioBuffer.duration
-    });
-    
-    addSampleToLibrary(sampleName, audioBuffer);
-  } catch (error) {
-    console.error('Failed to import sample:', error);
-    alert('Failed to import sample. Please check the file format.');
-  }
-}
-
-function addSampleToLibrary(name, buffer) {
-  const library = document.getElementById('sampleLibrary');
-  if (!library) return;
-  
-  const sampleElement = document.createElement('div');
-  sampleElement.className = 'bg-slate-700/50 rounded-lg p-3 border border-slate-600';
-  sampleElement.innerHTML = `
-    <div class="text-sm font-semibold text-slate-200 mb-2">${name}</div>
-    <div class="text-xs text-slate-400 mb-2">${buffer.duration.toFixed(2)}s</div>
-    <div class="flex gap-2">
-      <button class="play-sample px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs text-white transition-colors" data-sample="${name}">▶️</button>
-      <button class="add-to-track px-2 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white transition-colors" data-sample="${name}">+ Track</button>
-    </div>
-  `;
-  library.appendChild(sampleElement);
-  
-  // Add event listeners
-  sampleElement.querySelector('.play-sample').addEventListener('click', () => playSample(name));
-  sampleElement.querySelector('.add-to-track').addEventListener('click', () => addSampleToTrack(name));
-}
-
-function playSample(name) {
-  const sample = productionSampleLibrary.get(name);
-  if (sample) {
-    const player = new Tone.Player(sample.buffer);
-    player.connect(masterLim);
-    player.start();
-  }
-}
-
-function addSampleToTrack(name) {
-  const sample = productionSampleLibrary.get(name);
-  if (sample) {
-    // Add a new track for the sample
-    const newTrack = {
-      id: 'trk' + song.tracks.length,
-      name: name,
-      instrument: 'Sample',
-      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: [] }],
-      mute: false,
-      solo: false,
-      volume: 0.8,
-      pan: 0,
-      color: '',
-      player: null,
-      part: null,
-      sample: sample
-    };
-    
-    song.tracks.push(newTrack);
-    createChannelRack();
-    drawPianoRoll();
-  }
 }
 
 function updateSelButtons(){
@@ -4897,7 +4672,7 @@ function buildNeyChart(){
 }
 
 // ========================= EXPORT HELPERS =========================
-function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
+function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5,dur:0.45,midi:m,vel:100})); }
 function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
 function downloadMID(){ const bytes=buildMidi(buildNoteEvents(),96,130); const blob=new Blob([bytes],{type:'audio/midi'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${keyRoot}-${mode==='chord'?chordQuality:scaleMode}.mid`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500); }
 
@@ -5178,6 +4953,14 @@ PC Keyboard Layout:
 
 // Build UI
 buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
+
+// Initialize enhanced features
+if (typeof particleSystem !== 'undefined') {
+  particleSystem.init();
+}
+if (typeof channelRack !== 'undefined') {
+  channelRack.init();
+}
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
@@ -5214,46 +4997,6 @@ btnModeSequencer.addEventListener('click', ()=>{
   listenScale.classList.add('hidden');
   sequencerHost.classList.remove('hidden');
   updateAll();
-});
-
-// Production mode toggle
-document.getElementById('productionModeToggle').addEventListener('click', () => {
-  productionMode = !productionMode;
-  const toggle = document.getElementById('productionModeToggle');
-  const indicator = document.getElementById('modeIndicator');
-  const prodHost = document.getElementById('productionModeHost');
-  
-  if (productionMode) {
-    toggle.textContent = '🎵 Basic Mode';
-    toggle.className = 'px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-semibold transition-colors';
-    indicator.textContent = 'Production Mode';
-    prodHost.classList.remove('hidden');
-    initializeProductionMode();
-  } else {
-    toggle.textContent = '🎛️ Production Mode';
-    toggle.className = 'px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition-colors';
-    indicator.textContent = 'Basic Mode';
-    prodHost.classList.add('hidden');
-  }
-});
-
-// Empty state button handlers
-document.getElementById('addSampleNote')?.addEventListener('click', () => {
-  const newNote = {
-    tick: 0,
-    dur: SIXTEENTH * 4, // 1 beat
-    midi: midiFrom('C', 4), // Middle C
-    vel: 0.8
-  };
-  
-  song.tracks[activeTrack].clips[0].notes.push(newNote);
-  drawPianoRoll();
-  seqStatus.textContent = 'Added sample note';
-});
-
-document.getElementById('importPattern')?.addEventListener('click', () => {
-  // Load a simple pattern
-  loadProductionPattern('four-on-floor');
 });
 
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
@@ -5512,6 +5255,38 @@ function showVelocityEditor() {
   
   hideContextMenu();
 }
+
+// Duplicate note function
+function duplicateNote() {
+  if(selectedNotes.size === 0) return;
+  
+  saveState('Duplicate notes');
+  const track = song.tracks[activeTrack];
+  const newNotes = [];
+  
+  selectedNotes.forEach(note => {
+    const newNote = {
+      ...note,
+      tick: note.tick + note.dur // Place after the original note
+    };
+    track.clips[0].notes.push(newNote);
+    newNotes.push(newNote);
+  });
+  
+  // Select the new notes
+  selectedNotes.clear();
+  newNotes.forEach(note => selectedNotes.add(note));
+  
+  // Sort notes and redraw
+  track.clips[0].notes.sort((a, b) => a.tick - b.tick);
+  drawPianoRoll();
+  
+  if(Tone.Transport.state === 'started') {
+    scheduleSong(activeTrack);
+  }
+  
+  hideContextMenu();
+}
 seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
 seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
 seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
@@ -5520,6 +5295,474 @@ seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
 $('#btnSendToSeq').addEventListener('click', sendToSequencer);
+
+// Add Channel button functionality
+$('#btnAddChannel').addEventListener('click', () => {
+  const newTrack = {
+    instrument: 'Piano',
+    clips: [{ notes: [], length: song.tracks[0].clips[0].length }],
+    volume: 0.8,
+    pan: 0,
+    color: '#60a5fa',
+    mute: false,
+    solo: false
+  };
+  
+  song.tracks.push(newTrack);
+  activeTrack = song.tracks.length - 1;
+  
+  // Refresh UI
+  initSequencer();
+  channelRack.refresh();
+  
+  seqStatus.textContent = 'Added new channel';
+});
+
+// === QoL IMPROVEMENTS ===
+
+// Note tooltip system
+let tooltipTimeout = null;
+const noteTooltip = document.getElementById('noteTooltip');
+
+function showNoteTooltip(note, x, y) {
+  const noteName = midiName(note.midi);
+  const velocity = Math.round((note.vel || 0.8) * 100);
+  const duration = note.dur / song.ppq; // in beats
+  const position = note.tick / song.ppq; // in beats
+  
+  noteTooltip.innerHTML = `
+    <div><strong>${noteName}</strong></div>
+    <div>Velocity: ${velocity}%</div>
+    <div>Duration: ${duration.toFixed(2)} beats</div>
+    <div>Position: ${position.toFixed(2)} beats</div>
+  `;
+  
+  noteTooltip.style.left = (x + 10) + 'px';
+  noteTooltip.style.top = (y - 10) + 'px';
+  noteTooltip.classList.remove('hidden');
+}
+
+function hideNoteTooltip() {
+  noteTooltip.classList.add('hidden');
+}
+
+// Grid snap indicator
+const gridSnapIndicator = document.getElementById('gridSnapIndicator');
+
+function updateGridSnapIndicator() {
+  if (quantizeSnap > 0) {
+    gridSnapIndicator.classList.add('active');
+    const snapValue = quantizeSnap / song.ppq;
+    const snapText = snapValue === 0.25 ? '1/4' : 
+                    snapValue === 0.5 ? '1/2' : 
+                    snapValue === 1 ? '1/1' : 
+                    snapValue === 0.125 ? '1/8' : 
+                    snapValue === 0.0625 ? '1/16' : 
+                    snapValue.toFixed(3);
+    document.getElementById('snapValue').textContent = snapText;
+    document.getElementById('snapIndicator').classList.add('active');
+  } else {
+    gridSnapIndicator.classList.remove('active');
+    document.getElementById('snapValue').textContent = 'Off';
+    document.getElementById('snapIndicator').classList.remove('active');
+  }
+}
+
+// Quick note length buttons
+document.querySelectorAll('[id^="btnNote"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove active class from all note length buttons
+    document.querySelectorAll('[id^="btnNote"]').forEach(b => b.classList.remove('active'));
+    // Add active class to clicked button
+    btn.classList.add('active');
+    
+    const duration = parseInt(btn.dataset.duration);
+    lastNoteDur = duration;
+    seqStatus.textContent = `Note length set to ${btn.textContent}`;
+  });
+});
+
+// Quick quantize buttons
+document.querySelectorAll('[id^="btnQuantize"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // Remove active class from all quantize buttons
+    document.querySelectorAll('[id^="btnQuantize"]').forEach(b => b.classList.remove('active'));
+    // Add active class to clicked button
+    btn.classList.add('active');
+    
+    const snap = parseInt(btn.dataset.snap);
+    quantizeSnap = snap;
+    seqQuantize.value = snap;
+    updateGridSnapIndicator();
+    seqStatus.textContent = `Quantize set to ${btn.textContent}`;
+  });
+});
+
+// Undo/Redo status updates
+function updateUndoRedoStatus() {
+  const undoBtn = document.getElementById('btnUndo');
+  const redoBtn = document.getElementById('btnRedo');
+  const countSpan = document.getElementById('undoRedoCount');
+  
+  undoBtn.disabled = undoStack.length === 0;
+  redoBtn.disabled = redoStack.length === 0;
+  countSpan.textContent = `${undoStack.length}/${redoStack.length}`;
+}
+
+// Override saveState to update undo/redo status
+const originalSaveState = saveState;
+saveState = function(description) {
+  originalSaveState(description);
+  updateUndoRedoStatus();
+};
+
+// Undo/Redo button handlers
+document.getElementById('btnUndo').addEventListener('click', undo);
+document.getElementById('btnRedo').addEventListener('click', redo);
+
+// Zoom to selection
+document.getElementById('zoomToSelectionBtn').addEventListener('click', () => {
+  if (selectedNotes.size === 0) {
+    seqStatus.textContent = 'No notes selected';
+    return;
+  }
+  
+  const notes = Array.from(selectedNotes);
+  const minTick = Math.min(...notes.map(n => n.tick));
+  const maxTick = Math.max(...notes.map(n => n.tick + n.dur));
+  const minMidi = Math.min(...notes.map(n => n.midi));
+  const maxMidi = Math.max(...notes.map(n => n.midi));
+  
+  // Calculate zoom to fit selection
+  const selectionWidth = maxTick - minTick;
+  const selectionHeight = maxMidi - minMidi;
+  
+  const viewportWidth = pianoRollScroll.clientWidth;
+  const viewportHeight = pianoRollScroll.clientHeight;
+  
+  const targetZoomX = Math.min(8, Math.max(0.5, viewportWidth / (selectionWidth / SIXTEENTH * 20)));
+  const targetZoomY = Math.min(2, Math.max(0.5, viewportHeight / (selectionHeight * 20)));
+  
+  ui.zoomX = targetZoomX;
+  ui.zoomY = targetZoomY;
+  seqZoomX.value = targetZoomX;
+  seqZoomY.value = targetZoomY;
+  
+  // Scroll to selection
+  const cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  const targetScrollX = minTick / SIXTEENTH * cellW - viewportWidth / 2;
+  const targetScrollY = (MAX_MIDI - maxMidi - 1) * cellH - viewportHeight / 2;
+  
+  pianoRollScroll.scrollLeft = Math.max(0, targetScrollX);
+  pianoRollScroll.scrollTop = Math.max(0, targetScrollY);
+  
+  drawPianoRoll();
+  seqStatus.textContent = 'Zoomed to selection';
+});
+
+// Shortcuts panel
+const shortcutsPanel = document.getElementById('shortcutsPanel');
+const closeShortcuts = document.getElementById('closeShortcuts');
+
+document.getElementById('btnShowShortcuts').addEventListener('click', () => {
+  shortcutsPanel.classList.remove('hidden');
+  // Add backdrop
+  const backdrop = document.createElement('div');
+  backdrop.className = 'overlay-backdrop';
+  backdrop.id = 'shortcutsBackdrop';
+  document.body.appendChild(backdrop);
+  
+  backdrop.addEventListener('click', () => {
+    shortcutsPanel.classList.add('hidden');
+    backdrop.remove();
+  });
+});
+
+closeShortcuts.addEventListener('click', () => {
+  shortcutsPanel.classList.add('hidden');
+  const backdrop = document.getElementById('shortcutsBackdrop');
+  if (backdrop) backdrop.remove();
+});
+
+// Enhanced note hover with tooltip
+pianoRoll.addEventListener('mousemove', (ev) => {
+  const rect = pianoRoll.getBoundingClientRect();
+  const xCss = ev.clientX - rect.left;
+  const yCss = ev.clientY - rect.top;
+  const x = (xCss + pianoRollScroll.scrollLeft);
+  const y = (yCss + pianoRollScroll.scrollTop);
+  const cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  const midi = MAX_MIDI - 1 - Math.floor(y / cellH);
+  
+  const track = song.tracks[activeTrack];
+  const clip = track.clips[0];
+  
+  // Find note under cursor
+  let foundNote = null;
+  for (let i = clip.notes.length - 1; i >= 0; i--) {
+    const n = clip.notes[i];
+    const noteX = n.tick / SIXTEENTH * cellW;
+    const noteW = n.dur / SIXTEENTH * cellW;
+    if (n.midi === midi && x >= noteX && x < noteX + noteW) {
+      foundNote = n;
+      break;
+    }
+  }
+  
+  if (foundNote) {
+    if (tooltipTimeout) clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      showNoteTooltip(foundNote, ev.clientX, ev.clientY);
+    }, 500);
+  } else {
+    if (tooltipTimeout) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = null;
+    }
+    hideNoteTooltip();
+  }
+});
+
+pianoRoll.addEventListener('mouseleave', () => {
+  if (tooltipTimeout) {
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = null;
+  }
+  hideNoteTooltip();
+});
+
+// Enhanced velocity visualization in drawPianoRoll
+function drawPianoRoll(){
+  const clip = song.tracks[activeTrack].clips[0];
+  
+  // Show loading indicator for large files
+  const pianoRollStatus = document.getElementById('pianoRollStatus');
+  
+  // Auto-extend clip length if needed based on actual notes - generous buffer for large files
+  const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t => 
+    t.clips[0].notes.map(n => n.tick + n.dur)
+  ));
+  
+  // For large MIDI files, add more substantial buffer - minimum 8 bars or 25% of content length
+  const bufferSize = Math.max(192*8, Math.floor(maxNoteTick * 0.25));
+  const minClipLength = Math.max(clip.length, maxNoteTick + bufferSize);
+  if(minClipLength > clip.length) {
+    song.tracks.forEach(t => t.clips[0].length = minClipLength);
+  }
+  
+  // Show loading for large files
+  if (maxNoteTick > song.ppq * 4 * 100) { // More than 100 bars
+    const pianoRollLoading = document.getElementById('pianoRollLoading');
+    if (pianoRollLoading) {
+      pianoRollLoading.classList.remove('hidden');
+    }
+    pianoRollStatus.textContent = 'Rendering large file...';
+  }
+  
+  const totalSteps = clip.length / SIXTEENTH;
+  const noteCount = MAX_MIDI - MIN_MIDI;
+  let cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  let totalWidth = totalSteps * cellW;
+  
+  // CRITICAL FIX: Handle extremely large MIDI files that exceed browser limits
+  const maxBrowserWidth = 33554427; // Chrome/Firefox limit
+  const maxBrowserHeight = 33554427; // Chrome/Firefox limit
+  
+  if(totalWidth > maxBrowserWidth) {
+    console.warn('Large MIDI detected - totalWidth:', totalWidth, 'exceeds browser limit:', maxBrowserWidth);
+    
+    // Calculate maximum allowed zoom to fit within browser limits
+    const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+    
+    if(ui.zoomX > maxZoomX) {
+      console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
+      ui.zoomX = Math.max(0.1, maxZoomX); // Ensure minimum zoom
+      seqZoomX.value = ui.zoomX;
+      cellW = 20 * ui.zoomX;
+      totalWidth = totalSteps * cellW;
+      console.log('Adjusted totalWidth:', totalWidth);
+    }
+    
+    // If still too large, use virtual scrolling approach
+    if(totalWidth > maxBrowserWidth) {
+      console.warn('Using virtual scrolling for large MIDI file');
+      totalWidth = Math.min(maxBrowserWidth, totalWidth);
+      pianoRollStatus.textContent = `Large file: ${Math.round(totalSteps / 16)} bars (virtual scrolling enabled)`;
+    }
+  }
+  
+  // Check height limits as well
+  const totalHeight = noteCount * cellH;
+  if(totalHeight > maxBrowserHeight) {
+    console.warn('Large MIDI detected - totalHeight:', totalHeight, 'exceeds browser limit:', maxBrowserHeight);
+    const maxZoomY = maxBrowserHeight / (noteCount * 20);
+    if(ui.zoomY > maxZoomY) {
+      ui.zoomY = Math.max(0.1, maxZoomY);
+      seqZoomY.value = ui.zoomY;
+    }
+  }
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const viewportWidth = pianoRollScroll.clientWidth;
+  const startStep = Math.floor(scrollLeft / cellW);
+  const endStep = startStep + Math.ceil(viewportWidth / cellW) + 1;
+  const width = viewportWidth;
+  const height = noteCount * cellH;
+  const dpr = window.devicePixelRatio||1;
+  pianoRoll.width = width*dpr; pianoRoll.height = height*dpr; pianoRoll.style.width=width+'px'; pianoRoll.style.height=height+'px';
+  pianoRollSpacer.style.width = totalWidth+'px'; pianoRollSpacer.style.height = height+'px';
+  const ctx = pianoRoll.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height);
+  // background lanes
+  for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
+  // grid vertical
+  for(let i=startStep;i<=endStep;i++){
+    const x=i*cellW - scrollLeft; ctx.strokeStyle='#2d3c4a'; if(i%(song.ppq/ SIXTEENTH)===0) ctx.strokeStyle='#395063'; if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#4a6379'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+  }
+  // horizontal lines
+  for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
+  // notes - with enhanced viewport culling for large files
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+  const topMidi = MAX_MIDI - Math.floor(pianoRollScroll.scrollTop / cellH);
+  const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
+  
+  // Enhanced performance for large files - limit rendering to visible area with buffer
+  const renderBuffer = 1000; // Buffer in ticks for smooth scrolling
+  const renderStartTick = Math.max(0, startTick - renderBuffer);
+  const renderEndTick = endTick + renderBuffer;
+  
+  song.tracks.forEach((track,idx)=>{
+    const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
+    
+    // Enhanced viewport culling with buffer for large files
+    const visibleNotes = track.clips[0].notes.filter(n => 
+      n.tick + n.dur >= renderStartTick && n.tick <= renderEndTick && 
+      n.midi >= bottomMidi && n.midi <= topMidi
+    );
+    
+    // Limit number of notes rendered for very large files
+    const maxNotesPerTrack = 10000; // Prevent browser from hanging
+    const notesToRender = visibleNotes.length > maxNotesPerTrack ? 
+      visibleNotes.slice(0, maxNotesPerTrack) : visibleNotes;
+    
+    // Show warning for large files
+    if (visibleNotes.length > maxNotesPerTrack) {
+      seqStatus.textContent = `⚠️ Large file: Showing ${notesToRender.length}/${visibleNotes.length} notes in viewport`;
+    }
+    
+    // Create particle effects for currently playing notes
+    if (sequencerState === 'playing') {
+      const currentTime = Tone.Transport.ticks;
+      notesToRender.forEach(note => {
+        const noteStart = track.clips[0].start + note.tick;
+        const noteEnd = noteStart + note.dur;
+        
+        // If note is currently playing, create particles
+        if (currentTime >= noteStart && currentTime <= noteEnd) {
+          const x = note.tick/SIXTEENTH*cellW - scrollLeft;
+          const y = (MAX_MIDI-note.midi-1)*cellH;
+          
+          // Convert canvas coordinates to screen coordinates
+          const rect = pianoRoll.getBoundingClientRect();
+          const screenX = rect.left + x;
+          const screenY = rect.top + y;
+          
+          // Create particles at note position
+          particleSystem.createNoteParticles(screenX, screenY, note.midi);
+        }
+      });
+    }
+    
+    notesToRender.forEach(n=>{
+      const x=n.tick/SIXTEENTH*cellW - scrollLeft;
+      const w=n.dur/SIXTEENTH*cellW;
+      const y=(MAX_MIDI-n.midi-1)*cellH;
+      
+      // Piano-style coloring: black keys (sharps) vs white keys (naturals)
+      const pc = n.midi % 12;
+      const isBlackKey = [1,3,6,8,10].includes(pc); // C#, D#, F#, G#, A#
+      const pianoColor = isBlackKey ? '#1f2937' : '#f9fafb'; // Dark gray for sharps, light for naturals
+      const borderColor = isBlackKey ? '#374151' : '#d1d5db';
+      
+      // Enhanced velocity visualization - adjust opacity based on velocity
+      const velocity = n.vel || 0.8;
+      const alpha = 0.3 + (velocity * 0.7); // 0.3 to 1.0 opacity range
+      
+      // Highlight selected notes
+      if(idx === activeTrack && selectedNotes.has(n)) {
+        ctx.fillStyle = `rgba(255, 107, 157, ${alpha})`;
+        ctx.fillRect(x-2, y-2, w+4, cellH+4);
+      }
+      
+      // Draw note with piano colors and velocity-based opacity
+      ctx.fillStyle = isBlackKey ? 
+        `rgba(31, 41, 55, ${alpha})` : 
+        `rgba(249, 250, 251, ${alpha})`;
+      ctx.fillRect(x,y,w,cellH);
+      
+      // Add border to distinguish notes
+      ctx.strokeStyle = isBlackKey ? 
+        `rgba(55, 65, 81, ${alpha})` : 
+        `rgba(209, 213, 219, ${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x,y,w,cellH);
+      
+      // Add velocity indicator bar
+      if (velocity < 1.0) {
+        ctx.fillStyle = `rgba(59, 130, 246, ${velocity})`;
+        ctx.fillRect(x, y + cellH - 2, w, 2);
+      }
+      
+      // Add track color as small indicator on active track notes
+      if(idx === activeTrack) {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
+      }
+    });
+  });
+  if(dragNote){
+    const pc = dragNote.midi % 12;
+    const isBlackKey = [1,3,6,8,10].includes(pc);
+    ctx.fillStyle = isBlackKey ? 'rgba(31,41,55,0.8)' : 'rgba(249,250,251,0.8)';
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; 
+    if(x+w>=0 && x<=width) {
+      ctx.fillRect(x,y,w,cellH);
+      // Add pink border for drag preview
+      ctx.strokeStyle = 'rgba(236,72,153,0.8)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x,y,w,cellH);
+    }
+  }
+  
+  // Selection rectangle
+  if(ui.selecting) {
+    ctx.strokeStyle = '#ff6b9d';
+    ctx.fillStyle = 'rgba(255, 107, 157, 0.1)';
+    ctx.lineWidth = 2;
+    const rectX = Math.min(ui.selectStart.x, ui.selectEnd.x) - scrollLeft;
+    const rectY = Math.min(ui.selectStart.y, ui.selectEnd.y);
+    const rectW = Math.abs(ui.selectEnd.x - ui.selectStart.x);
+    const rectH = Math.abs(ui.selectEnd.y - ui.selectStart.y);
+    ctx.fillRect(rectX, rectY, rectW, rectH);
+    ctx.strokeRect(rectX, rectY, rectW, rectH);
+  }
+  // gutter
+  const gctx = pianoRollGutter.getContext('2d');
+  pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
+  gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
+  for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  
+  // Hide loading indicator when rendering is complete
+  const pianoRollLoading = document.getElementById('pianoRollLoading');
+  if (pianoRollLoading) {
+    pianoRollLoading.classList.add('hidden');
+  }
+  
+  // Update grid snap indicator
+  updateGridSnapIndicator();
+}
 $('#btnShowKeyboard').addEventListener('click', showKeyboardLayout);
 patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
@@ -5561,6 +5804,7 @@ seqPlay.addEventListener('click', async ()=>{
       // Resume from pause
       Tone.Transport.start();
       startPlayhead();
+      startTimelineAnimation();
       sequencerState = 'playing';
       seqPlay.textContent = 'Play';
       return;
@@ -5584,12 +5828,24 @@ seqPlay.addEventListener('click', async ()=>{
     updateLoop();
     Tone.Transport.start();
     startPlayhead();
+    startTimelineAnimation();
     sequencerState = 'playing';
   } catch(error) {
     console.error('Playback error:', error);
     seqStatus.textContent = '❌ Playback failed';
   }
 });
+
+function startTimelineAnimation() {
+  // Update timeline marker continuously during playback
+  const animateTimeline = () => {
+    if (sequencerState === 'playing') {
+      updateTimelineMarker();
+      requestAnimationFrame(animateTimeline);
+    }
+  };
+  animateTimeline();
+}
 
 
 seqPause.addEventListener('click', ()=>{
@@ -5689,6 +5945,293 @@ seqExportMid.addEventListener('click', ()=>{
 $('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
 $('#btnMid').addEventListener('click', downloadMID);
 $('#btnCopyFL').addEventListener('click', ()=>{ const bytes=buildMidi(buildNoteEvents(),96,130); copyBytesToClipboard(bytes); });
+
+// === PARTICLE EFFECTS SYSTEM ===
+const particleSystem = {
+  container: null,
+  particles: [],
+  
+  init() {
+    this.container = document.getElementById('particleContainer');
+  },
+  
+  createParticle(x, y, color = '#3b82f6', size = 4) {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.left = x + 'px';
+    particle.style.top = y + 'px';
+    particle.style.width = size + 'px';
+    particle.style.height = size + 'px';
+    particle.style.background = color;
+    particle.style.boxShadow = `0 0 ${size * 2}px ${color}`;
+    
+    this.container.appendChild(particle);
+    
+    // Remove particle after animation
+    setTimeout(() => {
+      if (particle.parentNode) {
+        particle.parentNode.removeChild(particle);
+      }
+    }, 1500);
+    
+    return particle;
+  },
+  
+  createNoteParticles(x, y, midi) {
+    const colors = [
+      '#3b82f6', '#ef4444', '#10b981', '#f59e0b', 
+      '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
+    ];
+    const color = colors[midi % colors.length];
+    
+    // Create multiple particles for richer effect
+    for (let i = 0; i < 8; i++) {
+      const offsetX = (Math.random() - 0.5) * 40;
+      const offsetY = (Math.random() - 0.5) * 40;
+      const size = Math.random() * 3 + 2;
+      this.createParticle(x + offsetX, y + offsetY, color, size);
+    }
+  }
+};
+
+// === FL STUDIO-STYLE CHANNEL RACK ===
+const channelRack = {
+  container: null,
+  channels: [],
+  
+  init() {
+    this.container = document.getElementById('channelRack');
+    this.createChannelStrips();
+    this.bindEvents();
+  },
+  
+  createChannelStrips() {
+    this.container.innerHTML = '';
+    this.channels = [];
+    
+    song.tracks.forEach((track, index) => {
+      const channelStrip = this.createChannelStrip(track, index);
+      this.container.appendChild(channelStrip);
+      this.channels.push(channelStrip);
+    });
+  },
+  
+  createChannelStrip(track, index) {
+    const strip = document.createElement('div');
+    strip.className = `channel-strip p-3 ${index === activeTrack ? 'active' : ''}`;
+    strip.dataset.trackIndex = index;
+    
+    const patterns = this.getPatternsForTrack(track);
+    
+    strip.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-full" style="background: ${track.color || '#60a5fa'}"></div>
+          <span class="text-sm font-medium text-slate-200">${track.instrument}</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <button class="w-6 h-6 bg-slate-600 hover:bg-slate-500 rounded text-xs text-white" title="Mute">M</button>
+          <button class="w-6 h-6 bg-slate-600 hover:bg-slate-500 rounded text-xs text-white" title="Solo">S</button>
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-400">Volume</span>
+          <div class="knob" data-param="volume" data-track="${index}">
+            <div class="knob-indicator" style="transform: translate(-50%, -50%) rotate(${(track.volume || 0.8) * 270 - 135}deg)"></div>
+          </div>
+        </div>
+        
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-400">Pan</span>
+          <div class="knob" data-param="pan" data-track="${index}">
+            <div class="knob-indicator" style="transform: translate(-50%, -50%) rotate(${(track.pan || 0) * 180}deg)"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-3">
+        <div class="text-xs text-slate-400 mb-1">Patterns</div>
+        <div class="space-y-1">
+          ${patterns.map(pattern => `
+            <div class="pattern-item p-1 rounded text-xs cursor-pointer ${pattern.active ? 'pattern-active' : 'pattern-ghost'}" 
+                 data-pattern="${pattern.id}" data-track="${index}">
+              ${pattern.name}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    
+    return strip;
+  },
+  
+  getPatternsForTrack(track) {
+    // Generate patterns based on track notes
+    const patterns = [];
+    const clip = track.clips[0];
+    
+    if (clip.notes.length > 0) {
+      // Create main pattern
+      patterns.push({
+        id: 'main',
+        name: 'Main Pattern',
+        active: true
+      });
+      
+      // Create ghost patterns for different sections
+      const noteGroups = this.groupNotesByTime(clip.notes);
+      noteGroups.forEach((group, index) => {
+        if (group.length > 3) { // Only show patterns with significant notes
+          patterns.push({
+            id: `section_${index}`,
+            name: `Section ${index + 1}`,
+            active: false
+          });
+        }
+      });
+    }
+    
+    return patterns;
+  },
+  
+  groupNotesByTime(notes) {
+    const groups = [];
+    let currentGroup = [];
+    let lastTick = 0;
+    
+    notes.sort((a, b) => a.tick - b.tick);
+    
+    notes.forEach(note => {
+      if (note.tick - lastTick > song.ppq * 2) { // New group if gap > 2 beats
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+        }
+        currentGroup = [note];
+      } else {
+        currentGroup.push(note);
+      }
+      lastTick = note.tick;
+    });
+    
+    if (currentGroup.length > 0) {
+      groups.push(currentGroup);
+    }
+    
+    return groups;
+  },
+  
+  bindEvents() {
+    // Channel strip click
+    this.container.addEventListener('click', (e) => {
+      const strip = e.target.closest('.channel-strip');
+      if (strip) {
+        const trackIndex = parseInt(strip.dataset.trackIndex);
+        this.selectChannel(trackIndex);
+      }
+    });
+    
+    // Knob interactions
+    this.container.addEventListener('mousedown', (e) => {
+      const knob = e.target.closest('.knob');
+      if (knob) {
+        this.startKnobDrag(knob, e);
+      }
+    });
+    
+    // Pattern selection
+    this.container.addEventListener('click', (e) => {
+      const patternItem = e.target.closest('.pattern-item');
+      if (patternItem) {
+        this.selectPattern(patternItem);
+      }
+    });
+  },
+  
+  selectChannel(trackIndex) {
+    activeTrack = trackIndex;
+    this.updateActiveChannel();
+    refreshActiveTrackHighlight();
+    drawPianoRoll();
+    seqStatus.textContent = `Selected: ${song.tracks[activeTrack].instrument}`;
+  },
+  
+  updateActiveChannel() {
+    this.channels.forEach((strip, index) => {
+      strip.classList.toggle('active', index === activeTrack);
+    });
+  },
+  
+  startKnobDrag(knob, e) {
+    const param = knob.dataset.param;
+    const trackIndex = parseInt(knob.dataset.track);
+    const indicator = knob.querySelector('.knob-indicator');
+    const startY = e.clientY;
+    const startRotation = this.getKnobRotation(indicator);
+    
+    const onMouseMove = (e) => {
+      const deltaY = startY - e.clientY;
+      const deltaRotation = deltaY * 2; // Sensitivity
+      const newRotation = Math.max(-135, Math.min(135, startRotation + deltaRotation));
+      
+      // Update visual
+      indicator.style.transform = `translate(-50%, -50%) rotate(${newRotation}deg)`;
+      
+      // Update track parameter
+      const value = (newRotation + 135) / 270; // Convert to 0-1
+      if (param === 'volume') {
+        song.tracks[trackIndex].volume = value;
+      } else if (param === 'pan') {
+        song.tracks[trackIndex].pan = (value - 0.5) * 2; // Convert to -1 to 1
+      }
+    };
+    
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  },
+  
+  getKnobRotation(indicator) {
+    const transform = indicator.style.transform;
+    const match = transform.match(/rotate\(([-\d.]+)deg\)/);
+    return match ? parseFloat(match[1]) : 0;
+  },
+  
+  selectPattern(patternItem) {
+    const trackIndex = parseInt(patternItem.dataset.track);
+    const patternId = patternItem.dataset.pattern;
+    
+    // Update pattern selection
+    const track = song.tracks[trackIndex];
+    track.selectedPattern = patternId;
+    
+    // Update visual
+    patternItem.parentNode.querySelectorAll('.pattern-item').forEach(item => {
+      item.classList.remove('pattern-active');
+      item.classList.add('pattern-ghost');
+    });
+    patternItem.classList.remove('pattern-ghost');
+    patternItem.classList.add('pattern-active');
+    
+    // Apply pattern to sequencer
+    this.applyPatternToSequencer(trackIndex, patternId);
+  },
+  
+  applyPatternToSequencer(trackIndex, patternId) {
+    // This would apply the selected pattern to the sequencer
+    // For now, just update the display
+    seqStatus.textContent = `Applied pattern ${patternId} to track ${trackIndex}`;
+  },
+  
+  refresh() {
+    this.createChannelStrips();
+  }
+};
 
 // === SEQUENCER: Import/Export (JSON, MIDI, WAV, MP3) ===
 function encodeWavFromFloat32(left, right, sampleRate){
@@ -5805,6 +6348,104 @@ if(devTests){
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()" aria-label="Quantize" title="Quantize">Quantize</button>
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()" aria-label="Edit Velocity" title="Edit Velocity">Edit Velocity...</button>
 </div>
+
+<!-- Shortcuts Panel -->
+<div id="shortcutsPanel" class="shortcuts-panel hidden">
+  <h3>Keyboard Shortcuts</h3>
+  
+  <div class="shortcut-group">
+    <h4>Transport</h4>
+    <div class="shortcut-item">
+      <span>Play/Pause</span>
+      <span class="shortcut-key">Space</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Stop</span>
+      <span class="shortcut-key">Esc</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Jump to Start</span>
+      <span class="shortcut-key">Home</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Jump to End</span>
+      <span class="shortcut-key">End</span>
+    </div>
+  </div>
+  
+  <div class="shortcut-group">
+    <h4>Selection & Editing</h4>
+    <div class="shortcut-item">
+      <span>Select All</span>
+      <span class="shortcut-key">Ctrl+A</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Copy</span>
+      <span class="shortcut-key">Ctrl+C</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Cut</span>
+      <span class="shortcut-key">Ctrl+X</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Paste</span>
+      <span class="shortcut-key">Ctrl+V</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Delete</span>
+      <span class="shortcut-key">Del</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Undo</span>
+      <span class="shortcut-key">Ctrl+Z</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Redo</span>
+      <span class="shortcut-key">Ctrl+Y</span>
+    </div>
+  </div>
+  
+  <div class="shortcut-group">
+    <h4>Navigation</h4>
+    <div class="shortcut-item">
+      <span>Zoom In/Out (X)</span>
+      <span class="shortcut-key">Ctrl+Wheel</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Zoom In/Out (Y)</span>
+      <span class="shortcut-key">Alt+Wheel</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Horizontal Scroll</span>
+      <span class="shortcut-key">Shift+Wheel</span>
+    </div>
+  </div>
+  
+  <div class="shortcut-group">
+    <h4>Note Creation</h4>
+    <div class="shortcut-item">
+      <span>Create Note</span>
+      <span class="shortcut-key">Click & Drag</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Select Multiple</span>
+      <span class="shortcut-key">Shift+Click</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Add to Selection</span>
+      <span class="shortcut-key">Ctrl+Click</span>
+    </div>
+    <div class="shortcut-item">
+      <span>Delete Note</span>
+      <span class="shortcut-key">Shift+Alt+Click</span>
+    </div>
+  </div>
+  
+  <button id="closeShortcuts" class="w-full mt-4 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Close</button>
+</div>
+
+<!-- Note Tooltip -->
+<div id="noteTooltip" class="note-tooltip hidden"></div>
 
 
 </body>
