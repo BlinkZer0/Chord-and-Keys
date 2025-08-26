@@ -857,21 +857,50 @@ pianoRoll.addEventListener('pointerdown', ev => {
   const cellW = 20*ui.zoomX; const cellH = 20*ui.zoomY;
   const tick = Math.floor(x/cellW)*SIXTEENTH;
   const midi = MAX_MIDI-1-Math.floor(y/cellH);
-  if(ev.shiftKey){
-    const clip=song.tracks[activeTrack].clips[0];
-    for(let i=clip.notes.length-1;i>=0;i--){ const n=clip.notes[i]; if(n.midi===midi && tick>=n.tick && tick< n.tick+n.dur){ clip.notes.splice(i,1); drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); return; }}
+  const clip=song.tracks[activeTrack].clips[0];
+  // check existing notes first
+  for(let i=clip.notes.length-1;i>=0;i--){
+    const n=clip.notes[i];
+    const noteX=n.tick/SIXTEENTH*cellW;
+    const noteW=n.dur/SIXTEENTH*cellW;
+    if(n.midi===midi && x>=noteX && x<noteX+noteW){
+      if(ev.shiftKey){
+        clip.notes.splice(i,1); drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); return;
+      }
+      const nearRight = x>noteX+noteW-5; // resize handle ~5px
+      dragNote={note:n, mode:nearRight?'resize':'move', offsetTick:tick-n.tick, offsetMidi:midi-n.midi};
+      pianoRoll.setPointerCapture(ev.pointerId);
+      drawPianoRoll();
+      return;
+    }
   }
-  dragNote={tick, dur:SIXTEENTH, midi};
+  // otherwise create new note
+  dragNote={tick, dur:SIXTEENTH, midi, mode:'new'};
   pianoRoll.setPointerCapture(ev.pointerId);
   drawPianoRoll();
 });
 pianoRoll.addEventListener('pointermove', ev=>{
   if(!dragNote) return; const rect=pianoRoll.getBoundingClientRect();
-  const xCss=ev.clientX-rect.left; const x=(xCss+pianoRollScroll.scrollLeft);
-  const cellW=20*ui.zoomX; const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.dur=Math.max(SIXTEENTH,endTick-dragNote.tick); drawPianoRoll();
+  const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
+  const x=(xCss+pianoRollScroll.scrollLeft); const y=(yCss+pianoRollScroll.scrollTop);
+  const cellW=20*ui.zoomX; const cellH=20*ui.zoomY;
+  const tick=Math.floor(x/cellW)*SIXTEENTH; const midi=MAX_MIDI-1-Math.floor(y/cellH);
+  if(dragNote.mode==='new'){
+    const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.dur=Math.max(SIXTEENTH,endTick-dragNote.tick);
+  } else if(dragNote.mode==='move'){
+    dragNote.note.tick=Math.max(0,tick-dragNote.offsetTick);
+    dragNote.note.midi=Math.min(MAX_MIDI-1,Math.max(0,midi-dragNote.offsetMidi));
+  } else if(dragNote.mode==='resize'){
+    const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.note.dur=Math.max(SIXTEENTH,endTick-dragNote.note.tick);
+  }
+  drawPianoRoll();
 });
 pianoRoll.addEventListener('pointerup', ev=>{
-  if(!dragNote) return; const track=song.tracks[activeTrack]; track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8}); dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); pianoRoll.releasePointerCapture(ev.pointerId);
+  if(!dragNote) return; const track=song.tracks[activeTrack];
+  if(dragNote.mode==='new') track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8});
+  // keep notes ordered after edits
+  track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
+  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); pianoRoll.releasePointerCapture(ev.pointerId);
 });
 pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
 
