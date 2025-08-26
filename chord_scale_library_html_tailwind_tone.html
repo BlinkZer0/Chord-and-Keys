@@ -1850,7 +1850,7 @@ function startTrackSwitchTimer(idx){
   trackSwitchTimeout = setTimeout(()=>{
     activeTrack = idx;
     refreshActiveTrackHighlight();
-    seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+    seqStatus.textContent = `Painting: ${song.tracks[activeTrack].name} • ${song.ts.num}/${song.ts.den}`;
     drawPianoRoll();
     cancelTrackSwitch();
   }, TRACK_SWITCH_DELAY);
@@ -2131,7 +2131,7 @@ function initSequencer(){
     const instrOpts = INSTRUMENTS.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
     const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
     row.innerHTML=
-      `<span class="w-32">${track.instrument}</span>`+
+      `<input type="text" class="w-32 bg-slate-800/80 border border-slate-700 rounded px-2 py-1" value="${track.name}" />`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
@@ -2145,6 +2145,7 @@ function initSequencer(){
     seqTracks.appendChild(row);
     const muteBtn = row.querySelector('[data-mute]');
     const soloBtn = row.querySelector('[data-solo]');
+    const nameInput = row.querySelector('input[type="text"]');
     const [volSlider, panSlider] = row.querySelectorAll('input[type="range"]');
     const sel = row.querySelector('select');
     const clrInput = row.querySelector(`#trk-${idx}-color`);
@@ -2159,6 +2160,12 @@ function initSequencer(){
       soloBtn.classList.toggle('bg-emerald-700', track.solo);
       if(Tone.Transport.state==='started') scheduleSong();
     });
+    nameInput.addEventListener('input', e=>{
+      track.name = e.target.value;
+      if(idx === activeTrack){
+        seqStatus.textContent = `Painting: ${track.name} • ${song.ts.num}/${song.ts.den}`;
+      }
+    });
     volSlider.addEventListener('input', e=>{
       track.volume = Number(e.target.value);
       if(track.player && track.player.setVolume) track.player.setVolume(track.volume);
@@ -2169,7 +2176,6 @@ function initSequencer(){
     });
     sel.addEventListener('change', e=>{
       track.instrument = e.target.value;
-      row.querySelector('span').textContent = track.instrument;
       if(track.player){ track.player.dispose(); track.player=null; }
       if(Tone.Transport.state==='started') scheduleSong(idx);
     });
@@ -2187,13 +2193,13 @@ function initSequencer(){
       if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
       activeTrack = idx;
       refreshActiveTrackHighlight();
-      seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+      seqStatus.textContent = `Painting: ${song.tracks[activeTrack].name} • ${song.ts.num}/${song.ts.den}`;
       drawPianoRoll();
     });
   });
   applySeqColorScheme('Classic');
   refreshActiveTrackHighlight();
-  seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+  seqStatus.textContent = `Painting: ${song.tracks[activeTrack].name} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
 }
 
