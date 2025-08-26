@@ -202,6 +202,8 @@
             <label class="text-sm text-slate-300">Pattern</label>
             <select id="patternKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
             <button id="btnPastePattern" aria-label="Paste Pattern" title="Paste Pattern" class="w-full sm:w-auto px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm">Paste Pattern</button>
+            <button id="btnImportMidi" class="w-full sm:w-auto px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Import MIDI</button>
+            <input id="midiImportFile" type="file" accept="audio/midi" class="hidden">
             <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900 w-full sm:w-auto"></canvas>
           </div>
 
@@ -1128,6 +1130,8 @@ const seqClearAll = $('#seqClearAll');
 const seqExportJson = $('#seqExportJson');
 const seqImportJson = $('#seqImportJson');
 const seqImportFile = $('#seqImportFile');
+const btnImportMidi = $('#btnImportMidi');
+const midiImportFile = $('#midiImportFile');
 const seqExportMid = $('#seqExportMid');
 const seqExportWav = $('#seqExportWav');
 const seqExportMp3 = $('#seqExportMp3');
@@ -1469,6 +1473,89 @@ function loadSong(data){
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
+}
+
+function importSongMidi(buffer){
+  const view = new DataView(buffer);
+  let pos = 0;
+  const readStr = len => { let s=''; for(let i=0;i<len;i++) s += String.fromCharCode(view.getUint8(pos++)); return s; };
+  const readU32 = () => { const v = view.getUint32(pos); pos += 4; return v; };
+  const readU16 = () => { const v = view.getUint16(pos); pos += 2; return v; };
+  const readVar = () => { let v=0; while(true){ const b=view.getUint8(pos++); v=(v<<7)|(b&0x7F); if(!(b&0x80)) break; } return v; };
+
+  if(readStr(4) !== 'MThd') throw new Error('Invalid MIDI');
+  const hdLen = readU32();
+  const format = readU16();
+  if(format > 1) throw new Error('Unsupported MIDI format');
+  const nTracks = readU16();
+  const division = readU16();
+  song.ppq = division;
+  Tone.Transport.PPQ = division;
+  pos = 8 + hdLen; // jump to first track
+
+  let uspq = 500000; // default 120 bpm
+  const tracks = [];
+
+  for(let t=0;t<Math.min(nTracks,8);t++){
+    if(readStr(4) !== 'MTrk') break;
+    const len = readU32();
+    const end = pos + len;
+    let tick = 0;
+    let running = 0;
+    const notes = [];
+    const onMap = {};
+    while(pos < end){
+      const delta = readVar();
+      tick += delta;
+      let status = view.getUint8(pos++);
+      if(status < 0x80){ pos--; status = running; } else running = status;
+
+      if(status === 0xFF){
+        const type = view.getUint8(pos++);
+        const l = readVar();
+        if(type === 0x51 && l===3){
+          uspq = (view.getUint8(pos)<<16)|(view.getUint8(pos+1)<<8)|view.getUint8(pos+2);
+        }
+        pos += l;
+      } else if(status === 0xF0 || status === 0xF7){
+        const l = readVar();
+        pos += l;
+      } else {
+        const type = status & 0xF0;
+        const d1 = view.getUint8(pos++);
+        let d2;
+        if(type !== 0xC0 && type !== 0xD0){ d2 = view.getUint8(pos++); }
+        if(type === 0x90){
+          if(d2 > 0){ onMap[d1] = {tick, vel:d2/127}; }
+          else if(onMap[d1]){ const on = onMap[d1]; notes.push({tick:on.tick, dur:tick-on.tick, midi:d1, vel:on.vel}); delete onMap[d1]; }
+        } else if(type === 0x80){
+          if(onMap[d1]){ const on = onMap[d1]; notes.push({tick:on.tick, dur:tick-on.tick, midi:d1, vel:on.vel}); delete onMap[d1]; }
+        }
+      }
+    }
+    tracks.push({notes,length:tick});
+    pos = end;
+  }
+
+  const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
+  const songLen = maxTick || song.ppq * 4;
+
+  song.tracks.forEach((tr,i)=>{
+    const src = tracks[i];
+    tr.clips[0].notes = src ? src.notes : [];
+    tr.clips[0].length = songLen;
+  });
+
+  song.loop.start = 0;
+  song.loop.end = songLen;
+
+  song.bpm = Math.round(60000000/uspq);
+  setBpm(song.bpm);
+  updateLoop();
+  initSequencer();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+  seqStatus.textContent = '✅ Imported MIDI';
 }
 
 function exportSongMidi(){
@@ -2813,6 +2900,21 @@ seqImportFile.addEventListener('change', e=>{
     }
   };
   reader.readAsText(file);
+  e.target.value='';
+});
+
+btnImportMidi.addEventListener('click', ()=> midiImportFile.click());
+
+midiImportFile.addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    importSongMidi(buffer);
+  } catch(err){
+    console.error(err);
+    seqStatus.textContent='❌ Import failed';
+  }
   e.target.value='';
 });
 
