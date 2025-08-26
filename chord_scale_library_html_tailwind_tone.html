@@ -898,37 +898,31 @@ function cutSelected() {
     });
   }
 
-  function populatePatternCategories() {
-    const selected = patternCategory.value;
-    patternCategory.innerHTML='';
-    Object.keys(PATTERN_LIBRARY).forEach(cat=>{
-      const opt=document.createElement('option');
-      opt.value=cat;
-      opt.textContent=cat[0].toUpperCase()+cat.slice(1);
+  function refreshPatternSelector() {
+    const selectedCat = patternCategory.value;
+    patternCategory.innerHTML = '';
+    Object.keys(PATTERN_LIBRARY).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat[0].toUpperCase() + cat.slice(1);
       patternCategory.appendChild(opt);
     });
-    if(selected && PATTERN_LIBRARY[selected])
-      patternCategory.value = selected;
-  }
+    if (selectedCat && PATTERN_LIBRARY[selectedCat])
+      patternCategory.value = selectedCat;
 
-  function updatePatternOptions() {
     const cat = patternCategory.value;
-    const selected = patternKey.value;
-    patternKey.innerHTML='';
-    Object.keys(PATTERN_LIBRARY[cat]||{}).forEach(name=>{
-      const opt=document.createElement('option');
-      opt.value=name;
-      opt.textContent=name;
+    const selectedPattern = patternKey.value;
+    patternKey.innerHTML = '';
+    Object.keys(PATTERN_LIBRARY[cat] || {}).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
       patternKey.appendChild(opt);
     });
-    if(selected && PATTERN_LIBRARY[cat] && PATTERN_LIBRARY[cat][selected])
-      patternKey.value = selected;
-    drawPatternPreview();
-  }
+    if (selectedPattern && PATTERN_LIBRARY[cat] && PATTERN_LIBRARY[cat][selectedPattern])
+      patternKey.value = selectedPattern;
 
-  function refreshPatternSelector() {
-    populatePatternCategories();
-    updatePatternOptions();
+    drawPatternPreview();
   }
 
   // Quantization
@@ -2713,7 +2707,7 @@ seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on activ
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
-patternCategory.addEventListener('change', updatePatternOptions);
+patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
 btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
 
