@@ -1606,6 +1606,8 @@ function importSongMidi(buffer){
     tr.clips[0].notes = notes;
     tr.clips[0].length = songLen;
   });
+  
+  console.log('MIDI import - songLen:', songLen, 'maxTick:', maxTick);
 
   song.loop.start = 0;
   song.loop.end = songLen;
@@ -1658,9 +1660,31 @@ function drawPianoRoll(){
   }
   const totalSteps = clip.length / SIXTEENTH;
   const noteCount = MAX_MIDI - MIN_MIDI;
-  const cellW = 20 * ui.zoomX;
+  let cellW = 20 * ui.zoomX;
   const cellH = 20 * ui.zoomY;
-  const totalWidth = totalSteps * cellW;
+  let totalWidth = totalSteps * cellW;
+  
+  // Debug logging for large MIDI files
+  if(clip.length > 192*64) {
+    console.log('Large MIDI detected - clip.length:', clip.length, 'totalSteps:', totalSteps, 'totalWidth:', totalWidth, 'cellW:', cellW);
+    
+    // Check for browser width limits
+    const maxBrowserWidth = 33554427; // Chrome/Firefox limit
+    if(totalWidth > maxBrowserWidth) {
+      console.warn('totalWidth exceeds browser limit:', totalWidth, '> max:', maxBrowserWidth);
+      // Reduce zoom to fit within browser limits
+      const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+      if(ui.zoomX > maxZoomX) {
+        console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
+        ui.zoomX = maxZoomX;
+        seqZoomX.value = maxZoomX;
+        // Recalculate with new zoom
+        cellW = 20 * ui.zoomX;
+        totalWidth = totalSteps * cellW;
+        console.log('Adjusted totalWidth:', totalWidth);
+      }
+    }
+  }
   const scrollLeft = pianoRollScroll.scrollLeft;
   const viewportWidth = pianoRollScroll.clientWidth;
   const startStep = Math.floor(scrollLeft / cellW);
