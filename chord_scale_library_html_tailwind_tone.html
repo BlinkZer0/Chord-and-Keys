@@ -2158,18 +2158,21 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
     const leftWhiteIndex = whites.indexOf(leftWhiteKey);
     if(leftWhiteIndex === -1) return; // Skip if white key not found
     
-    // Position offsets for realistic piano spacing
+    // Position offsets for realistic piano spacing - based on actual piano measurements
     let rightOffset;
-    if(pc === 1) rightOffset = 0.75;    // C# positioned 75% toward D
-    else if(pc === 3) rightOffset = 0.25; // D# positioned 25% toward E
-    else if(pc === 6) rightOffset = 0.67;  // F# positioned 67% toward G
-    else if(pc === 8) rightOffset = 0.5;   // G# positioned 50% toward A (centered)
-    else if(pc === 10) rightOffset = 0.33; // A# positioned 33% toward B
+    if(pc === 1) rightOffset = 0.65;    // C# - closer to center but slightly toward C
+    else if(pc === 3) rightOffset = 0.35; // D# - positioned toward E, but not too close to edge  
+    else if(pc === 6) rightOffset = 0.72;  // F# - in the 3-key group, positioned toward G
+    else if(pc === 8) rightOffset = 0.50;   // G# - perfectly centered between G and A
+    else if(pc === 10) rightOffset = 0.28; // A# - positioned closer to A, leaving gap toward B
     
     const wrap=document.createElement('div'); 
     wrap.className='absolute pointer-events-none'; 
-    wrap.style.left = `${(leftWhiteIndex / whites.length * 100) + (rightOffset * (100 / whites.length))}%`;
-    wrap.style.width = `${100 / whites.length * 0.58}%`; // Slightly narrower than before
+    // Account for white key margins (mx-0.5) and calculate position more precisely
+    const whiteKeyWidth = 100 / whites.length;
+    const marginCompensation = 0.2; // Account for mx-0.5 margins on white keys
+    wrap.style.left = `${(leftWhiteIndex * whiteKeyWidth) + (rightOffset * (whiteKeyWidth - marginCompensation)) + marginCompensation/2}%`;
+    wrap.style.width = `${whiteKeyWidth * 0.55}%`; // Black key width relative to white key
     wrap.style.height = '65%'; 
     wrap.style.top = '0';
     
