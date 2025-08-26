@@ -383,23 +383,33 @@ function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—"
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
-  Piano:{a:.002,d:.3,s:.3,r:1.2,osc:'triangle'},
-  Guitar:{a:.002,d:.25,s:0,r:1.5,osc:'sawtooth'},
-  Bass:{a:.005,d:.25,s:.4,r:.8,osc:'square'},
-  Violin:{a:.01,d:.12,s:.7,r:.6,osc:'sawtooth'},
-  Flute:{a:.04,d:.12,s:.8,r:.5,osc:'sine'},
-  Recorder:{a:.03,d:.15,s:.7,r:.4,osc:'sine'},
-  Trumpet:{a:.01,d:.2,s:.6,r:.5,osc:'sawtooth'},
-  Saxophone:{a:.02,d:.2,s:.6,r:.3,osc:'sawtooth'},
+  Piano:{a:.005,d:.3,s:.3,r:1.2,osc:'triangle'},
+  Guitar:{a:.005,d:.25,s:0,r:1.5,osc:'sawtooth'},
+  Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square'},
+  Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth'},
+  Flute:{a:.1,d:.2,s:.9,r:.6,osc:'sine'},
+  Recorder:{a:.08,d:.15,s:.8,r:.5,osc:'sine'},
+  Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square'},
+  Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth'},
   Koto:{a:.002,d:.3,s:0,r:1.6,osc:'triangle'},
   Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle'},
-  Ney:{a:.08,d:.12,s:.7,r:.5,osc:'sine'},
-  'Hammond Organ':{a:.03,d:.2,s:.8,r:.7,osc:'square'}
+  Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine'},
+  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square'}
 };
 const masterLim = new Tone.Limiter(-1).toDestination();
 // === SEQUENCER: Audio Engine (melodic & drum registries) ===
-function makePoly(env){
-  const gain = new Tone.Gain(1).connect(masterLim);
+function makePoly(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
+  let destination = masterLim;
+  let vib=null, trem=null;
+  if(vibrato){
+    vib = new Tone.Vibrato(vibratoRate, vibratoDepth).connect(destination);
+    destination = vib;
+  }
+  if(tremolo){
+    trem = new Tone.Tremolo(tremoloRate, tremoloDepth).start().connect(destination);
+    destination = trem;
+  }
+  const gain = new Tone.Gain(1).connect(destination);
   const synth = new Tone.PolySynth(Tone.Synth,{
     envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
     oscillator:{type:env.osc}
@@ -422,7 +432,9 @@ function makePoly(env){
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); gain.dispose(); }
+    setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
+    setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
+    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); }
   };
 }
 
@@ -453,8 +465,18 @@ function makePluck(){
   };
 }
 
-function makeMono(env){
-  const gain = new Tone.Gain(1).connect(masterLim);
+function makeMono(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
+  let destination = masterLim;
+  let vib=null, trem=null;
+  if(vibrato){
+    vib = new Tone.Vibrato(vibratoRate, vibratoDepth).connect(destination);
+    destination = vib;
+  }
+  if(tremolo){
+    trem = new Tone.Tremolo(tremoloRate, tremoloDepth).start().connect(destination);
+    destination = trem;
+  }
+  const gain = new Tone.Gain(1).connect(destination);
   const synth = new Tone.MonoSynth({
     oscillator:{type:env.osc},
     envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}
@@ -476,8 +498,10 @@ function makeMono(env){
         // Ignore release errors
       }
     },
-    setVolume(v){ gain.gain.value = v; },
-    dispose(){ synth.dispose(); gain.dispose(); }
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
+    setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
+    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); }
   };
 }
 
