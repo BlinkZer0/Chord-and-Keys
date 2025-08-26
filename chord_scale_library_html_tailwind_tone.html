@@ -2412,9 +2412,10 @@ function buildPiano(){
     const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
     whiteRow.appendChild(k); });
-  // Black overlay with realistic piano spacing
-  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
-  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); 
+  // Black keys: spacing guide (non-interactive) and interactive layer
+  const spacingGuide=document.createElement('div'); spacingGuide.className='absolute left-2 right-2 top-2 bottom-2 pointer-events-none'; shell.appendChild(spacingGuide);
+  const blackLayer=document.createElement('div'); blackLayer.className='absolute left-2 right-2 top-2 bottom-2 pointer-events-auto'; shell.appendChild(blackLayer);
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE);
     // Much simpler approach: map each black key to its position between white keys
     // Pattern: C C# D D# E - F F# G G# A A# B (repeating every octave)
     // In whites array: C D E F G A B positions: 0,1,2,3,4,5,6 per octave
@@ -2442,18 +2443,30 @@ function buildPiano(){
     
     if(whiteKeyIndex === undefined) return;
     
-    const wrap=document.createElement('div'); 
-    wrap.className='absolute pointer-events-none'; 
-    // Simple percentage-based positioning
-    wrap.style.left = `${(whiteKeyIndex / whites.length * 100) + (betweenOffset * (100 / whites.length))}%`;
-    wrap.style.width = `${100 / whites.length * 0.6}%`;
-    wrap.style.height = '65%'; 
+    const left = `${(whiteKeyIndex / whites.length * 100) + (betweenOffset * (100 / whites.length))}%`;
+    const width = `${100 / whites.length * 0.6}%`;
+
+    // Non-interactive spacer for alignment
+    const spacer=document.createElement('div');
+    spacer.className='absolute';
+    spacer.style.left = left;
+    spacer.style.width = width;
+    spacer.style.height = '65%';
+    spacer.style.top = '0';
+    spacingGuide.appendChild(spacer);
+
+    // Actual interactive black key
+    const wrap=document.createElement('div');
+    wrap.className='absolute';
+    wrap.style.left = left;
+    wrap.style.width = width;
+    wrap.style.height = '65%';
     wrap.style.top = '0';
-    
-    const blk=document.createElement('div'); 
-    blk.dataset.midi=String(m); 
-    blk.dataset.pc=String(pc); 
-    blk.className='black-key piano-key-3d w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto'; 
+
+    const blk=document.createElement('div');
+    blk.dataset.midi=String(m);
+    blk.dataset.pc=String(pc);
+    blk.className='black-key piano-key-3d w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto';
     blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
     const lbl=document.createElement('div'); 
     lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; 
@@ -2466,7 +2479,7 @@ function buildPiano(){
     } });
     const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
-    wrap.appendChild(blk); overlay.appendChild(wrap); });
+    wrap.appendChild(blk); blackLayer.appendChild(wrap); });
   pianoHost.appendChild(container);
 }
 function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); updateBadges(); renderHighlights(); }
@@ -4345,55 +4358,20 @@ function stopVisualizer() {
   }
 }
 
-// Build UI - Wait for DOM to be ready
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM loaded, starting UI build...');
+// Build UI after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
   try {
-    console.log('Building piano...');
-    buildPiano(); 
-    console.log('Piano built successfully');
-    
-    console.log('Refreshing instruments...');
-    refreshInstruments(); 
-    
-    console.log('Updating all...');
-    updateAll(); 
-    
-    console.log('Running tests...');
-    runTests(); 
-    
-    console.log('Initializing sequencer...');
-    initSequencer(); 
-    
-    console.log('Generating pattern library...');
-    generatePatternLibrary(); 
-    
-    console.log('Refreshing pattern selector...');
+    buildPiano();
+    refreshInstruments();
+    updateAll();
+    runTests();
+    initSequencer();
+    generatePatternLibrary();
     refreshPatternSelector();
-    
-    console.log('UI build complete!');
   } catch(e) {
     console.error('Error during UI build:', e);
   }
 });
-
-// Fallback - Also try after a brief delay
-setTimeout(() => {
-  if (!pianoHost || !pianoHost.children.length) {
-    console.log('Fallback initialization...');
-    try {
-      buildPiano(); 
-      refreshInstruments(); 
-      updateAll(); 
-      runTests(); 
-      initSequencer(); 
-      generatePatternLibrary(); 
-      refreshPatternSelector();
-    } catch(e) {
-      console.error('Error in fallback init:', e);
-    }
-  }
-}, 500);
 
 // Initialize visualizer after Tone.js is ready
 setTimeout(() => {
