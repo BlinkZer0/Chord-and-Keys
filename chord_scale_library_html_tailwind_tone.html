@@ -1436,9 +1436,11 @@ function updateLoop(){
   }
 }
 
-const SCHEDULE_AHEAD_BARS = 4;
+// Dynamic scheduling window
+let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
 let scheduledUntil = 0;
 let rescheduleId = null;
+let songEndTick = 0;
 
 function scheduleSong(){
   const anySolo = song.tracks.some(t => t.solo);
@@ -1462,6 +1464,15 @@ function scheduleSong(){
     }
   });
 
+  // Determine song length and dynamic scheduling window
+  const ticksPerBeat = song.ppq * (4 / song.ts.den);
+  const ticksPerBar = ticksPerBeat * song.ts.num;
+  songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
+    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+  ));
+  const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
+  scheduleAheadBars = Math.max(16, Math.ceil(totalBars * 0.25));
+
   Tone.Transport.cancel();
   scheduledUntil = Tone.Transport.ticks;
   scheduleAhead();
@@ -1471,7 +1482,9 @@ function scheduleSong(){
 
 function scheduleAhead(){
   const anySolo = song.tracks.some(t => t.solo);
-  const endTick = Tone.Transport.ticks + song.ppq * 4 * SCHEDULE_AHEAD_BARS;
+  const ticksPerBeat = song.ppq * (4 / song.ts.den);
+  const ticksPerBar = ticksPerBeat * song.ts.num;
+  const endTick = Math.min(songEndTick, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
   song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active || !track.player) return;
@@ -1490,6 +1503,10 @@ function scheduleAhead(){
     });
   });
   scheduledUntil = endTick;
+  if(rescheduleId !== null && scheduledUntil >= songEndTick){
+    Tone.Transport.clear(rescheduleId);
+    rescheduleId = null;
+  }
 }
 
 let clickId = null;
