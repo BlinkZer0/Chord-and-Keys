@@ -9,10 +9,20 @@
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
   <style>
-    body { background-color: var(--bg-body); color: var(--text-body); }
+    body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
     body.skin-solarized { --bg-body: #002b36; --text-body: #eee8d5; }
     body.skin-mono { --bg-body: #000000; --text-body: #ffffff; }
+    body.skin-spring { --bg-body: linear-gradient(180deg, #d4fc79 0%, #96e6a1 100%); --text-body: #064e3b; }
+    body.skin-summer { --bg-body: linear-gradient(180deg, #fceabb 0%, #f8b500 100%); --text-body: #78350f; }
+    body.skin-autumn { --bg-body: linear-gradient(180deg, #f6d365 0%, #fda085 100%); --text-body: #7c2d12; }
+    body.skin-winter { --bg-body: linear-gradient(180deg, #e0eafc 0%, #cfdef3 100%); --text-body: #1e3a8a; }
+    body.skin-forest { --bg-body: radial-gradient(circle at center, #2e8b57 0%, #006400 100%); --text-body: #f0fff0; }
+    body.skin-ocean { --bg-body: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%); --text-body: #e0f7fa; }
+    body.skin-desert { --bg-body: linear-gradient(180deg, #eacda3 0%, #d6ae7b 100%); --text-body: #654321; }
+    body.skin-mountain { --bg-body: linear-gradient(180deg, #bdc3c7 0%, #2c3e50 100%); --text-body: #1f2937; }
+    body.skin-sunrise { --bg-body: radial-gradient(circle at center, #ff5f6d 0%, #ffc371 100%); --text-body: #7c2d12; }
+    body.skin-sunset { --bg-body: linear-gradient(180deg, #0b486b 0%, #f56217 100%); --text-body: #fef3c7; }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -24,6 +34,16 @@
           <option value="default">Default</option>
           <option value="solarized">Solarized</option>
           <option value="mono">Mono</option>
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+          <option value="autumn">Autumn</option>
+          <option value="winter">Winter</option>
+          <option value="forest">Forest</option>
+          <option value="ocean">Ocean</option>
+          <option value="desert">Desert</option>
+          <option value="mountain">Mountain</option>
+          <option value="sunrise">Sunrise</option>
+          <option value="sunset">Sunset</option>
         </select>
       </header>
 
@@ -2597,7 +2617,21 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
-const skinClasses = { default: 'skin-default', solarized: 'skin-solarized', mono: 'skin-mono' };
+const skinClasses = {
+  default: 'skin-default',
+  solarized: 'skin-solarized',
+  mono: 'skin-mono',
+  spring: 'skin-spring',
+  summer: 'skin-summer',
+  autumn: 'skin-autumn',
+  winter: 'skin-winter',
+  forest: 'skin-forest',
+  ocean: 'skin-ocean',
+  desert: 'skin-desert',
+  mountain: 'skin-mountain',
+  sunrise: 'skin-sunrise',
+  sunset: 'skin-sunset'
+};
 skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(...Object.values(skinClasses)); document.body.classList.add(skinClasses[e.target.value]); });
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
