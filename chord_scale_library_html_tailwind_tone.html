@@ -1441,6 +1441,8 @@ function updateLoop(){
 }
 
 // Dynamic scheduling window
+const MAX_SCHEDULE_AHEAD_BARS = 256;
+const MAX_SONG_BARS = 1_000_000;
 let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
 let scheduledUntil = 0;
 let rescheduleId = null;
@@ -1475,7 +1477,7 @@ function scheduleSong(){
     t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
   ));
   const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
-  scheduleAheadBars = Math.max(16, Math.ceil(totalBars * 0.25));
+  scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
 
   Tone.Transport.cancel();
   scheduledUntil = Tone.Transport.ticks;
@@ -1609,11 +1611,12 @@ function importSongMidi(buffer){
   }
 
   const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
-  const maxTicksAllowed = song.ppq * 4 * 4096; // Increased to 4096 bars max (from 256)
+  const maxTicksAllowed = song.ppq * 4 * MAX_SONG_BARS;
   let songLen = maxTick || song.ppq * 4;
   let truncated = false;
   if(maxTick > maxTicksAllowed){
-    if(!confirm('MIDI exceeds 4096 bars. Import first 4096 bars?')){
+    const bars = MAX_SONG_BARS.toLocaleString();
+    if(!confirm(`MIDI exceeds ${bars} bars. Import first ${bars} bars?`)){
       seqStatus.textContent = '❌ Import canceled';
       return;
     }
@@ -1639,7 +1642,8 @@ function importSongMidi(buffer){
   initSequencer();
   drawPianoRoll();
   if(Tone.Transport.state==='started') scheduleSong();
-  seqStatus.textContent = truncated ? '⚠️ MIDI truncated to 4096 bars' : '✅ Imported MIDI';
+  const bars = MAX_SONG_BARS.toLocaleString();
+  seqStatus.textContent = truncated ? `⚠️ MIDI truncated to ${bars} bars` : '✅ Imported MIDI';
 }
 
 function exportSongMidi(){
