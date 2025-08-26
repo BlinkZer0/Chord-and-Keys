@@ -2529,41 +2529,284 @@ function buildRecorderChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = recorderOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 180 60' : '0 0 60 180');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 340 100' : '0 0 100 340');
   svg.setAttribute('class','mx-auto');
-  const body=document.createElementNS(svgNS,'polygon');
-  const mouth=document.createElementNS(svgNS,'polygon');
+  
+  // Realistic recorder with proper woodwind details
   if(isHoriz){
-    body.setAttribute('points','20,20 160,20 160,40 20,40');
-    mouth.setAttribute('points', recorderLeftToRight ? '0,20 20,20 20,40 0,40' : '160,20 180,20 180,40 160,40');
+    // Wood gradient for realistic wooden appearance
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','woodGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#d97706');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#b45309');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#92400e');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#78350f');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece/head section with beak
+    const headSection = document.createElementNS(svgNS,'rect');
+    headSection.setAttribute('x', recorderLeftToRight ? '10' : '270');
+    headSection.setAttribute('y','35');
+    headSection.setAttribute('width','60');
+    headSection.setAttribute('height','30');
+    headSection.setAttribute('rx','15');
+    headSection.setAttribute('fill','url(#woodGrad)');
+    headSection.setAttribute('stroke','#92400e');
+    headSection.setAttribute('stroke-width','2');
+    svg.appendChild(headSection);
+    
+    // Beak (windway)
+    const beak = document.createElementNS(svgNS,'polygon');
+    const beakPoints = recorderLeftToRight ? 
+      '10,45 25,40 25,60 10,55' : 
+      '330,45 315,40 315,60 330,55';
+    beak.setAttribute('points', beakPoints);
+    beak.setAttribute('fill','#78350f');
+    beak.setAttribute('stroke','#451a03');
+    beak.setAttribute('stroke-width','1.5');
+    svg.appendChild(beak);
+    
+    // Upper joint (joint with thumb hole)
+    const upperJoint = document.createElementNS(svgNS,'rect');
+    upperJoint.setAttribute('x', recorderLeftToRight ? '75' : '205');
+    upperJoint.setAttribute('y','37');
+    upperJoint.setAttribute('width','60');
+    upperJoint.setAttribute('height','26');
+    upperJoint.setAttribute('rx','13');
+    upperJoint.setAttribute('fill','url(#woodGrad)');
+    upperJoint.setAttribute('stroke','#92400e');
+    upperJoint.setAttribute('stroke-width','2');
+    svg.appendChild(upperJoint);
+    
+    // Lower joint
+    const lowerJoint = document.createElementNS(svgNS,'rect');
+    lowerJoint.setAttribute('x', recorderLeftToRight ? '140' : '140');
+    lowerJoint.setAttribute('y','38');
+    lowerJoint.setAttribute('width','60');
+    lowerJoint.setAttribute('height','24');
+    lowerJoint.setAttribute('rx','12');
+    lowerJoint.setAttribute('fill','url(#woodGrad)');
+    lowerJoint.setAttribute('stroke','#92400e');
+    lowerJoint.setAttribute('stroke-width','2');
+    svg.appendChild(lowerJoint);
+    
+    // Foot joint
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x', recorderLeftToRight ? '205' : '75');
+    footJoint.setAttribute('y','39');
+    footJoint.setAttribute('width','60');
+    footJoint.setAttribute('height','22');
+    footJoint.setAttribute('rx','11');
+    footJoint.setAttribute('fill','url(#woodGrad)');
+    footJoint.setAttribute('stroke','#92400e');
+    footJoint.setAttribute('stroke-width','2');
+    svg.appendChild(footJoint);
+    
+    // Joint rings for realism
+    const rings = recorderLeftToRight ? [70, 135, 200] : [270, 205, 140];
+    rings.forEach(x => {
+      const ring = document.createElementNS(svgNS,'line');
+      ring.setAttribute('x1', String(x));
+      ring.setAttribute('y1','35');
+      ring.setAttribute('x2', String(x));
+      ring.setAttribute('y2','65');
+      ring.setAttribute('stroke','#451a03');
+      ring.setAttribute('stroke-width','2');
+      svg.appendChild(ring);
+    });
+    
+    // Tone holes with realistic spacing
+    const holePositions = recorderLeftToRight ? 
+      [85, 100, 115, 130, 150, 170, 190, 210] : 
+      [255, 240, 225, 210, 190, 170, 150, 130];
+    
+    fing.forEach((closed,i)=>{
+      const holeX = holePositions[i];
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','50');
+      hole.setAttribute('r','6');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#78350f');
+      hole.setAttribute('stroke-width','1.5');
+      svg.appendChild(hole);
+      
+      // Finger coverage indication
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx', String(holeX));
+        finger.setAttribute('cy','50');
+        finger.setAttribute('r','9');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.7)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole (back side, shown as small indicator)
+    const thumbHole = document.createElementNS(svgNS,'ellipse');
+    thumbHole.setAttribute('cx', recorderLeftToRight ? '95' : '245');
+    thumbHole.setAttribute('cy','32');
+    thumbHole.setAttribute('rx','3');
+    thumbHole.setAttribute('ry','2');
+    thumbHole.setAttribute('fill','#1c1917');
+    thumbHole.setAttribute('stroke','#78350f');
+    thumbHole.setAttribute('stroke-width','1');
+    svg.appendChild(thumbHole);
+    
   } else {
-    body.setAttribute('points','20,20 40,20 40,160 20,160');
-    mouth.setAttribute('points', recorderLeftToRight ? '20,0 40,0 40,20 20,20' : '20,160 40,160 40,180 20,180');
+    // Vertical orientation - similar detailed structure
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','woodGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#d97706');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#b45309');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#92400e');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#78350f');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head section vertical
+    const headSection = document.createElementNS(svgNS,'rect');
+    headSection.setAttribute('x','35');
+    headSection.setAttribute('y', recorderLeftToRight ? '10' : '270');
+    headSection.setAttribute('width','30');
+    headSection.setAttribute('height','60');
+    headSection.setAttribute('rx','15');
+    headSection.setAttribute('fill','url(#woodGradV)');
+    headSection.setAttribute('stroke','#92400e');
+    headSection.setAttribute('stroke-width','2');
+    svg.appendChild(headSection);
+    
+    // Beak vertical
+    const beak = document.createElementNS(svgNS,'polygon');
+    const beakPoints = recorderLeftToRight ? 
+      '45,10 40,25 60,25 55,10' : 
+      '45,330 40,315 60,315 55,330';
+    beak.setAttribute('points', beakPoints);
+    beak.setAttribute('fill','#78350f');
+    beak.setAttribute('stroke','#451a03');
+    beak.setAttribute('stroke-width','1.5');
+    svg.appendChild(beak);
+    
+    // Joints vertical
+    const upperJoint = document.createElementNS(svgNS,'rect');
+    upperJoint.setAttribute('x','37');
+    upperJoint.setAttribute('y', recorderLeftToRight ? '75' : '205');
+    upperJoint.setAttribute('width','26');
+    upperJoint.setAttribute('height','60');
+    upperJoint.setAttribute('rx','13');
+    upperJoint.setAttribute('fill','url(#woodGradV)');
+    upperJoint.setAttribute('stroke','#92400e');
+    upperJoint.setAttribute('stroke-width','2');
+    svg.appendChild(upperJoint);
+    
+    const lowerJoint = document.createElementNS(svgNS,'rect');
+    lowerJoint.setAttribute('x','38');
+    lowerJoint.setAttribute('y','140');
+    lowerJoint.setAttribute('width','24');
+    lowerJoint.setAttribute('height','60');
+    lowerJoint.setAttribute('rx','12');
+    lowerJoint.setAttribute('fill','url(#woodGradV)');
+    lowerJoint.setAttribute('stroke','#92400e');
+    lowerJoint.setAttribute('stroke-width','2');
+    svg.appendChild(lowerJoint);
+    
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x','39');
+    footJoint.setAttribute('y', recorderLeftToRight ? '205' : '75');
+    footJoint.setAttribute('width','22');
+    footJoint.setAttribute('height','60');
+    footJoint.setAttribute('rx','11');
+    footJoint.setAttribute('fill','url(#woodGradV)');
+    footJoint.setAttribute('stroke','#92400e');
+    footJoint.setAttribute('stroke-width','2');
+    svg.appendChild(footJoint);
+    
+    // Joint rings vertical
+    const rings = recorderLeftToRight ? [70, 135, 200] : [270, 205, 140];
+    rings.forEach(y => {
+      const ring = document.createElementNS(svgNS,'line');
+      ring.setAttribute('x1','35');
+      ring.setAttribute('y1', String(y));
+      ring.setAttribute('x2','65');
+      ring.setAttribute('y2', String(y));
+      ring.setAttribute('stroke','#451a03');
+      ring.setAttribute('stroke-width','2');
+      svg.appendChild(ring);
+    });
+    
+    // Tone holes vertical
+    const holePositions = recorderLeftToRight ? 
+      [85, 100, 115, 130, 150, 170, 190, 210] : 
+      [255, 240, 225, 210, 190, 170, 150, 130];
+    
+    fing.forEach((closed,i)=>{
+      const holeY = holePositions[i];
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','50');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','6');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#78350f');
+      hole.setAttribute('stroke-width','1.5');
+      svg.appendChild(hole);
+      
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx','50');
+        finger.setAttribute('cy', String(holeY));
+        finger.setAttribute('r','9');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.7)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole vertical
+    const thumbHole = document.createElementNS(svgNS,'ellipse');
+    thumbHole.setAttribute('cx','68');
+    thumbHole.setAttribute('cy', recorderLeftToRight ? '95' : '245');
+    thumbHole.setAttribute('rx','2');
+    thumbHole.setAttribute('ry','3');
+    thumbHole.setAttribute('fill','#1c1917');
+    thumbHole.setAttribute('stroke','#78350f');
+    thumbHole.setAttribute('stroke-width','1');
+    svg.appendChild(thumbHole);
   }
-  [body,mouth].forEach(el=>{
-    el.setAttribute('stroke','#94a3b8');
-    el.setAttribute('stroke-width','2');
-    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
-    svg.appendChild(el);
-  });
-  fing.forEach((closed,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
-      y = 30;
-    } else {
-      y = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
-      x = 30;
-    }
-    c.setAttribute('cx', String(x));
-    c.setAttribute('cy', String(y));
-    c.setAttribute('r','8');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
-  });
   recorderHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='recorderFlip';
@@ -2947,54 +3190,292 @@ function buildSaxophoneChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = saxophoneOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 320 140' : '0 0 140 320');
   svg.setAttribute('class','mx-auto');
-  const body=document.createElementNS(svgNS,'polygon');
-  const mouth=document.createElementNS(svgNS,'polygon');
-  const bell=document.createElementNS(svgNS,'polygon');
+  
+  // Realistic saxophone with curved body and detailed key work
   if(isHoriz){
-    body.setAttribute('points','20,20 140,20 140,40 20,40');
-    if(saxophoneLeftToRight){
-      mouth.setAttribute('points','0,25 20,20 20,40 0,35');
-      bell.setAttribute('points','140,20 160,30 140,40');
-    } else {
-      mouth.setAttribute('points','140,20 160,25 160,35 140,40');
-      bell.setAttribute('points','20,20 0,30 20,40');
-    }
+    // Brass gradient for saxophone
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','saxGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#f59e0b');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#d97706');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#b45309');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece and neck
+    const neckPath = document.createElementNS(svgNS,'path');
+    const neckD = saxophoneLeftToRight ? 
+      'M 10 70 Q 20 50, 40 55 Q 60 58, 80 65' :
+      'M 310 70 Q 300 50, 280 55 Q 260 58, 240 65';
+    neckPath.setAttribute('d', neckD);
+    neckPath.setAttribute('stroke','url(#saxGrad)');
+    neckPath.setAttribute('stroke-width','8');
+    neckPath.setAttribute('fill','none');
+    neckPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(neckPath);
+    
+    // Mouthpiece
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx', saxophoneLeftToRight ? '15' : '305');
+    mouthpiece.setAttribute('cy','70');
+    mouthpiece.setAttribute('rx','10');
+    mouthpiece.setAttribute('ry','6');
+    mouthpiece.setAttribute('fill','#1c1917');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','2');
+    svg.appendChild(mouthpiece);
+    
+    // Upper body section (straight)
+    const upperBody = document.createElementNS(svgNS,'rect');
+    upperBody.setAttribute('x', saxophoneLeftToRight ? '80' : '180');
+    upperBody.setAttribute('y','60');
+    upperBody.setAttribute('width','60');
+    upperBody.setAttribute('height','20');
+    upperBody.setAttribute('rx','10');
+    upperBody.setAttribute('fill','url(#saxGrad)');
+    upperBody.setAttribute('stroke','#92400e');
+    upperBody.setAttribute('stroke-width','2');
+    svg.appendChild(upperBody);
+    
+    // Curved body section (characteristic sax curve)
+    const bodyPath = document.createElementNS(svgNS,'path');
+    const bodyD = saxophoneLeftToRight ? 
+      'M 140 70 Q 160 75, 180 85 Q 200 95, 210 115' :
+      'M 180 70 Q 160 75, 140 85 Q 120 95, 110 115';
+    bodyPath.setAttribute('d', bodyD);
+    bodyPath.setAttribute('stroke','url(#saxGrad)');
+    bodyPath.setAttribute('stroke-width','16');
+    bodyPath.setAttribute('fill','none');
+    bodyPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(bodyPath);
+    
+    // Bell section (flared)
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = saxophoneLeftToRight ? 
+      'M 210 115 Q 220 125, 240 130 Q 260 132, 280 125 Q 290 120, 285 105' :
+      'M 110 115 Q 100 125, 80 130 Q 60 132, 40 125 Q 30 120, 35 105';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#saxGrad)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Key guards and tone holes
+    const keyPositions = saxophoneLeftToRight ? 
+      [90, 105, 120, 135, 150, 165] : 
+      [230, 215, 200, 185, 170, 155];
+    
+    fing.forEach((closed,i)=>{
+      const keyX = keyPositions[i];
+      
+      // Key guard (protective ring around key)
+      const guard = document.createElementNS(svgNS,'circle');
+      guard.setAttribute('cx', String(keyX));
+      guard.setAttribute('cy','70');
+      guard.setAttribute('r','12');
+      guard.setAttribute('fill','none');
+      guard.setAttribute('stroke','#78350f');
+      guard.setAttribute('stroke-width','1.5');
+      svg.appendChild(guard);
+      
+      // Key pad
+      const key = document.createElementNS(svgNS,'circle');
+      key.setAttribute('cx', String(keyX));
+      key.setAttribute('cy','70');
+      key.setAttribute('r','8');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e5e7eb');
+      key.setAttribute('stroke','#374151');
+      key.setAttribute('stroke-width','1.5');
+      svg.appendChild(key);
+      
+      // Tone hole underneath
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(keyX));
+      hole.setAttribute('cy','70');
+      hole.setAttribute('r','4');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','none');
+      svg.appendChild(hole);
+      
+      // Key mechanism (simplified)
+      const mechanism = document.createElementNS(svgNS,'rect');
+      mechanism.setAttribute('x', String(keyX - 3));
+      mechanism.setAttribute('y','55');
+      mechanism.setAttribute('width','6');
+      mechanism.setAttribute('height','8');
+      mechanism.setAttribute('rx','2');
+      mechanism.setAttribute('fill','#94a3b8');
+      mechanism.setAttribute('stroke','#64748b');
+      mechanism.setAttribute('stroke-width','1');
+      svg.appendChild(mechanism);
+    });
+    
+    // Octave key (small auxiliary key)
+    const octaveKey = document.createElementNS(svgNS,'circle');
+    octaveKey.setAttribute('cx', saxophoneLeftToRight ? '95' : '225');
+    octaveKey.setAttribute('cy','50');
+    octaveKey.setAttribute('r','4');
+    octaveKey.setAttribute('fill','#94a3b8');
+    octaveKey.setAttribute('stroke','#64748b');
+    octaveKey.setAttribute('stroke-width','1');
+    svg.appendChild(octaveKey);
+    
   } else {
-    body.setAttribute('points','20,20 40,20 40,140 20,140');
-    if(saxophoneLeftToRight){
-      mouth.setAttribute('points','25,0 20,20 40,20 35,0');
-      bell.setAttribute('points','20,140 30,160 40,140');
-    } else {
-      mouth.setAttribute('points','20,140 40,140 35,160 25,160');
-      bell.setAttribute('points','20,20 30,0 40,20');
-    }
+    // Vertical orientation - similar structure but rotated
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','saxGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#f59e0b');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#d97706');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#b45309');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Neck vertical
+    const neckPath = document.createElementNS(svgNS,'path');
+    const neckD = saxophoneLeftToRight ? 
+      'M 70 10 Q 50 20, 55 40 Q 58 60, 65 80' :
+      'M 70 310 Q 50 300, 55 280 Q 58 260, 65 240';
+    neckPath.setAttribute('d', neckD);
+    neckPath.setAttribute('stroke','url(#saxGradV)');
+    neckPath.setAttribute('stroke-width','8');
+    neckPath.setAttribute('fill','none');
+    neckPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(neckPath);
+    
+    // Mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx','70');
+    mouthpiece.setAttribute('cy', saxophoneLeftToRight ? '15' : '305');
+    mouthpiece.setAttribute('rx','6');
+    mouthpiece.setAttribute('ry','10');
+    mouthpiece.setAttribute('fill','#1c1917');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','2');
+    svg.appendChild(mouthpiece);
+    
+    // Body sections vertical
+    const upperBody = document.createElementNS(svgNS,'rect');
+    upperBody.setAttribute('x','60');
+    upperBody.setAttribute('y', saxophoneLeftToRight ? '80' : '180');
+    upperBody.setAttribute('width','20');
+    upperBody.setAttribute('height','60');
+    upperBody.setAttribute('rx','10');
+    upperBody.setAttribute('fill','url(#saxGradV)');
+    upperBody.setAttribute('stroke','#92400e');
+    upperBody.setAttribute('stroke-width','2');
+    svg.appendChild(upperBody);
+    
+    // Curved body vertical
+    const bodyPath = document.createElementNS(svgNS,'path');
+    const bodyD = saxophoneLeftToRight ? 
+      'M 70 140 Q 75 160, 85 180 Q 95 200, 115 210' :
+      'M 70 180 Q 75 160, 85 140 Q 95 120, 115 110';
+    bodyPath.setAttribute('d', bodyD);
+    bodyPath.setAttribute('stroke','url(#saxGradV)');
+    bodyPath.setAttribute('stroke-width','16');
+    bodyPath.setAttribute('fill','none');
+    bodyPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(bodyPath);
+    
+    // Bell vertical
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = saxophoneLeftToRight ? 
+      'M 115 210 Q 125 220, 130 240 Q 132 260, 125 280 Q 120 290, 105 285' :
+      'M 115 110 Q 125 100, 130 80 Q 132 60, 125 40 Q 120 30, 105 35';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#saxGradV)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Keys vertical
+    const keyPositions = saxophoneLeftToRight ? 
+      [90, 105, 120, 135, 150, 165] : 
+      [230, 215, 200, 185, 170, 155];
+    
+    fing.forEach((closed,i)=>{
+      const keyY = keyPositions[i];
+      
+      const guard = document.createElementNS(svgNS,'circle');
+      guard.setAttribute('cx','70');
+      guard.setAttribute('cy', String(keyY));
+      guard.setAttribute('r','12');
+      guard.setAttribute('fill','none');
+      guard.setAttribute('stroke','#78350f');
+      guard.setAttribute('stroke-width','1.5');
+      svg.appendChild(guard);
+      
+      const key = document.createElementNS(svgNS,'circle');
+      key.setAttribute('cx','70');
+      key.setAttribute('cy', String(keyY));
+      key.setAttribute('r','8');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e5e7eb');
+      key.setAttribute('stroke','#374151');
+      key.setAttribute('stroke-width','1.5');
+      svg.appendChild(key);
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','70');
+      hole.setAttribute('cy', String(keyY));
+      hole.setAttribute('r','4');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','none');
+      svg.appendChild(hole);
+      
+      const mechanism = document.createElementNS(svgNS,'rect');
+      mechanism.setAttribute('x','55');
+      mechanism.setAttribute('y', String(keyY - 3));
+      mechanism.setAttribute('width','8');
+      mechanism.setAttribute('height','6');
+      mechanism.setAttribute('rx','2');
+      mechanism.setAttribute('fill','#94a3b8');
+      mechanism.setAttribute('stroke','#64748b');
+      mechanism.setAttribute('stroke-width','1');
+      svg.appendChild(mechanism);
+    });
+    
+    // Octave key vertical
+    const octaveKey = document.createElementNS(svgNS,'circle');
+    octaveKey.setAttribute('cx','50');
+    octaveKey.setAttribute('cy', saxophoneLeftToRight ? '95' : '225');
+    octaveKey.setAttribute('r','4');
+    octaveKey.setAttribute('fill','#94a3b8');
+    octaveKey.setAttribute('stroke','#64748b');
+    octaveKey.setAttribute('stroke-width','1');
+    svg.appendChild(octaveKey);
   }
-  [body,mouth,bell].forEach(el=>{
-    el.setAttribute('stroke','#94a3b8');
-    el.setAttribute('stroke-width','2');
-    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
-    svg.appendChild(el);
-  });
-  fing.forEach((closed,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
-    } else {
-      y = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
-      x = 30;
-    }
-    c.setAttribute('cx', String(x));
-    c.setAttribute('cy', String(y));
-    c.setAttribute('r','10');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
-  });
   saxophoneHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='saxophoneFlip';
@@ -3051,41 +3532,265 @@ function buildNeyChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = neyOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 280 80' : '0 0 80 280');
   svg.setAttribute('class','mx-auto');
-  const body=document.createElementNS(svgNS,'polygon');
-  const mouth=document.createElementNS(svgNS,'polygon');
+  
+  // Realistic ney - traditional Middle Eastern flute made from reed/bamboo
   if(isHoriz){
-    body.setAttribute('points','20,20 140,20 140,40 20,40');
-    mouth.setAttribute('points', neyLeftToRight ? '0,20 20,20 20,40 0,40' : '140,20 160,20 160,40 140,40');
-  } else {
-    body.setAttribute('points','20,20 40,20 40,140 20,140');
-    mouth.setAttribute('points', neyLeftToRight ? '20,0 40,0 40,20 20,20' : '20,140 40,140 40,160 20,160');
-  }
-  [body,mouth].forEach(el=>{
-    el.setAttribute('stroke','#94a3b8');
-    el.setAttribute('stroke-width','2');
-    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
-    svg.appendChild(el);
-  });
-  fing.forEach((closed,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = neyLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
-    } else {
-      x = i===0 ? 20 : 30;
-      y = neyLeftToRight ? 20 + i*22 : 140 - i*22;
+    // Reed/bamboo gradient for natural appearance
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','reedGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#b45309');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Main reed body - single piece, cylindrical
+    const body = document.createElementNS(svgNS,'rect');
+    body.setAttribute('x', neyLeftToRight ? '20' : '60');
+    body.setAttribute('y','30');
+    body.setAttribute('width','200');
+    body.setAttribute('height','20');
+    body.setAttribute('rx','10');
+    body.setAttribute('fill','url(#reedGrad)');
+    body.setAttribute('stroke','#92400e');
+    body.setAttribute('stroke-width','1.5');
+    svg.appendChild(body);
+    
+    // Oblique mouthpiece cut (characteristic of ney)
+    const mouthpiece = document.createElementNS(svgNS,'polygon');
+    const mouthPoints = neyLeftToRight ? 
+      '20,35 30,25 30,55 20,50' :
+      '260,35 250,25 250,55 260,50';
+    mouthpiece.setAttribute('points', mouthPoints);
+    mouthpiece.setAttribute('fill','#78350f');
+    mouthpiece.setAttribute('stroke','#451a03');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Reed nodes/segments (natural bamboo/reed appearance)
+    const nodePositions = neyLeftToRight ? [60, 110, 160, 210] : [220, 170, 120, 70];
+    nodePositions.forEach(x => {
+      const node = document.createElementNS(svgNS,'line');
+      node.setAttribute('x1', String(x));
+      node.setAttribute('y1','28');
+      node.setAttribute('x2', String(x));
+      node.setAttribute('y2','52');
+      node.setAttribute('stroke','#92400e');
+      node.setAttribute('stroke-width','2');
+      svg.appendChild(node);
+    });
+    
+    // Finger holes with authentic ney positioning
+    // Traditional ney has 6 front holes + 1 thumb hole
+    const frontHolePositions = neyLeftToRight ? 
+      [70, 90, 110, 130, 150, 170] : 
+      [210, 190, 170, 150, 130, 110];
+    
+    fing.slice(0, 6).forEach((closed,i)=>{
+      const holeX = frontHolePositions[i];
+      
+      // Finger hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','40');
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#92400e');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Finger coverage indication (traditional ney uses direct finger contact)
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx', String(holeX));
+        finger.setAttribute('cy','40');
+        finger.setAttribute('r','8');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole (back of instrument)
+    if(fing[6] !== undefined) {
+      const thumbHole = document.createElementNS(svgNS,'ellipse');
+      thumbHole.setAttribute('cx', neyLeftToRight ? '105' : '175');
+      thumbHole.setAttribute('cy','25');
+      thumbHole.setAttribute('rx','3');
+      thumbHole.setAttribute('ry','2');
+      thumbHole.setAttribute('fill', fing[6] ? '#451a03' : '#1c1917');
+      thumbHole.setAttribute('stroke','#92400e');
+      thumbHole.setAttribute('stroke-width','1');
+      svg.appendChild(thumbHole);
+      
+      if(fing[6]) {
+        const thumbFinger = document.createElementNS(svgNS,'ellipse');
+        thumbFinger.setAttribute('cx', neyLeftToRight ? '105' : '175');
+        thumbFinger.setAttribute('cy','25');
+        thumbFinger.setAttribute('rx','5');
+        thumbFinger.setAttribute('ry','3');
+        thumbFinger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        thumbFinger.setAttribute('stroke','#f59e0b');
+        thumbFinger.setAttribute('stroke-width','1.5');
+        svg.appendChild(thumbFinger);
+      }
     }
-    c.setAttribute('cx', String(x));
-    c.setAttribute('cy', String(y));
-    c.setAttribute('r','8');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
-  });
+    
+    // Traditional decorative details (optional binding)
+    const binding = document.createElementNS(svgNS,'rect');
+    binding.setAttribute('x', neyLeftToRight ? '190' : '90');
+    binding.setAttribute('y','32');
+    binding.setAttribute('width','6');
+    binding.setAttribute('height','16');
+    binding.setAttribute('fill','#78350f');
+    binding.setAttribute('stroke','#451a03');
+    binding.setAttribute('stroke-width','0.5');
+    svg.appendChild(binding);
+    
+  } else {
+    // Vertical orientation - traditional playing position
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','reedGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#b45309');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Main body vertical
+    const body = document.createElementNS(svgNS,'rect');
+    body.setAttribute('x','30');
+    body.setAttribute('y', neyLeftToRight ? '20' : '60');
+    body.setAttribute('width','20');
+    body.setAttribute('height','200');
+    body.setAttribute('rx','10');
+    body.setAttribute('fill','url(#reedGradV)');
+    body.setAttribute('stroke','#92400e');
+    body.setAttribute('stroke-width','1.5');
+    svg.appendChild(body);
+    
+    // Oblique mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'polygon');
+    const mouthPoints = neyLeftToRight ? 
+      '35,20 25,30 55,30 50,20' :
+      '35,260 25,250 55,250 50,260';
+    mouthpiece.setAttribute('points', mouthPoints);
+    mouthpiece.setAttribute('fill','#78350f');
+    mouthpiece.setAttribute('stroke','#451a03');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Reed nodes vertical
+    const nodePositions = neyLeftToRight ? [60, 110, 160, 210] : [220, 170, 120, 70];
+    nodePositions.forEach(y => {
+      const node = document.createElementNS(svgNS,'line');
+      node.setAttribute('x1','28');
+      node.setAttribute('y1', String(y));
+      node.setAttribute('x2','52');
+      node.setAttribute('y2', String(y));
+      node.setAttribute('stroke','#92400e');
+      node.setAttribute('stroke-width','2');
+      svg.appendChild(node);
+    });
+    
+    // Front holes vertical
+    const frontHolePositions = neyLeftToRight ? 
+      [70, 90, 110, 130, 150, 170] : 
+      [210, 190, 170, 150, 130, 110];
+    
+    fing.slice(0, 6).forEach((closed,i)=>{
+      const holeY = frontHolePositions[i];
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','40');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#92400e');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx','40');
+        finger.setAttribute('cy', String(holeY));
+        finger.setAttribute('r','8');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole vertical
+    if(fing[6] !== undefined) {
+      const thumbHole = document.createElementNS(svgNS,'ellipse');
+      thumbHole.setAttribute('cx','55');
+      thumbHole.setAttribute('cy', neyLeftToRight ? '105' : '175');
+      thumbHole.setAttribute('rx','2');
+      thumbHole.setAttribute('ry','3');
+      thumbHole.setAttribute('fill', fing[6] ? '#451a03' : '#1c1917');
+      thumbHole.setAttribute('stroke','#92400e');
+      thumbHole.setAttribute('stroke-width','1');
+      svg.appendChild(thumbHole);
+      
+      if(fing[6]) {
+        const thumbFinger = document.createElementNS(svgNS,'ellipse');
+        thumbFinger.setAttribute('cx','55');
+        thumbFinger.setAttribute('cy', neyLeftToRight ? '105' : '175');
+        thumbFinger.setAttribute('rx','3');
+        thumbFinger.setAttribute('ry','5');
+        thumbFinger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        thumbFinger.setAttribute('stroke','#f59e0b');
+        thumbFinger.setAttribute('stroke-width','1.5');
+        svg.appendChild(thumbFinger);
+      }
+    }
+    
+    // Binding vertical
+    const binding = document.createElementNS(svgNS,'rect');
+    binding.setAttribute('x','32');
+    binding.setAttribute('y', neyLeftToRight ? '190' : '90');
+    binding.setAttribute('width','16');
+    binding.setAttribute('height','6');
+    binding.setAttribute('fill','#78350f');
+    binding.setAttribute('stroke','#451a03');
+    binding.setAttribute('stroke-width','0.5');
+    svg.appendChild(binding);
+  }
   neyHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='neyFlip';
