@@ -163,6 +163,15 @@
           </label>
         </div>
 
+        <div id="patternLibraryPanel" class="flex flex-wrap gap-3 items-center">
+          <label class="text-sm text-slate-300">Type</label>
+          <select id="patternCategory" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm"></select>
+          <label class="text-sm text-slate-300">Pattern</label>
+          <select id="patternKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm"></select>
+          <button id="btnPastePattern" class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm">Paste Pattern</button>
+          <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900"></canvas>
+        </div>
+
         <div id="seqTracks" class="space-y-2"></div>
 
         <div id="pianoRollWrap" class="flex">
@@ -764,9 +773,9 @@ function cutSelected() {
   deleteSelected();
 }
 
-function pasteNotes() {
-  if(clipboard.length === 0) return;
-  saveState('Paste notes');
+  function pasteNotes() {
+    if(clipboard.length === 0) return;
+    saveState('Paste notes');
   
   const track = song.tracks[activeTrack];
   const minTick = Math.min(...clipboard.map(n => n.tick));
@@ -783,12 +792,82 @@ function pasteNotes() {
   });
   
   track.clips[0].notes.sort((a,b) => a.tick - b.tick);
-  drawPianoRoll();
-  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
-}
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
 
-// Quantization
-function quantizeSelected() {
+  function pastePattern(patternKey) {
+    const [cat, name] = patternKey.split('.');
+    const pattern = PATTERN_LIBRARY[cat]?.[name];
+    if(!pattern) return;
+    saveState(`Paste pattern: ${name}`);
+
+    const track = song.tracks[activeTrack];
+    const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+    const scale = song.ppq / PATTERN_PPQ;
+
+    selectedNotes.clear();
+    const newNotes = [];
+    pattern.forEach(ev => {
+      const tick = playheadTick + Math.round(ev.tick * scale / quantizeSnap) * quantizeSnap;
+      const dur = Math.max(quantizeSnap, Math.round(ev.dur * scale / quantizeSnap) * quantizeSnap);
+      const note = { tick, dur, midi: ev.midi, vel: ev.vel };
+      track.clips[0].notes.push(note);
+      selectedNotes.add(note);
+      newNotes.push(note);
+    });
+
+    clipboard = newNotes.map(n => ({...n}));
+    track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
+
+  function drawPatternPreview() {
+    const ctx = patternPreview.getContext('2d');
+    ctx.clearRect(0,0,patternPreview.width, patternPreview.height);
+    const pattern = PATTERN_LIBRARY[patternCategory.value]?.[patternKey.value];
+    if(!pattern) return;
+    const maxTick = Math.max(...pattern.map(n=>n.tick+n.dur));
+    const minMidi = Math.min(...pattern.map(n=>n.midi));
+    const maxMidi = Math.max(...pattern.map(n=>n.midi));
+    const scaleX = patternPreview.width / maxTick;
+    const scaleY = patternPreview.height / (maxMidi - minMidi + 1);
+    ctx.fillStyle = '#4ade80';
+    pattern.forEach(n=>{
+      const x = n.tick * scaleX;
+      const w = n.dur * scaleX;
+      const y = patternPreview.height - (n.midi - minMidi + 1) * scaleY;
+      const h = scaleY;
+      ctx.fillRect(x, y, w, h);
+    });
+  }
+
+  function populatePatternCategories() {
+    patternCategory.innerHTML='';
+    Object.keys(PATTERN_LIBRARY).forEach(cat=>{
+      const opt=document.createElement('option');
+      opt.value=cat;
+      opt.textContent=cat[0].toUpperCase()+cat.slice(1);
+      patternCategory.appendChild(opt);
+    });
+    updatePatternOptions();
+  }
+
+  function updatePatternOptions() {
+    const cat = patternCategory.value;
+    patternKey.innerHTML='';
+    Object.keys(PATTERN_LIBRARY[cat]).forEach(name=>{
+      const opt=document.createElement('option');
+      opt.value=name;
+      opt.textContent=name;
+      patternKey.appendChild(opt);
+    });
+    drawPatternPreview();
+  }
+
+  // Quantization
+  function quantizeSelected() {
   if(selectedNotes.size === 0) return;
   saveState('Quantize notes');
   
@@ -988,6 +1067,10 @@ const seqExportMid = $('#seqExportMid');
 const seqExportWav = $('#seqExportWav');
 const seqExportMp3 = $('#seqExportMp3');
 const seqStatus = $('#seqStatus');
+const patternCategory = $('#patternCategory');
+const patternKey = $('#patternKey');
+const btnPastePattern = $('#btnPastePattern');
+const patternPreview = $('#patternPreview');
 const seqHotkeys = $('#seqHotkeys');
 pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
@@ -1018,6 +1101,52 @@ const selection = new Set(); // midi numbers
 
 // === SEQUENCER: Data Model & Store ===
 const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymbal ClosedHat','Clap Short','Hand Conga'];
+
+const PATTERN_PPQ = 192; // ticks per quarter note used in patterns
+// Preset note patterns for quick insertion
+const PATTERN_LIBRARY = {
+  chords: {
+    'Cmaj Triad': [
+      {tick:0, dur:96, midi:60, vel:0.8},
+      {tick:0, dur:96, midi:64, vel:0.8},
+      {tick:0, dur:96, midi:67, vel:0.8}
+    ],
+    'I-IV-V-I': [
+      {tick:0,   dur:96, midi:60, vel:0.8},
+      {tick:0,   dur:96, midi:64, vel:0.8},
+      {tick:0,   dur:96, midi:67, vel:0.8},
+      {tick:96,  dur:96, midi:65, vel:0.8},
+      {tick:96,  dur:96, midi:69, vel:0.8},
+      {tick:96,  dur:96, midi:72, vel:0.8},
+      {tick:192, dur:96, midi:67, vel:0.8},
+      {tick:192, dur:96, midi:71, vel:0.8},
+      {tick:192, dur:96, midi:74, vel:0.8},
+      {tick:288, dur:192, midi:60, vel:0.8},
+      {tick:288, dur:192, midi:64, vel:0.8},
+      {tick:288, dur:192, midi:67, vel:0.8}
+    ]
+  },
+  scales: {
+    'C Major Asc': [
+      {tick:0,   dur:48, midi:60, vel:0.8},
+      {tick:48,  dur:48, midi:62, vel:0.8},
+      {tick:96,  dur:48, midi:64, vel:0.8},
+      {tick:144, dur:48, midi:65, vel:0.8},
+      {tick:192, dur:48, midi:67, vel:0.8},
+      {tick:240, dur:48, midi:69, vel:0.8},
+      {tick:288, dur:48, midi:71, vel:0.8},
+      {tick:336, dur:96, midi:72, vel:0.8}
+    ]
+  },
+  rhythms: {
+    'Four On Floor': [
+      {tick:0,   dur:48, midi:36, vel:0.9},
+      {tick:96,  dur:48, midi:36, vel:0.9},
+      {tick:192, dur:48, midi:36, vel:0.9},
+      {tick:288, dur:48, midi:36, vel:0.9}
+    ]
+  }
+};
 
 /**
  * @typedef {Object} SeqNote
@@ -2255,7 +2384,7 @@ function updateAll(){
 }
 
 // Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer();
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); populatePatternCategories();
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
@@ -2377,6 +2506,9 @@ seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on activ
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
+patternCategory.addEventListener('change', updatePatternOptions);
+patternKey.addEventListener('change', drawPatternPreview);
+btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
 
 // Listen buttons
 $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
