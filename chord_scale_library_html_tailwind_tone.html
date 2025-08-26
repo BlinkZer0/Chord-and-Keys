@@ -115,6 +115,7 @@
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
         <div class="flex flex-wrap gap-3 items-center">
           <button id="seqPlay" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
+          <button id="seqPause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
           <button id="seqStop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
           <label class="text-sm text-slate-300 flex items-center gap-2">BPM
             <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
@@ -351,33 +352,50 @@ function makePoly(env){
   }).connect(gain);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn('PolySynth trigger error:', e);
+      }
     },
     release(midi,time=Tone.now()){
-      synth.triggerRelease(midiToFreq(midi),time);
+      try {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
 
-// [fix] poly pluck
+// [fix] poly pluck - improved for guitar, koto, and oud
 function makePluck(){
   const gain = new Tone.Gain(1).connect(masterLim);
+  const reverb = new Tone.Reverb({decay: 0.3, wet: 0.2}).connect(gain);
   const synth = new Tone.PolySynth(Tone.PluckSynth, {
-    attackNoise:1.0,
-    dampening:2200,
-    resonance:0.9
-  }).connect(gain);
+    attackNoise:0.5,
+    dampening:1800,
+    resonance:0.8
+  }).connect(reverb);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      const duration = Tone.Time(dur).toSeconds();
-      const vel = Math.max(0, Math.min(1, velocity));
-      console.log(`PluckSynth -> midi:${midi} dur:${duration}s vel:${vel}`);
-      synth.triggerAttackRelease(midiToFreq(midi),duration,time,vel);
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn('PluckSynth trigger error:', e);
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
-    dispose(){ synth.dispose(); gain.dispose(); }
+    release(midi,time=Tone.now()){
+      // PluckSynth doesn't need explicit release
+    },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
   };
 }
 
@@ -389,10 +407,20 @@ function makeMono(env){
   }).connect(gain);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn('MonoSynth trigger error:', e);
+      }
     },
     release(midi,time=Tone.now()){
-      synth.triggerRelease(midiToFreq(midi),time);
+      try {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors
+      }
     },
     setVolume(v){ gain.gain.value = v; },
     dispose(){ synth.dispose(); gain.dispose(); }
@@ -401,39 +429,64 @@ function makeMono(env){
 
 function makeDuo(env){
   const gain = new Tone.Gain(1).connect(masterLim);
-  const vibrato = new Tone.Vibrato(5,0.2).connect(gain);
+  const vibrato = new Tone.Vibrato(4,0.1).connect(gain);
   const synth = new Tone.DuoSynth({
     voice0:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
-    voice1:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}}
+    voice1:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
+    harmonicity:1.01,
+    vibratoAmount:0.1,
+    vibratoRate:5
   }).connect(vibrato);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn('DuoSynth trigger error:', e);
+      }
     },
     release(midi,time=Tone.now()){
-      synth.triggerRelease(midiToFreq(midi),time);
+      try {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); }
   };
 }
 
 function makeAM(env){
   const gain = new Tone.Gain(1).connect(masterLim);
-  const reverb = new Tone.Reverb(2).connect(gain);
+  const reverb = new Tone.Reverb({decay: 1.2, wet: 0.3}).connect(gain);
   const synth = new Tone.AMSynth({
     oscillator:{type:env.osc},
     envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
-    modulationEnvelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}
+    modulationEnvelope:{attack:env.a*0.5,decay:env.d*2,sustain:env.s*0.7,release:env.r},
+    modulation:{type:'sine'},
+    modulationFrequency:3.5
   }).connect(reverb);
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      synth.triggerAttackRelease(midiToFreq(midi),dur,time,velocity);
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn('AMSynth trigger error:', e);
+      }
     },
     release(midi,time=Tone.now()){
-      synth.triggerRelease(midiToFreq(midi),time);
+      try {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
   };
 }
@@ -454,8 +507,20 @@ const SEQ_INSTR = {
 };
 
 function createSeqInstrument(name){
-  const factory = SEQ_INSTR[name];
-  return factory ? factory() : makePoly(ENV[name] || ENV.Piano);
+  try {
+    const factory = SEQ_INSTR[name];
+    if(factory) {
+      return factory();
+    }
+    
+    // Fallback to makePoly with appropriate envelope
+    const env = ENV[name] || ENV.Piano;
+    return makePoly(env);
+  } catch(error) {
+    console.error(`Failed to create instrument ${name}:`, error);
+    // Ultimate fallback
+    return makePoly(ENV.Piano);
+  }
 }
 
 async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).connect(masterLim); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
@@ -487,9 +552,14 @@ function makeMembrane(pitch, opts){
   const synth = new Tone.MembraneSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
-      synth.triggerAttackRelease(pitch, duration, time, velocity);
+      try {
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(pitch, duration, time, vel);
+      } catch(e) {
+        console.warn('MembraneSynth trigger error:', e);
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     dispose(){ synth.dispose(); gain.dispose(); }
   };
 }
@@ -499,9 +569,14 @@ function makeNoise(filterOpts, envOpts){
   const synth = new Tone.NoiseSynth({envelope: envOpts}).connect(filter);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='16n'){
-      synth.triggerAttackRelease(duration, time, velocity);
+      try {
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(duration, time, vel);
+      } catch(e) {
+        console.warn('NoiseSynth trigger error:', e);
+      }
     },
-    setVolume(v){ gain.gain.value = v; },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); }
   };
 }
@@ -597,7 +672,7 @@ const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlay
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
-const seqPlay = $('#seqPlay'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
+const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
 const seqAutoScroll = $('#seqAutoScroll');
 const seqTSNum = $('#seqTSNum'); const seqTSDen = $('#seqTSDen');
@@ -752,15 +827,27 @@ function scheduleSong(changedIdx){
   song.tracks.forEach((track, idx) => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active){
-      track.part?.dispose();
-      track.part = null;
+      if(track.part) {
+        track.part.dispose();
+        track.part = null;
+      }
       return;
     }
 
+    // Create player if needed
     if(!track.player){
-      const drumFactory = DRUMS[track.instrument];
-      track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
-      track.player.setVolume?.(track.volume ?? 0.8);
+      try {
+        const drumFactory = DRUMS[track.instrument];
+        track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+        if(track.player && track.player.setVolume) {
+          track.player.setVolume(track.volume ?? 0.8);
+        }
+      } catch(error) {
+        console.error(`Failed to create player for ${track.instrument}:`, error);
+        // Create fallback player
+        track.player = createSeqInstrument('Piano');
+        track.player.setVolume?.(track.volume ?? 0.8);
+      }
     }
 
     if(changedIdx !== undefined && changedIdx !== idx && track.part){
@@ -770,7 +857,13 @@ function scheduleSong(changedIdx){
       return;
     }
 
-    track.part?.dispose();
+    // Dispose existing part
+    if(track.part) {
+      track.part.dispose();
+      track.part = null;
+    }
+    
+    // Collect all notes from all clips
     const events = [];
     track.clips.forEach(clip => {
       clip.notes.forEach(note => {
@@ -779,22 +872,29 @@ function scheduleSong(changedIdx){
       });
     });
 
-    if(events.length){
-      const part = new Tone.Part((time, n) => {
-        track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
-      }, events);
-      part.loopStart = `${song.loop.start}i`;
-      part.loopEnd = `${song.loop.end}i`;
-      part.loop = true;
-      part.start(0);
-      track.part = part;
-    } else {
-      track.part = null;
+    // Create part only if there are events
+    if(events.length > 0){
+      try {
+        const part = new Tone.Part((time, n) => {
+          if(track.player && track.player.trigger) {
+            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
+          }
+        }, events);
+        part.loopStart = `${song.loop.start}i`;
+        part.loopEnd = `${song.loop.end}i`;
+        part.loop = true;
+        part.start(0);
+        track.part = part;
+      } catch(error) {
+        console.error(`Failed to create part for track ${idx}:`, error);
+        track.part = null;
+      }
     }
   });
 }
 
 let clickId = null;
+let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
 
 setBpm(song.bpm);
 updateLoop();
@@ -1671,26 +1771,63 @@ $('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].
 $('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo}); });
 
 seqPlay.addEventListener('click', async ()=>{
-  await ensureTone('Piano');
-  scheduleSong();
-  if(seqClick.checked){
-    clickId = Tone.Transport.scheduleRepeat(time => {
-      const p = ENV.Piano;
-      _synth.set({ envelope:{attack:p.a,decay:p.d,sustain:p.s,release:p.r}, oscillator:{type:p.osc} });
-      _synth.triggerAttackRelease(midiToFreq(midiFrom('C',5)), '16n', time);
-    }, '4n');
+  try {
+    await ensureTone('Piano');
+    
+    if(sequencerState === 'paused') {
+      // Resume from pause
+      Tone.Transport.start();
+      startPlayhead();
+      sequencerState = 'playing';
+      seqPlay.textContent = 'Play';
+      return;
+    }
+    
+    // Fresh start
+    if(sequencerState === 'playing') {
+      return; // Already playing
+    }
+    
+    scheduleSong();
+    
+    if(seqClick.checked){
+      clickId = Tone.Transport.scheduleRepeat(time => {
+        const p = ENV.Piano;
+        _synth.set({ envelope:{attack:p.a,decay:p.d,sustain:p.s,release:p.r}, oscillator:{type:p.osc} });
+        _synth.triggerAttackRelease(midiToFreq(midiFrom('C',5)), '16n', time);
+      }, '4n');
+    }
+    
+    updateLoop();
+    Tone.Transport.start();
+    startPlayhead();
+    sequencerState = 'playing';
+  } catch(error) {
+    console.error('Playback error:', error);
+    seqStatus.textContent = '❌ Playback failed';
   }
-  updateLoop();
-  Tone.Transport.start();
-  startPlayhead();
+});
+
+seqPause.addEventListener('click', ()=>{
+  if(sequencerState === 'playing') {
+    Tone.Transport.pause();
+    stopPlayhead();
+    sequencerState = 'paused';
+    seqPlay.textContent = 'Resume';
+  }
 });
 
 seqStop.addEventListener('click', ()=>{
   Tone.Transport.stop();
   Tone.Transport.cancel();
   if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
-  song.tracks.forEach(t=>{ if(t.player){ t.player.dispose(); t.player=null; } });
+  song.tracks.forEach(t=>{ 
+    if(t.part) { t.part.dispose(); t.part = null; }
+    if(t.player){ t.player.dispose(); t.player=null; }
+  });
   stopPlayhead();
+  sequencerState = 'stopped';
+  seqPlay.textContent = 'Play';
 });
 
 seqExportJson.addEventListener('click', ()=>{
