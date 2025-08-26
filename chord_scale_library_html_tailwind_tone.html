@@ -6,14 +6,131 @@
   <title>Chord & Scale Library</title>
   <!-- Tailwind (CDN) for the same look/feel as your TSX version -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    /* Theme System */
+    [data-theme="default"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-accent: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #cbd5e1;
+      --text-muted: #64748b;
+      --border-color: #475569;
+      --accent-color: #3b82f6;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+    
+    [data-theme="cyberpunk"] {
+      --bg-primary: #0a0a0a;
+      --bg-secondary: #1a0a1a;
+      --bg-accent: #2a1a2a;
+      --text-primary: #ff00ff;
+      --text-secondary: #00ffff;
+      --text-muted: #666;
+      --border-color: #ff00ff;
+      --accent-color: #00ffff;
+      --success-color: #00ff00;
+      --warning-color: #ffff00;
+      --danger-color: #ff0080;
+      --gradient: linear-gradient(135deg, #000 0%, #1a0a1a 25%, #0a1a0a 50%, #1a0a1a 75%, #000 100%);
+    }
+    
+    [data-theme="forest"] {
+      --bg-primary: #0f1b0f;
+      --bg-secondary: #1a2e1a;
+      --bg-accent: #2d4a2d;
+      --text-primary: #d4f4dd;
+      --text-secondary: #a7d4aa;
+      --text-muted: #6b8e6b;
+      --border-color: #4a6741;
+      --accent-color: #22c55e;
+      --success-color: #16a34a;
+      --warning-color: #eab308;
+      --danger-color: #dc2626;
+      --gradient: linear-gradient(135deg, #0f1b0f 0%, #1a2e1a 50%, #0f1b0f 100%);
+    }
+    
+    [data-theme="ocean"] {
+      --bg-primary: #0c1445;
+      --bg-secondary: #1e3a8a;
+      --bg-accent: #3b82f6;
+      --text-primary: #dbeafe;
+      --text-secondary: #93c5fd;
+      --text-muted: #60a5fa;
+      --border-color: #2563eb;
+      --accent-color: #0ea5e9;
+      --success-color: #06b6d4;
+      --warning-color: #0891b2;
+      --danger-color: #be123c;
+      --gradient: linear-gradient(135deg, #0c1445 0%, #1e3a8a 50%, #0c1445 100%);
+    }
+    
+    [data-theme="sunset"] {
+      --bg-primary: #451a03;
+      --bg-secondary: #7c2d12;
+      --bg-accent: #ea580c;
+      --text-primary: #fed7aa;
+      --text-secondary: #fdba74;
+      --text-muted: #f97316;
+      --border-color: #c2410c;
+      --accent-color: #f97316;
+      --success-color: #eab308;
+      --warning-color: #f59e0b;
+      --danger-color: #dc2626;
+      --gradient: linear-gradient(135deg, #451a03 0%, #7c2d12 25%, #ea580c 50%, #7c2d12 75%, #451a03 100%);
+    }
+    
+    [data-theme="minimal"] {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-accent: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border-color: #cbd5e1;
+      --accent-color: #3b82f6;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+      --gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%);
+    }
+    
+    /* Apply theme variables */
+    [data-theme] {
+      background: var(--gradient);
+      color: var(--text-primary);
+    }
+    
+    /* Shortcuts modal */
+    .shortcuts-modal {
+      backdrop-filter: blur(8px);
+    }
+  </style>
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
 </head>
-<body class="min-h-screen w-full bg-slate-950 text-slate-100">
+<body id="app-container" class="min-h-screen w-full bg-slate-950 text-slate-100" data-theme="default">
   <div class="max-w-6xl mx-auto p-6">
     <header class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
-      <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
+      <div class="flex items-center gap-4">
+        <button id="shortcutsBtn" class="px-3 py-2 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700 text-sm font-medium transition-colors" title="Show keyboard shortcuts">
+          ⌨️ Shortcuts
+        </button>
+        <select id="themeSwitcher" class="bg-slate-800/80 border border-slate-700 rounded-lg px-3 py-2 text-sm font-medium cursor-pointer hover:bg-slate-700/80 transition-colors">
+          <option value="default">🌙 Default</option>
+          <option value="cyberpunk">🌈 Cyberpunk</option>
+          <option value="forest">🌲 Forest</option>
+          <option value="ocean">🌊 Ocean</option>
+          <option value="sunset">🌅 Sunset</option>
+          <option value="minimal">⚪ Minimal</option>
+        </select>
+        <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
+      </div>
     </header>
 
     <!-- ============ 1) Choose What To Explore ============ -->
@@ -1930,18 +2047,20 @@ function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createEle
 
 // ========================= FLUTE CHART =========================
 const FLUTE_FINGERINGS = {
-  C:[1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1],
-  D:[0,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1],
-  E:[0,0,1,1,1,1],
-  F:[0,0,0,1,1,1],
-  'F#':[0,0,0,0,1,1],
-  G:[0,0,0,0,1,1],
-  'G#':[0,0,0,0,0,1],
-  A:[0,0,0,0,0,1],
-  'A#':[0,0,0,0,0,0],
-  B:[0,0,0,0,0,0]
+  // Accurate flute fingerings for first octave (middle C and up)
+  // [thumb, index, middle, ring, pinky, right pinky] - 1=covered, 0=open
+  C:[1,1,1,1,1,1],     // All holes covered
+  'C#':[1,1,1,1,1,0],  // Open right pinky
+  D:[1,1,1,1,0,0],     // Open both pinkies
+  'D#':[1,1,1,0,1,1],  // Open ring finger
+  E:[1,1,1,0,0,0],     // Open ring and pinkies
+  F:[1,1,0,0,0,0],     // Open middle, ring, pinkies
+  'F#':[1,0,1,0,0,0],  // Thumb + middle only
+  G:[1,0,0,0,0,0],     // Thumb only
+  'G#':[0,1,1,1,0,0],  // No thumb, close first three
+  A:[0,1,1,0,0,0],     // No thumb, index + middle
+  'A#':[0,1,0,0,0,0],  // Index finger only
+  B:[0,0,1,0,0,0]      // Middle finger only
 };
 /*
   Flute chart layout
@@ -1959,26 +2078,78 @@ function buildFluteChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = fluteOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
-  svg.setAttribute('class','mx-auto');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 200 80' : '0 0 80 200');
+  svg.setAttribute('class','mx-auto drop-shadow-lg');
+  
+  // Create flute body
+  const body = document.createElementNS(svgNS, 'rect');
+  if(isHoriz) {
+    body.setAttribute('x', '10');
+    body.setAttribute('y', '35');
+    body.setAttribute('width', '180');
+    body.setAttribute('height', '10');
+  } else {
+    body.setAttribute('x', '35');
+    body.setAttribute('y', '10');
+    body.setAttribute('width', '10');
+    body.setAttribute('height', '180');
+  }
+  body.setAttribute('fill', '#94a3b8');
+  body.setAttribute('stroke', '#64748b');
+  body.setAttribute('stroke-width', '2');
+  body.setAttribute('rx', '5');
+  svg.appendChild(body);
+  
+  // Add finger holes
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
     if(isHoriz){
-      x = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
+      x = fluteLeftToRight ? 30 + i*25 : 170 - i*25;
+      y = 40;
     } else {
-      y = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
-      x = 30;
+      y = fluteLeftToRight ? 30 + i*25 : 170 - i*25;
+      x = 40;
     }
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
-    c.setAttribute('r','10');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    c.setAttribute('r','8');
+    c.setAttribute('stroke', closed ? '#fbbf24' : '#64748b');
+    c.setAttribute('stroke-width','3');
+    c.setAttribute('fill', closed ? '#fbbf24' : '#1e293b');
+    // Add subtle shadow effect
+    c.setAttribute('filter', 'drop-shadow(1px 1px 2px rgba(0,0,0,0.3))');
     svg.appendChild(c);
+    
+    // Add finger number labels
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', isHoriz ? String(y + 20) : String(x + 20));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('fill', '#94a3b8');
+    label.textContent = String(i + 1);
+    svg.appendChild(label);
   });
+  
+  // Add embouchure hole (mouthpiece)
+  const embouchure = document.createElementNS(svgNS, 'ellipse');
+  if(isHoriz) {
+    embouchure.setAttribute('cx', fluteLeftToRight ? '15' : '185');
+    embouchure.setAttribute('cy', '40');
+    embouchure.setAttribute('rx', '6');
+    embouchure.setAttribute('ry', '3');
+  } else {
+    embouchure.setAttribute('cx', '40');
+    embouchure.setAttribute('cy', fluteLeftToRight ? '15' : '185');
+    embouchure.setAttribute('rx', '3');
+    embouchure.setAttribute('ry', '6');
+  }
+  embouchure.setAttribute('fill', '#e11d48');
+  embouchure.setAttribute('stroke', '#be123c');
+  embouchure.setAttribute('stroke-width', '2');
+  svg.appendChild(embouchure);
+  
   fluteHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='fluteFlip';
@@ -2006,18 +2177,20 @@ function buildFluteChart(){
 
 // ========================= RECORDER CHART =========================
 const RECORDER_FINGERINGS = {
-  C:[1,1,1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1,1,1],
-  D:[0,1,1,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1,1,1],
-  E:[0,0,1,1,1,1,1,1],
-  F:[0,0,0,1,1,1,1,1],
-  'F#':[0,0,0,0,1,1,1,1],
-  G:[0,0,0,0,1,1,1,1],
-  'G#':[0,0,0,0,0,1,1,1],
-  A:[0,0,0,0,0,1,1,1],
-  'A#':[0,0,0,0,0,0,1,1],
-  B:[0,0,0,0,0,0,1,1]
+  // Accurate baroque recorder fingerings
+  // [thumb, L1, L2, L3, R1, R2, R3, R4] - 1=covered, 0=open
+  C:[1,1,1,1,1,1,1,1],     // All holes covered
+  'C#':[1,1,1,1,1,1,1,0],  // Open lowest hole
+  D:[1,1,1,1,1,1,0,0],     // Open bottom two
+  'D#':[1,1,1,1,1,0,1,0],  // Cross fingering
+  E:[1,1,1,1,1,0,0,0],     // Open bottom three
+  F:[1,1,1,1,0,0,0,0],     // Open right hand
+  'F#':[1,1,1,0,1,0,0,0],  // Cross fingering
+  G:[1,1,1,0,0,0,0,0],     // Left hand only + thumb
+  'G#':[1,1,0,1,0,0,0,0],  // Cross fingering
+  A:[1,1,0,0,0,0,0,0],     // Thumb + first two left
+  'A#':[1,0,1,0,0,0,0,0],  // Cross fingering
+  B:[1,0,0,0,0,0,0,0]      // Thumb + index only
 };
 /*
   Recorder chart layout
@@ -2035,26 +2208,79 @@ function buildRecorderChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = recorderOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 180 60' : '0 0 60 180');
-  svg.setAttribute('class','mx-auto');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 220 90' : '0 0 90 220');
+  svg.setAttribute('class','mx-auto drop-shadow-lg');
+  
+  // Create recorder body (tapered shape)
+  const body = document.createElementNS(svgNS, 'path');
+  if(isHoriz) {
+    // Horizontal tapered recorder
+    const pathData = recorderLeftToRight ? 
+      'M 15 35 L 25 25 L 195 30 L 205 40 L 195 50 L 25 55 Z' :
+      'M 205 35 L 195 25 L 25 30 L 15 40 L 25 50 L 195 55 Z';
+    body.setAttribute('d', pathData);
+  } else {
+    // Vertical tapered recorder
+    const pathData = recorderLeftToRight ?
+      'M 35 15 L 25 25 L 30 195 L 40 205 L 50 195 L 55 25 Z' :
+      'M 35 205 L 25 195 L 30 25 L 40 15 L 50 25 L 55 195 Z';
+    body.setAttribute('d', pathData);
+  }
+  body.setAttribute('fill', '#8b5a3c');
+  body.setAttribute('stroke', '#6d4423');
+  body.setAttribute('stroke-width', '2');
+  svg.appendChild(body);
+  
+  // Add finger holes
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
     if(isHoriz){
-      x = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
-      y = 30;
+      x = recorderLeftToRight ? 35 + i*20 : 185 - i*20;
+      y = 40;
     } else {
-      y = recorderLeftToRight ? 20 + i*20 : 160 - i*20;
-      x = 30;
+      y = recorderLeftToRight ? 35 + i*20 : 185 - i*20;
+      x = 40;
     }
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
-    c.setAttribute('r','8');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    c.setAttribute('r','7');
+    c.setAttribute('stroke', closed ? '#dc2626' : '#6d4423');
+    c.setAttribute('stroke-width','3');
+    c.setAttribute('fill', closed ? '#dc2626' : '#2c1810');
     svg.appendChild(c);
+    
+    // Add finger labels (L/R hand indication)
+    const label = document.createElementNS(svgNS, 'text');
+    const handLabel = i < 4 ? 'L' + (i + 1) : 'R' + (i - 3);
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', isHoriz ? String(y + 18) : String(x + 18));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '9');
+    label.setAttribute('fill', '#94a3b8');
+    label.textContent = handLabel;
+    svg.appendChild(label);
   });
+  
+  // Add mouthpiece
+  const mouthpiece = document.createElementNS(svgNS, 'rect');
+  if(isHoriz) {
+    mouthpiece.setAttribute('x', recorderLeftToRight ? '10' : '200');
+    mouthpiece.setAttribute('y', '30');
+    mouthpiece.setAttribute('width', '15');
+    mouthpiece.setAttribute('height', '20');
+  } else {
+    mouthpiece.setAttribute('x', '30');
+    mouthpiece.setAttribute('y', recorderLeftToRight ? '10' : '200');
+    mouthpiece.setAttribute('width', '20');
+    mouthpiece.setAttribute('height', '15');
+  }
+  mouthpiece.setAttribute('fill', '#4a5568');
+  mouthpiece.setAttribute('stroke', '#2d3748');
+  mouthpiece.setAttribute('stroke-width', '2');
+  mouthpiece.setAttribute('rx', '3');
+  svg.appendChild(mouthpiece);
+  
   recorderHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='recorderFlip';
@@ -2234,18 +2460,20 @@ function buildSaxophoneChart(){
 
 // ========================= NEY CHART =========================
 const NEY_FINGERINGS = {
-  C:[1,1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1,1],
-  D:[0,1,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1,1],
-  E:[0,0,1,1,1,1,1],
-  F:[0,0,0,1,1,1,1],
-  'F#':[0,0,0,0,1,1,1],
-  G:[0,0,0,0,1,1,1],
-  'G#':[0,0,0,0,0,1,1],
-  A:[0,0,0,0,0,1,1],
-  'A#':[0,0,0,0,0,0,1],
-  B:[0,0,0,0,0,0,0]
+  // Traditional Turkish/Arabic Ney fingerings
+  // [thumb(back), index, middle, ring, pinky, R_index, R_middle] - 1=covered, 0=open
+  C:[1,1,1,1,1,1,1],     // All holes covered (lowest note)
+  'C#':[1,1,1,1,1,1,0],  // Open last hole
+  D:[1,1,1,1,1,0,0],     // Open bottom two
+  'D#':[1,1,1,1,0,1,0],  // Half-hole technique
+  E:[1,1,1,1,0,0,0],     // Open right hand
+  F:[1,1,1,0,0,0,0],     // Open ring + right hand
+  'F#':[1,1,0,1,0,0,0],  // Cross fingering
+  G:[1,1,0,0,0,0,0],     // Basic G
+  'G#':[1,0,1,0,0,0,0],  // Cross fingering
+  A:[1,0,0,0,0,0,0],     // Thumb + index
+  'A#':[0,1,0,0,0,0,0],  // Index only (+ breath control)
+  B:[0,0,0,0,0,0,0]      // All open (+ strong breath)
 };
 /*
   Ney chart layout
@@ -2263,26 +2491,99 @@ function buildNeyChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = neyOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
-  svg.setAttribute('class','mx-auto');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 200 80' : '0 0 80 200');
+  svg.setAttribute('class','mx-auto drop-shadow-lg');
+  
+  // Create ney body (elegant bamboo-like cylinder)
+  const body = document.createElementNS(svgNS, 'rect');
+  if(isHoriz) {
+    body.setAttribute('x', '15');
+    body.setAttribute('y', '30');
+    body.setAttribute('width', '170');
+    body.setAttribute('height', '20');
+  } else {
+    body.setAttribute('x', '30');
+    body.setAttribute('y', '15');
+    body.setAttribute('width', '20');
+    body.setAttribute('height', '170');
+  }
+  body.setAttribute('fill', '#a16207');
+  body.setAttribute('stroke', '#854d0e');
+  body.setAttribute('stroke-width', '2');
+  body.setAttribute('rx', '10');
+  svg.appendChild(body);
+  
+  // Add bamboo segments (decorative lines)
+  for(let i = 1; i < 6; i++) {
+    const segment = document.createElementNS(svgNS, 'line');
+    if(isHoriz) {
+      const x = 15 + (170 * i / 6);
+      segment.setAttribute('x1', String(x));
+      segment.setAttribute('y1', '30');
+      segment.setAttribute('x2', String(x));
+      segment.setAttribute('y2', '50');
+    } else {
+      const y = 15 + (170 * i / 6);
+      segment.setAttribute('x1', '30');
+      segment.setAttribute('y1', String(y));
+      segment.setAttribute('x2', '50');
+      segment.setAttribute('y2', String(y));
+    }
+    segment.setAttribute('stroke', '#713f12');
+    segment.setAttribute('stroke-width', '1');
+    svg.appendChild(segment);
+  }
+  
+  // Add finger holes
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
     if(isHoriz){
-      x = neyLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
+      x = neyLeftToRight ? 35 + i*22 : 165 - i*22;
+      y = 40;
     } else {
-      x = i===0 ? 20 : 30;
-      y = neyLeftToRight ? 20 + i*22 : 140 - i*22;
+      // Special positioning for ney: thumb hole on back (offset)
+      x = i===0 ? 25 : 40; // Thumb hole slightly offset
+      y = neyLeftToRight ? 35 + i*22 : 165 - i*22;
     }
     c.setAttribute('cx', String(x));
     c.setAttribute('cy', String(y));
-    c.setAttribute('r','8');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
+    c.setAttribute('r','6');
+    c.setAttribute('stroke', closed ? '#dc2626' : '#713f12');
+    c.setAttribute('stroke-width','3');
+    c.setAttribute('fill', closed ? '#dc2626' : '#451a03');
     svg.appendChild(c);
+    
+    // Add finger labels with traditional names
+    const label = document.createElementNS(svgNS, 'text');
+    const fingerNames = ['T', '1', '2', '3', '4', '5', '6']; // T = Thumb
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', isHoriz ? String(y + 18) : String(x + 18));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '9');
+    label.setAttribute('fill', '#94a3b8');
+    label.textContent = fingerNames[i] || String(i);
+    svg.appendChild(label);
   });
+  
+  // Add mouthpiece (beveled edge)
+  const mouthpiece = document.createElementNS(svgNS, 'ellipse');
+  if(isHoriz) {
+    mouthpiece.setAttribute('cx', neyLeftToRight ? '10' : '190');
+    mouthpiece.setAttribute('cy', '40');
+    mouthpiece.setAttribute('rx', '8');
+    mouthpiece.setAttribute('ry', '12');
+  } else {
+    mouthpiece.setAttribute('cx', '40');
+    mouthpiece.setAttribute('cy', neyLeftToRight ? '10' : '190');
+    mouthpiece.setAttribute('rx', '12');
+    mouthpiece.setAttribute('ry', '8');
+  }
+  mouthpiece.setAttribute('fill', '#a16207');
+  mouthpiece.setAttribute('stroke', '#713f12');
+  mouthpiece.setAttribute('stroke-width', '3');
+  svg.appendChild(mouthpiece);
+  
   neyHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='neyFlip';
@@ -2645,6 +2946,60 @@ function exportSelectedNotes() {
   seqStatus.textContent = `✓ Exported ${selectedArray.length} notes`;
 }
 
+// Theme system
+const themeSwitcher = document.getElementById('themeSwitcher');
+const appContainer = document.getElementById('app-container');
+
+themeSwitcher.addEventListener('change', (e) => {
+  const theme = e.target.value;
+  appContainer.setAttribute('data-theme', theme);
+  
+  // Save preference
+  try {
+    localStorage.setItem('selectedTheme', theme);
+  } catch(e) {
+    // Ignore localStorage errors
+  }
+});
+
+// Load saved theme
+try {
+  const savedTheme = localStorage.getItem('selectedTheme');
+  if(savedTheme && themeSwitcher.querySelector(`option[value="${savedTheme}"]`)) {
+    themeSwitcher.value = savedTheme;
+    appContainer.setAttribute('data-theme', savedTheme);
+  }
+} catch(e) {
+  // Ignore localStorage errors
+}
+
+// Shortcuts modal
+const shortcutsBtn = document.getElementById('shortcutsBtn');
+const shortcutsModal = document.getElementById('shortcutsModal');
+const closeShortcuts = document.getElementById('closeShortcuts');
+
+shortcutsBtn.addEventListener('click', () => {
+  shortcutsModal.classList.remove('hidden');
+});
+
+closeShortcuts.addEventListener('click', () => {
+  shortcutsModal.classList.add('hidden');
+});
+
+shortcutsModal.addEventListener('click', (e) => {
+  if(e.target === shortcutsModal) {
+    shortcutsModal.classList.add('hidden');
+  }
+});
+
+// Close shortcuts modal with Escape
+document.addEventListener('keydown', (e) => {
+  if(e.key === 'Escape' && !shortcutsModal.classList.contains('hidden')) {
+    shortcutsModal.classList.add('hidden');
+    e.stopPropagation();
+  }
+});
+
 // Context menu handling
 const noteContextMenu = document.getElementById('noteContextMenu');
 let contextMenuNote = null;
@@ -3006,6 +3361,95 @@ async function handleExportMp3(){
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="selectByPitch()">Same Pitch</button>
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="selectByTiming()">Same Timing</button>
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="invertSelection()">Invert Selection</button>
+</div>
+
+<!-- Shortcuts Modal -->
+<div id="shortcutsModal" class="fixed inset-0 hidden bg-black/50 shortcuts-modal z-50 flex items-center justify-center">
+  <div class="bg-slate-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+    <div class="sticky top-0 bg-slate-800 px-6 py-4 border-b border-slate-700 flex items-center justify-between">
+      <h2 class="text-xl font-bold text-white">Keyboard Shortcuts & Quick Reference</h2>
+      <button id="closeShortcuts" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+    </div>
+    <div class="p-6 grid md:grid-cols-2 gap-6">
+      <!-- Transport & Playback -->
+      <div>
+        <h3 class="text-lg font-semibold text-emerald-400 mb-3 border-b border-slate-700 pb-1">Transport & Playback</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-300">Play/Pause</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Space</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Stop</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Esc</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Jump to Start</span><span class="text-slate-500">|&lt; button</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Jump to End</span><span class="text-slate-500">&gt;| button</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Jump to Position</span><span class="text-slate-500">Click position display</span></div>
+        </div>
+      </div>
+      
+      <!-- Selection -->
+      <div>
+        <h3 class="text-lg font-semibold text-blue-400 mb-3 border-b border-slate-700 pb-1">Note Selection</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-300">Select Note</span><span class="text-slate-500">Click note</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Toggle Selection</span><span class="text-slate-500">Shift+Click</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Add to Selection</span><span class="text-slate-500">Ctrl+Click</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Select All</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+A</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Select by Pitch</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+P</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Select by Timing</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+T</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Invert Selection</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+I</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Multi-Select Area</span><span class="text-slate-500">Shift+Drag</span></div>
+        </div>
+      </div>
+      
+      <!-- Editing -->
+      <div>
+        <h3 class="text-lg font-semibold text-purple-400 mb-3 border-b border-slate-700 pb-1">Editing</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-300">Copy</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+C</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Cut</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+X</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Paste</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+V</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Delete</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Delete</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Undo</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+Z</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Redo</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+Y</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Quantize</span><kbd class="bg-slate-700 px-2 py-1 rounded text-xs">Ctrl+Q</kbd></div>
+          <div class="flex justify-between"><span class="text-slate-300">Edit Velocity</span><span class="text-slate-500">Right-click menu</span></div>
+        </div>
+      </div>
+      
+      <!-- View & Navigation -->
+      <div>
+        <h3 class="text-lg font-semibold text-yellow-400 mb-3 border-b border-slate-700 pb-1">View & Navigation</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span class="text-slate-300">Zoom X</span><span class="text-slate-500">Ctrl+Wheel</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Zoom Y</span><span class="text-slate-500">Alt+Wheel</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Scroll Horizontal</span><span class="text-slate-500">Shift+Wheel</span></div>
+          <div class="flex justify-between"><span class="text-slate-300">Auto-scroll</span><span class="text-slate-500">Toggle checkbox</span></div>
+        </div>
+      </div>
+      
+      <!-- Tips & Tricks -->
+      <div class="md:col-span-2">
+        <h3 class="text-lg font-semibold text-pink-400 mb-3 border-b border-slate-700 pb-1">Tips & Tricks</h3>
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h4 class="font-medium text-slate-300 mb-2">Track Management</h4>
+            <ul class="space-y-1 text-slate-400">
+              <li>• Double-click track names to edit</li>
+              <li>• Use M/S buttons for mute/solo</li>
+              <li>• Drag volume sliders for levels</li>
+              <li>• Right-click notes for context menu</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-medium text-slate-300 mb-2">Pattern Library</h4>
+            <ul class="space-y-1 text-slate-400">
+              <li>• Use built-in drum/chord patterns</li>
+              <li>• Save custom patterns from selection</li>
+              <li>• Export selected notes as JSON</li>
+              <li>• Auto-save protects your work</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 </body>
