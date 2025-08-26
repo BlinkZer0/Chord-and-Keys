@@ -177,14 +177,104 @@
           <!-- Pattern Library -->
           <details class="border border-slate-700 rounded-lg">
             <summary class="bg-slate-800/60 px-4 py-2 cursor-pointer hover:bg-slate-700/60 rounded-t-lg font-medium">Pattern Library</summary>
-            <div class="p-4 space-y-2">
-              <div class="flex gap-2 flex-wrap">
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-emerald-700 hover:bg-emerald-600" data-pattern="kick-basic">Basic Kick</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-rose-700 hover:bg-rose-600" data-pattern="snare-basic">Basic Snare</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-blue-700 hover:bg-blue-600" data-pattern="hihat-basic">Basic Hi-hat</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-basic">Basic Chord</button>
+            <div class="p-4 space-y-3">
+              <!-- Pattern Search -->
+              <input type="text" id="patternSearch" placeholder="Search patterns..." 
+                     class="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-sm text-slate-200 placeholder-slate-400">
+              
+              <!-- Pattern Categories Tree -->
+              <div class="max-h-64 overflow-y-auto">
+                <!-- Drums -->
+                <details class="mb-2">
+                  <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-slate-200">🥁 Drums</summary>
+                  <div class="ml-4 mt-2 space-y-1">
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-sm rounded bg-emerald-700 hover:bg-emerald-600" data-pattern="kick-basic">Basic Kick</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-sm rounded bg-emerald-700 hover:bg-emerald-600" data-pattern="kick-four-on-floor">Four on Floor</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-sm rounded bg-rose-700 hover:bg-rose-600" data-pattern="snare-basic">Basic Snare</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-sm rounded bg-rose-700 hover:bg-rose-600" data-pattern="snare-backbeat">Backbeat</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-sm rounded bg-blue-700 hover:bg-blue-600" data-pattern="hihat-basic">Basic Hi-hat</button>
+                  </div>
+                </details>
+                
+                <!-- Chords -->
+                <details class="mb-2">
+                  <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-slate-200">🎹 Chords</summary>
+                  <div class="ml-4 mt-2">
+                    <!-- Basic Triads -->
+                    <details class="mb-2">
+                      <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-300">Triads</summary>
+                      <div class="ml-3 mt-1 space-y-1">
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-major">C Major</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-minor">C Minor</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-diminished">C Diminished</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-augmented">C Augmented</button>
+                      </div>
+                    </details>
+                    
+                    <!-- Seventh Chords -->
+                    <details class="mb-2">
+                      <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-300">Seventh Chords</summary>
+                      <div class="ml-3 mt-1 space-y-1">
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-dom7">C Dominant 7</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-maj7">C Major 7</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-min7">C Minor 7</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-dim7">C Diminished 7</button>
+                      </div>
+                    </details>
+                    
+                    <!-- Extended Chords -->
+                    <details class="mb-2">
+                      <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-300">Extended</summary>
+                      <div class="ml-3 mt-1 space-y-1">
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-maj9">C Major 9</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-min9">C Minor 9</button>
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-C-dom13">C Dominant 13</button>
+                      </div>
+                    </details>
+                    
+                    <!-- Progressions -->
+                    <details class="mb-2">
+                      <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-300">Progressions</summary>
+                      <div class="ml-3 mt-1 space-y-1">
+                        <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-indigo-700 hover:bg-indigo-600" data-pattern="progression-ii-V-I">ii-V-I Jazz</button>
+                      </div>
+                    </details>
+                  </div>
+                </details>
+                
+                <!-- Scales -->
+                <details class="mb-2">
+                  <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-slate-200">🎵 Scales</summary>
+                  <div class="ml-4 mt-2 space-y-1">
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-major">C Major</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-minor">C Minor</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-dorian">C Dorian</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-mixolydian">C Mixolydian</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-pentatonic">C Pentatonic</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-blues">C Blues</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-harmonic-minor">C Harmonic Minor</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-teal-700 hover:bg-teal-600" data-pattern="scale-C-melodic-minor">C Melodic Minor</button>
+                  </div>
+                </details>
+                
+                <!-- Classical -->
+                <details class="mb-2">
+                  <summary class="cursor-pointer text-sm font-medium text-slate-300 hover:text-slate-200">🎼 Classical</summary>
+                  <div class="ml-4 mt-2 space-y-1">
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-twinkle-twinkle">Twinkle Twinkle</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-mary-had-lamb">Mary Had a Little Lamb</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-chopsticks">Chopsticks</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-ode-to-joy">Ode to Joy</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-fur-elise">Für Elise (opening)</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-canon-in-d">Canon in D</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-moonlight-sonata">Moonlight Sonata</button>
+                    <button class="pattern-btn block w-full text-left px-2 py-1 text-xs rounded bg-amber-700 hover:bg-amber-600" data-pattern="classical-ave-maria">Ave Maria</button>
+                  </div>
+                </details>
               </div>
-              <div class="flex gap-2">
+              
+              <!-- Pattern Actions -->
+              <div class="flex gap-2 pt-2 border-t border-slate-700">
                 <button id="savePatternBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Save Pattern</button>
                 <button id="exportSelectedBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Export Selected</button>
               </div>
@@ -395,6 +485,7 @@ const INSTRUMENTS = [
 ];
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 const MODES = {
+  // Church modes (7-note)
   Ionian: [0,2,4,5,7,9,11],
   Dorian: [0,2,3,5,7,9,10],
   Phrygian: [0,1,3,5,7,8,10],
@@ -402,25 +493,147 @@ const MODES = {
   Mixolydian: [0,2,4,5,7,9,10],
   Aeolian: [0,2,3,5,7,8,10],
   Locrian: [0,1,3,5,6,8,10],
+  
+  // Melodic Minor modes
+  "Melodic Minor": [0,2,3,5,7,9,11],
+  "Dorian b2": [0,1,3,5,7,9,10],
+  "Lydian Augmented": [0,2,4,6,8,9,11],
+  "Lydian Dominant": [0,2,4,6,7,9,10],
+  "Mixolydian b6": [0,2,4,5,7,8,10],
+  "Locrian #2": [0,2,3,5,6,8,10],
+  "Altered Scale": [0,1,3,4,6,8,10],
+  
+  // Harmonic Minor modes
+  "Harmonic Minor": [0,2,3,5,7,8,11],
+  "Locrian #6": [0,1,3,5,6,9,10],
+  "Ionian #5": [0,2,4,5,8,9,11],
+  "Dorian #4": [0,2,3,6,7,9,10],
+  "Phrygian Dominant": [0,1,4,5,7,8,10],
+  "Lydian #2": [0,3,4,6,7,9,11],
+  "Super Locrian": [0,1,3,4,6,8,9],
+  
+  // Pentatonic scales
   "Major Pentatonic": [0,2,4,7,9],
   "Minor Pentatonic": [0,3,5,7,10],
+  "Egyptian": [0,2,5,7,10],
+  "Japanese": [0,1,5,7,8],
+  "Hirajoshi": [0,2,3,7,8],
+  "Kumoi": [0,2,3,7,9],
+  
+  // Blues and related
   Blues: [0,3,5,6,7,10],
+  "Major Blues": [0,2,3,4,7,9],
+  "Minor Blues": [0,3,5,6,7,10],
+  
+  // Exotic scales
+  "Hungarian Minor": [0,2,3,6,7,8,11],
+  "Romanian Minor": [0,2,3,6,7,9,10],
+  "Neapolitan Minor": [0,1,3,5,7,8,11],
+  "Neapolitan Major": [0,1,3,5,7,9,11],
+  "Persian": [0,1,4,5,6,8,11],
+  "Arabian": [0,2,4,5,6,8,10],
+  "Gypsy": [0,1,4,5,7,8,10],
+  "Double Harmonic": [0,1,4,5,7,8,11],
+  "Byzantine": [0,1,4,5,7,8,11],
+  "Enigmatic": [0,1,4,6,8,10,11],
+  
+  // Symmetric scales
+  "Whole Tone": [0,2,4,6,8,10],
+  "Chromatic": [0,1,2,3,4,5,6,7,8,9,10,11],
+  "Diminished": [0,2,3,5,6,8,9,11],
+  "Dominant Diminished": [0,1,3,4,6,7,9,10],
+  
   // Common maqamat using 24-TET intervals (0.5 = quarter-tone)
   "Maqam Rast": [0,2,3.5,5,7,9,10.5],      // Rast: E half-flat, B half-flat
   "Maqam Bayati": [0,1.5,3,5,7,8.5,10],    // Bayati: D half-flat, B half-flat
   "Maqam Hijaz": [0,1,4,5,7,8,11],         // Hijaz: augmented second between 2nd & 3rd
   "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
-  "Maqam Nahawand": [0,2,3,5,7,8,10]       // Nahawand: natural minor
+  "Maqam Nahawand": [0,2,3,5,7,8,10],      // Nahawand: natural minor
+  "Maqam Kurd": [0,1,3,5,7,8.5,10],        // Kurd: D half-flat, B half-flat
+  "Maqam Sikah": [0,1.5,3.5,5,7,8.5,10.5], // Sikah: multiple quarter-tones
+  
+  // Indian Ragas (simplified)
+  "Raga Bhairav": [0,1,4,5,7,8,11],
+  "Raga Yaman": [0,2,4,6,7,9,11],
+  "Raga Bhairavi": [0,1,3,5,7,8,10],
+  "Raga Malkauns": [0,3,5,8,10],
+  
+  // Jazz scales
+  "Bebop Major": [0,2,4,5,7,8,9,11],
+  "Bebop Dominant": [0,2,4,5,7,9,10,11],
+  "Bebop Minor": [0,2,3,5,7,8,9,10],
+  "Half-Whole Diminished": [0,1,3,4,6,7,9,10],
+  "Whole-Half Diminished": [0,2,3,5,6,8,9,11]
 };
 // Group modes by musical system for UI filtering
 const MODE_SYSTEMS = {
-  Western: [
-    "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian",
-    "Major Pentatonic","Minor Pentatonic","Blues"
+  "Church Modes": [
+    "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian"
   ],
-  Maqam: ["Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand"]
+  "Melodic Minor": [
+    "Melodic Minor","Dorian b2","Lydian Augmented","Lydian Dominant",
+    "Mixolydian b6","Locrian #2","Altered Scale"
+  ],
+  "Harmonic Minor": [
+    "Harmonic Minor","Locrian #6","Ionian #5","Dorian #4",
+    "Phrygian Dominant","Lydian #2","Super Locrian"
+  ],
+  "Pentatonic": [
+    "Major Pentatonic","Minor Pentatonic","Egyptian","Japanese","Hirajoshi","Kumoi"
+  ],
+  "Blues": [
+    "Blues","Major Blues","Minor Blues"
+  ],
+  "Exotic": [
+    "Hungarian Minor","Romanian Minor","Neapolitan Minor","Neapolitan Major",
+    "Persian","Arabian","Gypsy","Double Harmonic","Byzantine","Enigmatic"
+  ],
+  "Symmetric": [
+    "Whole Tone","Chromatic","Diminished","Dominant Diminished"
+  ],
+  "Jazz": [
+    "Bebop Major","Bebop Dominant","Bebop Minor","Half-Whole Diminished","Whole-Half Diminished"
+  ],
+  "Maqam": [
+    "Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand","Maqam Kurd","Maqam Sikah"
+  ],
+  "Raga": [
+    "Raga Bhairav","Raga Yaman","Raga Bhairavi","Raga Malkauns"
+  ]
 };
-const CHORD_QUALITIES = { Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], Sus2:[0,2,7], Sus4:[0,5,7], "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], m7b5:[0,3,6,10], Dim7:[0,3,6,9] };
+const CHORD_QUALITIES = { 
+  // Basic triads
+  Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8], 
+  Sus2:[0,2,7], Sus4:[0,5,7],
+  
+  // Seventh chords
+  "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10], 
+  m7b5:[0,3,6,10], Dim7:[0,3,6,9], mMaj7:[0,3,7,11],
+  Aug7:[0,4,8,10], AugMaj7:[0,4,8,11],
+  
+  // Extended chords
+  "9":[0,4,7,10,14], Maj9:[0,4,7,11,14], Min9:[0,3,7,10,14],
+  "11":[0,4,7,10,14,17], Maj11:[0,4,7,11,14,17], Min11:[0,3,7,10,14,17],
+  "13":[0,4,7,10,14,17,21], Maj13:[0,4,7,11,14,17,21], Min13:[0,3,7,10,14,17,21],
+  
+  // Altered dominants  
+  "7b5":[0,4,6,10], "7#5":[0,4,8,10], "7b9":[0,4,7,10,13], "7#9":[0,4,7,10,15],
+  "7b5b9":[0,4,6,10,13], "7#5#9":[0,4,8,10,15], "7#11":[0,4,7,10,18],
+  "7b13":[0,4,7,10,20], "7alt":[0,4,6,10,13,15,20],
+  
+  // Added tone chords
+  Add9:[0,4,7,14], mAdd9:[0,3,7,14], Add11:[0,4,7,17], Add13:[0,4,7,21],
+  "6":[0,4,7,9], m6:[0,3,7,9], "6/9":[0,4,7,9,14], m6_9:[0,3,7,9,14],
+  
+  // Power chords and open voicings
+  "5":[0,7], Add2:[0,2,4,7], mAdd2:[0,2,3,7],
+  
+  // Jazz substitutions
+  Tritone:[0,6], "b5":[0,6], "#4":[0,6],
+  
+  // Polychords (upper structure)
+  "7/9":[0,4,7,10,14], "7/11":[0,4,7,10,17], "7/13":[0,4,7,10,21]
+};
 function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
 function pcIndex(note){
   const n = String(note).trim();
@@ -1150,20 +1363,43 @@ let selectedNoteLength = 48; // Default to 1/4 note
 let countInId = null;
 
 // Pattern library
+// Generate chord patterns in C4 octave
+function generateChordPattern(chordType, rootMidi = 60) {
+  const pattern = CHORD_QUALITIES[chordType] || [0,4,7];
+  return pattern.map(interval => ({
+    tick: 0,
+    dur: 768, // 2 beats
+    midi: rootMidi + interval,
+    vel: 0.7
+  }));
+}
+
+// Generate scale patterns as arpeggios
+function generateScalePattern(scaleName, rootMidi = 60) {
+  const pattern = MODES[scaleName] || [0,2,4,5,7,9,11];
+  return pattern.map((interval, i) => ({
+    tick: i * 96, // 8th note spacing
+    dur: 96,
+    midi: rootMidi + interval,
+    vel: 0.6
+  }));
+}
+
 const PATTERN_LIBRARY = {
+  // ============ DRUMS ============
   'kick-basic': [
-    {tick: 0, dur: 48, midi: 36, vel: 0.9},        // C2 - Kick on 1
-    {tick: 192, dur: 48, midi: 36, vel: 0.8},      // Kick on 2
-    {tick: 384, dur: 48, midi: 36, vel: 0.9},      // Kick on 3
-    {tick: 576, dur: 48, midi: 36, vel: 0.8}       // Kick on 4
+    {tick: 0, dur: 48, midi: 36, vel: 0.9},
+    {tick: 192, dur: 48, midi: 36, vel: 0.8},
+    {tick: 384, dur: 48, midi: 36, vel: 0.9},
+    {tick: 576, dur: 48, midi: 36, vel: 0.8}
   ],
   'snare-basic': [
-    {tick: 192, dur: 48, midi: 38, vel: 0.9},      // D2 - Snare on 2
-    {tick: 576, dur: 48, midi: 38, vel: 0.8}       // Snare on 4
+    {tick: 192, dur: 48, midi: 38, vel: 0.9},
+    {tick: 576, dur: 48, midi: 38, vel: 0.8}
   ],
   'hihat-basic': [
-    {tick: 0, dur: 24, midi: 42, vel: 0.6},        // F#2 - Closed hi-hat on 1
-    {tick: 96, dur: 24, midi: 42, vel: 0.4},       // and off-beats
+    {tick: 0, dur: 24, midi: 42, vel: 0.6},
+    {tick: 96, dur: 24, midi: 42, vel: 0.4},
     {tick: 192, dur: 24, midi: 42, vel: 0.5},
     {tick: 288, dur: 24, midi: 42, vel: 0.4},
     {tick: 384, dur: 24, midi: 42, vel: 0.6},
@@ -1171,13 +1407,146 @@ const PATTERN_LIBRARY = {
     {tick: 576, dur: 24, midi: 42, vel: 0.5},
     {tick: 672, dur: 24, midi: 42, vel: 0.4}
   ],
-  'chord-basic': [
-    {tick: 0, dur: 384, midi: 60, vel: 0.7},       // C4 - C major chord
-    {tick: 0, dur: 384, midi: 64, vel: 0.6},       // E4
-    {tick: 0, dur: 384, midi: 67, vel: 0.6},       // G4
-    {tick: 384, dur: 384, midi: 57, vel: 0.7},     // A3 - A minor chord  
-    {tick: 384, dur: 384, midi: 60, vel: 0.6},     // C4
-    {tick: 384, dur: 384, midi: 64, vel: 0.6}      // E4
+  'kick-four-on-floor': [
+    {tick: 0, dur: 48, midi: 36, vel: 0.9},
+    {tick: 192, dur: 48, midi: 36, vel: 0.9},
+    {tick: 384, dur: 48, midi: 36, vel: 0.9},
+    {tick: 576, dur: 48, midi: 36, vel: 0.9}
+  ],
+  'snare-backbeat': [
+    {tick: 192, dur: 48, midi: 38, vel: 0.9},
+    {tick: 576, dur: 48, midi: 38, vel: 0.9}
+  ],
+
+  // ============ CHORDS ============
+  // Basic triads
+  'chord-C-major': generateChordPattern('Maj', 60),
+  'chord-C-minor': generateChordPattern('Min', 60),
+  'chord-C-diminished': generateChordPattern('Dim', 60),
+  'chord-C-augmented': generateChordPattern('Aug', 60),
+  
+  // Seventh chords
+  'chord-C-dom7': generateChordPattern('7', 60),
+  'chord-C-maj7': generateChordPattern('Maj7', 60),
+  'chord-C-min7': generateChordPattern('Min7', 60),
+  'chord-C-dim7': generateChordPattern('Dim7', 60),
+  
+  // Extended chords
+  'chord-C-maj9': generateChordPattern('Maj9', 60),
+  'chord-C-min9': generateChordPattern('Min9', 60),
+  'chord-C-dom13': generateChordPattern('13', 60),
+
+  // Jazz chord progressions
+  'progression-ii-V-I': [
+    // Dm7
+    {tick: 0, dur: 384, midi: 62, vel: 0.7}, // D
+    {tick: 0, dur: 384, midi: 65, vel: 0.6}, // F
+    {tick: 0, dur: 384, midi: 69, vel: 0.6}, // A
+    {tick: 0, dur: 384, midi: 72, vel: 0.6}, // C
+    // G7
+    {tick: 384, dur: 384, midi: 67, vel: 0.7}, // G
+    {tick: 384, dur: 384, midi: 71, vel: 0.6}, // B
+    {tick: 384, dur: 384, midi: 74, vel: 0.6}, // D
+    {tick: 384, dur: 384, midi: 77, vel: 0.6}, // F
+    // Cmaj7
+    {tick: 768, dur: 384, midi: 60, vel: 0.7}, // C
+    {tick: 768, dur: 384, midi: 64, vel: 0.6}, // E
+    {tick: 768, dur: 384, midi: 67, vel: 0.6}, // G
+    {tick: 768, dur: 384, midi: 71, vel: 0.6}  // B
+  ],
+
+  // ============ SCALES ============
+  'scale-C-major': generateScalePattern('Ionian', 60),
+  'scale-C-minor': generateScalePattern('Aeolian', 60),
+  'scale-C-dorian': generateScalePattern('Dorian', 60),
+  'scale-C-mixolydian': generateScalePattern('Mixolydian', 60),
+  'scale-C-pentatonic': generateScalePattern('Major Pentatonic', 60),
+  'scale-C-blues': generateScalePattern('Blues', 60),
+  'scale-C-harmonic-minor': generateScalePattern('Harmonic Minor', 60),
+  'scale-C-melodic-minor': generateScalePattern('Melodic Minor', 60),
+
+  // ============ CLASSICAL THEMES ============
+  'classical-twinkle-twinkle': [
+    {tick: 0, dur: 192, midi: 60, vel: 0.8},    // C
+    {tick: 192, dur: 192, midi: 60, vel: 0.8},  // C
+    {tick: 384, dur: 192, midi: 67, vel: 0.8},  // G
+    {tick: 576, dur: 192, midi: 67, vel: 0.8},  // G
+    {tick: 768, dur: 192, midi: 69, vel: 0.8},  // A
+    {tick: 960, dur: 192, midi: 69, vel: 0.8},  // A
+    {tick: 1152, dur: 384, midi: 67, vel: 0.8}, // G
+  ],
+  
+  'classical-mary-had-lamb': [
+    {tick: 0, dur: 192, midi: 64, vel: 0.8},    // E
+    {tick: 192, dur: 192, midi: 62, vel: 0.8},  // D
+    {tick: 384, dur: 192, midi: 60, vel: 0.8},  // C
+    {tick: 576, dur: 192, midi: 62, vel: 0.8},  // D
+    {tick: 768, dur: 192, midi: 64, vel: 0.8},  // E
+    {tick: 960, dur: 192, midi: 64, vel: 0.8},  // E
+    {tick: 1152, dur: 384, midi: 64, vel: 0.8}, // E
+  ],
+  
+  'classical-chopsticks': [
+    {tick: 0, dur: 96, midi: 67, vel: 0.7},   // G
+    {tick: 96, dur: 96, midi: 64, vel: 0.7},  // E
+    {tick: 192, dur: 96, midi: 67, vel: 0.7}, // G
+    {tick: 288, dur: 96, midi: 64, vel: 0.7}, // E
+    {tick: 384, dur: 192, midi: 60, vel: 0.8}, // C
+    {tick: 576, dur: 192, midi: 60, vel: 0.8}  // C
+  ],
+  
+  'classical-ode-to-joy': [
+    {tick: 0, dur: 192, midi: 64, vel: 0.8},    // E
+    {tick: 192, dur: 192, midi: 64, vel: 0.8},  // E
+    {tick: 384, dur: 192, midi: 65, vel: 0.8},  // F
+    {tick: 576, dur: 192, midi: 67, vel: 0.8},  // G
+    {tick: 768, dur: 192, midi: 67, vel: 0.8},  // G
+    {tick: 960, dur: 192, midi: 65, vel: 0.8},  // F
+    {tick: 1152, dur: 192, midi: 64, vel: 0.8}, // E
+    {tick: 1344, dur: 192, midi: 62, vel: 0.8}, // D
+  ],
+  
+  'classical-fur-elise': [
+    {tick: 0, dur: 96, midi: 76, vel: 0.7},    // E5
+    {tick: 96, dur: 96, midi: 75, vel: 0.7},   // D#5
+    {tick: 192, dur: 96, midi: 76, vel: 0.7},  // E5
+    {tick: 288, dur: 96, midi: 75, vel: 0.7},  // D#5
+    {tick: 384, dur: 96, midi: 76, vel: 0.7},  // E5
+    {tick: 480, dur: 96, midi: 71, vel: 0.7},  // B4
+    {tick: 576, dur: 96, midi: 74, vel: 0.7},  // D5
+    {tick: 672, dur: 96, midi: 72, vel: 0.7},  // C5
+  ],
+  
+  'classical-canon-in-d': [
+    {tick: 0, dur: 384, midi: 62, vel: 0.8},    // D
+    {tick: 384, dur: 384, midi: 69, vel: 0.8},  // A
+    {tick: 768, dur: 384, midi: 71, vel: 0.8},  // B
+    {tick: 1152, dur: 384, midi: 66, vel: 0.8}, // F#
+    {tick: 1536, dur: 384, midi: 67, vel: 0.8}, // G
+    {tick: 1920, dur: 384, midi: 62, vel: 0.8}, // D
+    {tick: 2304, dur: 384, midi: 67, vel: 0.8}, // G
+    {tick: 2688, dur: 384, midi: 69, vel: 0.8}, // A
+  ],
+  
+  'classical-moonlight-sonata': [
+    {tick: 0, dur: 128, midi: 66, vel: 0.6},   // F#
+    {tick: 128, dur: 128, midi: 69, vel: 0.6}, // A
+    {tick: 256, dur: 128, midi: 73, vel: 0.7}, // C#
+    {tick: 384, dur: 128, midi: 69, vel: 0.6}, // A
+    {tick: 512, dur: 128, midi: 73, vel: 0.7}, // C#
+    {tick: 640, dur: 128, midi: 76, vel: 0.7}, // E
+    {tick: 768, dur: 256, midi: 73, vel: 0.7}, // C#
+  ],
+  
+  'classical-ave-maria': [
+    {tick: 0, dur: 288, midi: 60, vel: 0.8},    // C
+    {tick: 288, dur: 96, midi: 65, vel: 0.7},   // F
+    {tick: 384, dur: 192, midi: 69, vel: 0.8},  // A
+    {tick: 576, dur: 192, midi: 67, vel: 0.8},  // G
+    {tick: 768, dur: 384, midi: 65, vel: 0.8},  // F
+    {tick: 1152, dur: 192, midi: 67, vel: 0.8}, // G
+    {tick: 1344, dur: 192, midi: 69, vel: 0.8}, // A
+    {tick: 1536, dur: 384, midi: 72, vel: 0.8}, // C
   ]
 };
 
@@ -2308,18 +2677,21 @@ function buildRecorderChart(){
 
 // ========================= TRUMPET CHART =========================
 const TRUMPET_FINGERINGS = {
-  C:[0,0,0],
-  'C#':[1,1,1],
-  D:[1,0,1],
-  'D#':[0,1,1],
-  E:[1,1,0],
-  F:[1,0,0],
-  'F#':[0,1,0],
-  G:[0,0,0],
-  'G#':[0,1,1],
-  A:[1,1,0],
-  'A#':[1,0,0],
-  B:[0,1,0]
+  // Accurate B♭ trumpet valve combinations (concert pitch)
+  // [Valve 1, Valve 2, Valve 3] - 1=pressed, 0=open
+  // These are for middle C and up (written notes)
+  C:[0,0,0],      // Open (written C = concert B♭)
+  'C#':[1,0,0],   // First valve only
+  D:[0,1,0],      // Second valve only  
+  'D#':[0,0,1],   // Third valve only
+  E:[1,1,0],      // 1st + 2nd valves
+  F:[1,0,0],      // First valve (octave higher)
+  'F#':[0,1,0],   // Second valve (octave higher)
+  G:[0,0,0],      // Open (octave higher)
+  'G#':[0,1,1],   // 2nd + 3rd valves
+  A:[1,1,0],      // 1st + 2nd valves (higher)
+  'A#':[1,0,0],   // First valve (higher octave)
+  B:[0,1,0]       // Second valve (higher octave)
 };
 /*
   Trumpet chart layout
@@ -2337,26 +2709,117 @@ function buildTrumpetChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = trumpetOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 120 60' : '0 0 60 120');
-  svg.setAttribute('class','mx-auto');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 180 80' : '0 0 80 180');
+  svg.setAttribute('class','mx-auto drop-shadow-lg');
+  
+  // Create trumpet body (bell and tubing)
+  const bell = document.createElementNS(svgNS, 'circle');
+  if(isHoriz) {
+    bell.setAttribute('cx', trumpetLeftToRight ? '160' : '20');
+    bell.setAttribute('cy', '40');
+  } else {
+    bell.setAttribute('cx', '40');
+    bell.setAttribute('cy', trumpetLeftToRight ? '160' : '20');
+  }
+  bell.setAttribute('r', '15');
+  bell.setAttribute('fill', '#fbbf24');
+  bell.setAttribute('stroke', '#d97706');
+  bell.setAttribute('stroke-width', '3');
+  svg.appendChild(bell);
+  
+  // Main tubing
+  const mainTube = document.createElementNS(svgNS, 'rect');
+  if(isHoriz) {
+    mainTube.setAttribute('x', trumpetLeftToRight ? '30' : '50');
+    mainTube.setAttribute('y', '35');
+    mainTube.setAttribute('width', '100');
+    mainTube.setAttribute('height', '10');
+  } else {
+    mainTube.setAttribute('x', '35');
+    mainTube.setAttribute('y', trumpetLeftToRight ? '30' : '50');
+    mainTube.setAttribute('width', '10');
+    mainTube.setAttribute('height', '100');
+  }
+  mainTube.setAttribute('fill', '#eab308');
+  mainTube.setAttribute('stroke', '#d97706');
+  mainTube.setAttribute('stroke-width', '2');
+  mainTube.setAttribute('rx', '5');
+  svg.appendChild(mainTube);
+  
+  // Valve casings
   fing.forEach((down,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
+    // Valve casing
+    const casing = document.createElementNS(svgNS, 'rect');
+    let x, y;
     if(isHoriz){
-      x = trumpetLeftToRight ? 20 + i*40 : 100 - i*40;
-      y = 30;
+      x = trumpetLeftToRight ? 45 + i*25 : 110 - i*25;
+      y = 25;
     } else {
-      y = trumpetLeftToRight ? 20 + i*40 : 100 - i*40;
-      x = 30;
+      x = 25;
+      y = trumpetLeftToRight ? 45 + i*25 : 110 - i*25;
     }
-    c.setAttribute('cx',String(x));
-    c.setAttribute('cy',String(y));
-    c.setAttribute('r','12');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', down ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
+    casing.setAttribute('x', String(x - 8));
+    casing.setAttribute('y', String(y - 8));
+    casing.setAttribute('width', '16');
+    casing.setAttribute('height', '30');
+    casing.setAttribute('fill', '#f59e0b');
+    casing.setAttribute('stroke', '#d97706');
+    casing.setAttribute('stroke-width', '2');
+    casing.setAttribute('rx', '3');
+    svg.appendChild(casing);
+    
+    // Valve button
+    const valve = document.createElementNS(svgNS,'circle');
+    valve.setAttribute('cx', String(x));
+    valve.setAttribute('cy', String(y));
+    valve.setAttribute('r','8');
+    valve.setAttribute('stroke', down ? '#dc2626' : '#64748b');
+    valve.setAttribute('stroke-width','3');
+    valve.setAttribute('fill', down ? '#dc2626' : '#cbd5e1');
+    // Add metallic shine
+    valve.setAttribute('filter', 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))');
+    svg.appendChild(valve);
+    
+    // Valve number
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', isHoriz ? String(y + 25) : String(x + 25));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '12');
+    label.setAttribute('font-weight', 'bold');
+    label.setAttribute('fill', '#374151');
+    label.textContent = String(i + 1);
+    svg.appendChild(label);
+    
+    // Valve spring (small line)
+    const spring = document.createElementNS(svgNS, 'line');
+    spring.setAttribute('x1', String(x));
+    spring.setAttribute('y1', String(y + 8));
+    spring.setAttribute('x2', String(x));
+    spring.setAttribute('y2', String(y + 15));
+    spring.setAttribute('stroke', '#6b7280');
+    spring.setAttribute('stroke-width', '2');
+    svg.appendChild(spring);
   });
+  
+  // Mouthpiece
+  const mouthpiece = document.createElementNS(svgNS, 'ellipse');
+  if(isHoriz) {
+    mouthpiece.setAttribute('cx', trumpetLeftToRight ? '25' : '155');
+    mouthpiece.setAttribute('cy', '40');
+    mouthpiece.setAttribute('rx', '6');
+    mouthpiece.setAttribute('ry', '4');
+  } else {
+    mouthpiece.setAttribute('cx', '40');
+    mouthpiece.setAttribute('cy', trumpetLeftToRight ? '25' : '155');
+    mouthpiece.setAttribute('rx', '4');
+    mouthpiece.setAttribute('ry', '6');
+  }
+  mouthpiece.setAttribute('fill', '#c0c0c0');
+  mouthpiece.setAttribute('stroke', '#9ca3af');
+  mouthpiece.setAttribute('stroke-width', '2');
+  svg.appendChild(mouthpiece);
+  
   trumpetHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='trumpetFlip';
@@ -2384,18 +2847,20 @@ function buildTrumpetChart(){
 
 // ========================= SAXOPHONE CHART =========================
 const SAX_FINGERINGS = {
-  C:[1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1],
-  D:[0,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1],
-  E:[0,0,1,1,1,1],
-  F:[0,0,0,1,1,1],
-  'F#':[0,0,0,0,1,1],
-  G:[0,0,0,0,1,1],
-  'G#':[0,0,0,0,0,1],
-  A:[0,0,0,0,0,1],
-  'A#':[0,0,0,0,0,0],
-  B:[0,0,0,0,0,0]
+  // Standard alto sax fingerings: [octave key, thumb, index, middle, ring, pinky, palm keys]
+  // 0 = open, 1 = closed/pressed
+  C:[0,1,1,1,1,1,1],     // All keys closed + palm keys
+  'C#':[0,1,1,1,1,1,0],  // Release palm key
+  D:[0,1,1,1,1,1,0],     // Standard D fingering
+  'D#':[0,1,1,1,1,0,0],  // Lift pinky
+  E:[0,1,1,1,0,0,0],     // Lift ring and pinky
+  F:[0,1,1,0,0,0,0],     // Lift middle, ring, pinky
+  'F#':[0,1,0,0,0,0,0],  // Lift index too
+  G:[0,1,0,0,0,0,0],     // Same as F# for basic G
+  'G#':[0,0,0,0,0,0,0],  // All open for G#/octave key only
+  A:[0,0,1,1,0,0,0],     // Index and middle only
+  'A#':[0,0,1,0,0,0,0],  // Index only + side key
+  B:[0,0,0,1,0,0,0]      // Middle finger only
 };
 /*
   Saxophone chart layout
@@ -2408,31 +2873,111 @@ function buildSaxophoneChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
   const sharp = ENHARMONIC_MAP[note] || note;
-  const fing = SAX_FINGERINGS[sharp] || [0,0,0,0,0,0];
+  const fing = SAX_FINGERINGS[sharp] || [0,0,0,0,0,0,0];
   saxophoneHost.innerHTML='';
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = saxophoneOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
-  svg.setAttribute('class','mx-auto');
-  fing.forEach((closed,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
+  svg.setAttribute('viewBox', isHoriz ? '0 0 200 100' : '0 0 100 200');
+  svg.setAttribute('class','mx-auto drop-shadow-lg');
+  
+  // Create saxophone body outline (curved like alto sax)
+  const bodyPath = document.createElementNS(svgNS, 'path');
+  if(isHoriz) {
+    // Horizontal saxophone body with characteristic curve
+    bodyPath.setAttribute('d', saxophoneLeftToRight ? 
+      'M 20 40 Q 50 30, 80 40 Q 120 50, 160 30 Q 180 20, 190 30' :
+      'M 180 40 Q 150 30, 120 40 Q 80 50, 40 30 Q 20 20, 10 30');
+  } else {
+    // Vertical saxophone body
+    bodyPath.setAttribute('d', saxophoneLeftToRight ?
+      'M 50 20 Q 40 50, 50 80 Q 60 120, 30 160 Q 20 180, 30 190' :
+      'M 50 180 Q 40 150, 50 120 Q 60 80, 30 40 Q 20 20, 30 10');
+  }
+  bodyPath.setAttribute('fill', 'none');
+  bodyPath.setAttribute('stroke', '#fbbf24');
+  bodyPath.setAttribute('stroke-width', '8');
+  bodyPath.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(bodyPath);
+  
+  // Bell
+  const bell = document.createElementNS(svgNS, 'circle');
+  if(isHoriz) {
+    bell.setAttribute('cx', saxophoneLeftToRight ? '185' : '15');
+    bell.setAttribute('cy', '25');
+    bell.setAttribute('r', '12');
+  } else {
+    bell.setAttribute('cx', '25');
+    bell.setAttribute('cy', saxophoneLeftToRight ? '185' : '15');
+    bell.setAttribute('r', '12');
+  }
+  bell.setAttribute('fill', '#f59e0b');
+  bell.setAttribute('stroke', '#d97706');
+  bell.setAttribute('stroke-width', '3');
+  svg.appendChild(bell);
+  
+  // Mouthpiece area
+  const mouthpiece = document.createElementNS(svgNS, 'rect');
+  if(isHoriz) {
+    mouthpiece.setAttribute('x', saxophoneLeftToRight ? '15' : '170');
+    mouthpiece.setAttribute('y', '37');
+    mouthpiece.setAttribute('width', '8');
+    mouthpiece.setAttribute('height', '6');
+  } else {
+    mouthpiece.setAttribute('x', '47');
+    mouthpiece.setAttribute('y', saxophoneLeftToRight ? '15' : '170');
+    mouthpiece.setAttribute('width', '6');
+    mouthpiece.setAttribute('height', '8');
+  }
+  mouthpiece.setAttribute('fill', '#374151');
+  mouthpiece.setAttribute('rx', '2');
+  svg.appendChild(mouthpiece);
+  
+  // Key positions along the body
+  const keyLabels = ['Oct', 'Thumb', 'L1', 'L2', 'L3', 'R1', 'Palm'];
+  fing.forEach((pressed, i) => {
+    let x, y;
+    if(isHoriz) {
+      x = saxophoneLeftToRight ? 35 + i*20 : 165 - i*20;
+      y = 45 + (i%2)*8; // Slight vertical offset for realism
     } else {
-      y = saxophoneLeftToRight ? 20 + i*22 : 140 - i*22;
-      x = 30;
+      y = saxophoneLeftToRight ? 35 + i*20 : 165 - i*20;
+      x = 45 + (i%2)*8;
     }
-    c.setAttribute('cx', String(x));
-    c.setAttribute('cy', String(y));
-    c.setAttribute('r','10');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
+    
+    // Key mechanism (small rectangle)
+    const keyMech = document.createElementNS(svgNS, 'rect');
+    keyMech.setAttribute('x', String(x-6));
+    keyMech.setAttribute('y', String(y-3));
+    keyMech.setAttribute('width', '12');
+    keyMech.setAttribute('height', '6');
+    keyMech.setAttribute('fill', '#e5e7eb');
+    keyMech.setAttribute('stroke', '#9ca3af');
+    keyMech.setAttribute('stroke-width', '1');
+    keyMech.setAttribute('rx', '2');
+    svg.appendChild(keyMech);
+    
+    // Key button
+    const key = document.createElementNS(svgNS, 'circle');
+    key.setAttribute('cx', String(x));
+    key.setAttribute('cy', String(y));
+    key.setAttribute('r', '4');
+    key.setAttribute('fill', pressed ? '#dc2626' : '#f3f4f6');
+    key.setAttribute('stroke', pressed ? '#991b1b' : '#6b7280');
+    key.setAttribute('stroke-width', '2');
+    svg.appendChild(key);
+    
+    // Key label
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', String(y - 10));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '8');
+    label.setAttribute('fill', '#374151');
+    label.textContent = keyLabels[i];
+    svg.appendChild(label);
   });
+  
   saxophoneHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='saxophoneFlip';
@@ -2859,6 +3404,32 @@ document.querySelectorAll('.pattern-btn').forEach(btn => {
     scheduleAutoSave();
   });
 });
+
+// Pattern search functionality
+const patternSearch = document.getElementById('patternSearch');
+if(patternSearch) {
+  patternSearch.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const allPatternBtns = document.querySelectorAll('.pattern-btn');
+    
+    allPatternBtns.forEach(btn => {
+      const patternText = btn.textContent.toLowerCase();
+      const patternName = btn.dataset.pattern.toLowerCase();
+      const matches = patternText.includes(searchTerm) || patternName.includes(searchTerm);
+      
+      // Show/hide button
+      btn.style.display = matches || searchTerm === '' ? 'block' : 'none';
+      
+      // Show/hide parent details if no children match
+      const parentDetails = btn.closest('details');
+      if(parentDetails) {
+        const visibleChildren = [...parentDetails.querySelectorAll('.pattern-btn')]
+          .filter(child => child.style.display !== 'none');
+        parentDetails.style.display = visibleChildren.length > 0 || searchTerm === '' ? 'block' : 'none';
+      }
+    });
+  });
+}
 
 document.getElementById('savePatternBtn').addEventListener('click', () => {
   if(selectedNotes.size === 0) {
