@@ -694,7 +694,8 @@ const song = {
     solo:false,
     volume:0.8,
     color:'',
-    player:null
+    player:null,
+    part:null
   }))
 };
 
@@ -745,25 +746,50 @@ function updateLoop(){
   Tone.Transport.loop = seqLoop.checked && song.loop.enabled;
 }
 
-function scheduleSong(){
-  Tone.Transport.cancel();
+function scheduleSong(changedIdx){
   const anySolo = song.tracks.some(t => t.solo);
-  song.tracks.forEach(track => {
-    if(track.player){ track.player.dispose(); track.player=null; }
+  song.tracks.forEach((track, idx) => {
     const active = anySolo ? track.solo : !track.mute;
-    if(!active) return;
-    const drumFactory = DRUMS[track.instrument];
-    track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
-    track.player.setVolume?.(track.volume ?? 0.8);
+    if(!active){
+      track.part?.dispose();
+      track.part = null;
+      return;
+    }
+
+    if(!track.player){
+      const drumFactory = DRUMS[track.instrument];
+      track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+      track.player.setVolume?.(track.volume ?? 0.8);
+    }
+
+    if(changedIdx !== undefined && changedIdx !== idx && track.part){
+      track.part.loopStart = `${song.loop.start}i`;
+      track.part.loopEnd = `${song.loop.end}i`;
+      track.part.loop = true;
+      return;
+    }
+
+    track.part?.dispose();
+    const events = [];
     track.clips.forEach(clip => {
       clip.notes.forEach(note => {
         const when = clip.start + note.tick;
-        Tone.Transport.schedule(time => {
-          console.log(`Note event -> midi:${note.midi} ticks:${note.dur} vel:${note.vel ?? 0.8}`);
-          track.player.trigger(note.midi, time, note.vel ?? 0.8, `${note.dur}i`);
-        }, `${when}i`);
+        events.push([`${when}i`, note]);
       });
     });
+
+    if(events.length){
+      const part = new Tone.Part((time, n) => {
+        track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
+      }, events);
+      part.loopStart = `${song.loop.start}i`;
+      part.loopEnd = `${song.loop.end}i`;
+      part.loop = true;
+      part.start(0);
+      track.part = part;
+    } else {
+      track.part = null;
+    }
   });
 }
 
@@ -773,7 +799,7 @@ setBpm(song.bpm);
 updateLoop();
 
 function serializeSong(){
-  return JSON.stringify(song, (k,v)=> k==='player' ? undefined : v);
+  return JSON.stringify(song, (k,v)=> (k==='player' || k==='part') ? undefined : v);
 }
 
 function loadSong(data){
@@ -781,7 +807,7 @@ function loadSong(data){
   song.bpm = data.bpm;
   song.ts = data.ts || song.ts;
   song.loop = data.loop || song.loop;
-  song.tracks = data.tracks.map(t=>({ ...t, player:null }));
+  song.tracks = data.tracks.map(t=>({ ...t, player:null, part:null }));
   Tone.Transport.PPQ = song.ppq;
   setBpm(song.bpm);
   updateLoop();
@@ -903,7 +929,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
     const noteW=n.dur/SIXTEENTH*cellW;
     if(n.midi===midi && x>=noteX && x<noteX+noteW){
       if(ev.shiftKey){
-        clip.notes.splice(i,1); drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); return;
+        clip.notes.splice(i,1); drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); return;
       }
       const nearRight = x>noteX+noteW-5; // resize handle ~5px
       dragNote={note:n, mode:nearRight?'resize':'move', offsetTick:tick-n.tick, offsetMidi:midi-n.midi};
@@ -938,7 +964,7 @@ pianoRoll.addEventListener('pointerup', ev=>{
   if(dragNote.mode==='new') track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8});
   // keep notes ordered after edits
   track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
-  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); pianoRoll.releasePointerCapture(ev.pointerId);
+  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
 });
 pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
 
@@ -1004,7 +1030,7 @@ function initSequencer(){
       track.instrument = e.target.value;
       row.querySelector('span').textContent = track.instrument;
       if(track.player){ track.player.dispose(); track.player=null; }
-      if(Tone.Transport.state==='started') scheduleSong();
+      if(Tone.Transport.state==='started') scheduleSong(idx);
     });
     clrInput.addEventListener('input', e=>{
       track.color = e.target.value;
@@ -1627,7 +1653,7 @@ seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Nu
 seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
 seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
 seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
-seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(); }});
+seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
