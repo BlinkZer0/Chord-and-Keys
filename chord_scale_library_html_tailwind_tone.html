@@ -26,51 +26,6 @@
     #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
     #devTests[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
-    
-    /* === GLASS MORPHISM EFFECTS (SAFE VERSION) === */
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .glass-button {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      transition: all 0.2s ease;
-    }
-    
-    .glass-button:hover {
-      background: rgba(255, 255, 255, 0.08);
-      transform: translateY(-1px);
-    }
-    
-    .glass-card {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    /* SIMPLIFIED 3D TRANSFORMS */
-    .instrument-3d {
-      transition: transform 0.2s ease;
-    }
-    
-    .instrument-3d:hover {
-      transform: scale(1.02);
-    }
-    
-    .piano-key-3d {
-      transition: all 0.1s ease;
-    }
-    
-    .piano-key-3d:active {
-      transform: translateY(2px);
-    }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -144,15 +99,15 @@
       <h2 class="text-lg font-semibold text-slate-100 mb-2">2) Visualize On Your Instrument</h2>
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-6">
         <div id="pianoHost"></div>
-        <div id="guitarHost" class="hidden instrument-3d"></div>
-        <div id="bassHost" class="hidden instrument-3d"></div>
-        <div id="violinHost" class="hidden instrument-3d"></div>
-        <div id="fluteHost" class="hidden instrument-3d"></div>
-        <div id="recorderHost" class="hidden instrument-3d"></div>
-        <div id="trumpetHost" class="hidden instrument-3d"></div>
-        <div id="saxophoneHost" class="hidden instrument-3d"></div>
-        <div id="kotoHost" class="hidden instrument-3d"></div>
-        <div id="neyHost" class="hidden instrument-3d"></div>
+        <div id="guitarHost" class="hidden"></div>
+        <div id="bassHost" class="hidden"></div>
+        <div id="violinHost" class="hidden"></div>
+        <div id="fluteHost" class="hidden"></div>
+        <div id="recorderHost" class="hidden"></div>
+        <div id="trumpetHost" class="hidden"></div>
+        <div id="saxophoneHost" class="hidden"></div>
+        <div id="kotoHost" class="hidden"></div>
+        <div id="neyHost" class="hidden"></div>
 
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
@@ -209,9 +164,6 @@
             <input id="seqLoop" type="checkbox" class="h-4 w-4">Loop
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">
-            <input id="seqAutoStop" type="checkbox" class="h-4 w-4" checked>Auto-stop
-          </label>
-          <label class="flex items-center gap-2 text-sm text-slate-300">
             <input id="seqClick" type="checkbox" class="h-4 w-4">Click
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">
@@ -256,90 +208,6 @@
             <input id="midiImportFile" type="file" accept="audio/midi" class="hidden">
             <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900 w-full sm:w-auto"></canvas>
           </div>
-
-        <!-- QOL UPGRADE: Chord Progression Builder -->
-        <div id="chordProgressionBuilder" class="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 mb-4">
-          <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center gap-2">
-            <span class="text-xl">🎵</span>
-            Chord Progression Builder
-          </h3>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="vi,IV,I,V">vi-IV-I-V</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="I,V,vi,IV">I-V-vi-IV</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="ii,V,I">ii-V-I</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="I,vi,ii,V">I-vi-ii-V</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="I,IV,V,I">I-IV-V-I</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="vi,ii,V,I">vi-ii-V-I</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="I,bVII,IV,I">I-bVII-IV-I</button>
-            <button class="progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200" data-progression="iii,vi,ii,V">iii-vi-ii-V</button>
-          </div>
-          <div id="progressionPreview" class="bg-slate-900/50 border border-slate-700 rounded-lg p-3 min-h-[60px] mb-3">
-            <div class="text-slate-400 text-sm italic">Select a progression above to preview chords</div>
-          </div>
-          <div class="flex gap-2">
-            <button id="playProgression" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white text-sm flex items-center gap-2 transition-colors">
-              ▶️ Play Progression
-            </button>
-            <button id="addProgressionToTrack" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm flex items-center gap-2 transition-colors">
-              ➕ Add to Sequencer
-            </button>
-          </div>
-        </div>
-
-        <!-- QOL UPGRADE: Smart Auto-Accompaniment -->
-        <div id="autoAccompaniment" class="glass-card rounded-xl p-4 mb-4">
-          <h3 class="text-lg font-semibold text-slate-200 mb-3 flex items-center gap-2">
-            <span class="text-xl">🎼</span>
-            Auto-Accompaniment
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div class="glass-panel rounded-lg p-3">
-              <h4 class="text-sm font-semibold text-slate-200 mb-2">Bass Line</h4>
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="bassStyle" value="root" class="text-blue-600" checked>
-                  <span class="text-slate-300">Root Notes</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="bassStyle" value="walking" class="text-blue-600">
-                  <span class="text-slate-300">Walking Bass</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="bassStyle" value="alberti" class="text-blue-600">
-                  <span class="text-slate-300">Alberti Bass</span>
-                </label>
-              </div>
-            </div>
-            <div class="glass-panel rounded-lg p-3">
-              <h4 class="text-sm font-semibold text-slate-200 mb-2">Rhythm</h4>
-              <div class="space-y-2">
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="rhythmStyle" value="basic" class="text-blue-600" checked>
-                  <span class="text-slate-300">Basic Drums</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="rhythmStyle" value="rock" class="text-blue-600">
-                  <span class="text-slate-300">Rock Beat</span>
-                </label>
-                <label class="flex items-center gap-2 text-sm">
-                  <input type="radio" name="rhythmStyle" value="jazz" class="text-blue-600">
-                  <span class="text-slate-300">Jazz Swing</span>
-                </label>
-              </div>
-            </div>
-            <div class="glass-panel rounded-lg p-3">
-              <h4 class="text-sm font-semibold text-slate-200 mb-2">Controls</h4>
-              <div class="space-y-2">
-                <button id="generateAccompaniment" class="glass-button w-full px-3 py-2 rounded-lg text-slate-200 text-sm">
-                  Generate Backing
-                </button>
-                <button id="clearAccompaniment" class="glass-button w-full px-3 py-2 rounded-lg text-slate-200 text-sm">
-                  Clear Backing
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div id="seqTracks" class="space-y-2"></div>
 
@@ -1268,14 +1136,7 @@ const DRUM_NAMES = Object.keys(DRUMS);
 // guitar-style roll.
 async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false, noteDur}={}){
   await ensureTone(instrument);
-  
-  // Start visualizer for chord/arp playback
-  startVisualizer();
-  
-  // Auto-stop visualizer after note duration
-  const beat = 60/tempo;
-  const duration = asChord ? beat*2 : list.length * (beat/2);
-  setTimeout(() => stopVisualizer(), duration * 1000 + 500);
+  const beat=60/tempo;
   const now=Tone.now();
   if(asChord){
     _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now);
@@ -1320,7 +1181,7 @@ const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
-const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick'); const seqAutoStop = $('#seqAutoStop');
+const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
 const seqAutoScroll = $('#seqAutoScroll');
 const seqQuantize = $('#seqQuantize');
 const seqQuantizeBtn = $('#seqQuantizeBtn');
@@ -1549,21 +1410,33 @@ function setBpm(val){
 }
 
 function updateLoop(){
-  if(autoStopId !== null){
+  // Clear any existing auto-stop
+  if(autoStopId) {
     Tone.Transport.clear(autoStopId);
     autoStopId = null;
   }
-
+  
   if(seqLoop.checked && song.loop.enabled) {
     Tone.Transport.loopStart = `${song.loop.start}i`;
     Tone.Transport.loopEnd = `${song.loop.end}i`;
     Tone.Transport.loop = true;
   } else {
+    // For one-shot playback, disable looping
     Tone.Transport.loop = false;
-    if(seqAutoStop.checked){
-      updateSongEndTick();
-      scheduleAutoStop();
-    }
+    // Determine the latest note end across all tracks
+    const maxNoteTick = Math.max(
+      0,
+      ...song.tracks.flatMap(t =>
+        t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+      )
+    );
+    // Schedule a stop event slightly after the final note
+    const buffer = 192; // allow trailing releases
+    autoStopId = Tone.Transport.scheduleOnce(() => {
+      if(sequencerState === 'playing') {
+        seqStop.click();
+      }
+    }, `${maxNoteTick + buffer}i`);
   }
 }
 
@@ -1572,32 +1445,6 @@ let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
 let scheduledUntil = 0;
 let rescheduleId = null;
 let songEndTick = 0;
-let autoStopId = null; // Store the auto-stop event ID
-const AUTO_STOP_BUFFER = 192;
-
-function scheduleAutoStop(){
-  if(autoStopId !== null){
-    Tone.Transport.clear(autoStopId);
-    autoStopId = null;
-  }
-  if(!seqLoop.checked && seqAutoStop.checked){
-    autoStopId = Tone.Transport.scheduleOnce(() => {
-      if(sequencerState === 'playing'){
-        seqStop.click();
-      }
-    }, `${songEndTick + AUTO_STOP_BUFFER}i`);
-  }
-}
-
-function updateSongEndTick(){
-  const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t =>
-    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-  ));
-  if(maxNoteTick > songEndTick){
-    songEndTick = maxNoteTick;
-    scheduleAutoStop();
-  }
-}
 
 function scheduleSong(){
   const anySolo = song.tracks.some(t => t.solo);
@@ -1624,7 +1471,9 @@ function scheduleSong(){
   // Determine song length and dynamic scheduling window
   const ticksPerBeat = song.ppq * (4 / song.ts.den);
   const ticksPerBar = ticksPerBeat * song.ts.num;
-  updateSongEndTick();
+  songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
+    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+  ));
   const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
   scheduleAheadBars = Math.max(16, Math.ceil(totalBars * 0.25));
 
@@ -1636,12 +1485,10 @@ function scheduleSong(){
 }
 
 function scheduleAhead(){
-  updateSongEndTick();
   const anySolo = song.tracks.some(t => t.solo);
   const ticksPerBeat = song.ppq * (4 / song.ts.den);
   const ticksPerBar = ticksPerBeat * song.ts.num;
-  const targetEnd = seqAutoStop.checked ? songEndTick : Number.MAX_SAFE_INTEGER;
-  const endTick = Math.min(targetEnd, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
+  const endTick = Math.min(songEndTick, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
   song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active || !track.player) return;
@@ -1660,7 +1507,7 @@ function scheduleAhead(){
     });
   });
   scheduledUntil = endTick;
-  if(rescheduleId !== null && seqAutoStop.checked && scheduledUntil >= songEndTick){
+  if(rescheduleId !== null && scheduledUntil >= songEndTick){
     Tone.Transport.clear(rescheduleId);
     rescheduleId = null;
   }
@@ -1668,6 +1515,7 @@ function scheduleAhead(){
 
 let clickId = null;
 let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
+let autoStopId = null; // Store the auto-stop event ID
 
 // Selection and editing state
 let selectedNotes = new Set(); // Set of note objects
@@ -2388,34 +2236,18 @@ function _triggerLick(){
 
 // ========================= PIANO =========================
 // === HELD-SUSTAIN: Piano pointer handlers ===
-function buildPiano(){ 
-  console.log('buildPiano called, pianoHost:', pianoHost);
-  if (!pianoHost) {
-    console.error('pianoHost element not found!');
-    return;
-  }
-  pianoHost.innerHTML=''; 
-  const container=document.createElement('div'); 
-  container.className='relative mx-auto select-none'; 
-  const shell=document.createElement('div'); 
-  shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; 
-  container.appendChild(shell);
+function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
   // White keys row
   const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
-  whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key piano-key-3d relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
-    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; 
-      // Create particle effect (temporarily disabled)
-      // const rect = k.getBoundingClientRect();
-      // createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m); 
-    } });
+  whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
+    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
     const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
     whiteRow.appendChild(k); });
-  // Black keys: spacing guide (non-interactive) and interactive layer
-  const spacingGuide=document.createElement('div'); spacingGuide.className='absolute left-2 right-2 top-2 bottom-2 pointer-events-none'; shell.appendChild(spacingGuide);
-  const blackLayer=document.createElement('div'); blackLayer.className='absolute left-2 right-2 top-2 bottom-2 pointer-events-auto'; shell.appendChild(blackLayer);
-  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE);
+  // Black overlay with realistic piano spacing
+  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); 
     // Much simpler approach: map each black key to its position between white keys
     // Pattern: C C# D D# E - F F# G G# A A# B (repeating every octave)
     // In whites array: C D E F G A B positions: 0,1,2,3,4,5,6 per octave
@@ -2443,53 +2275,37 @@ function buildPiano(){
     
     if(whiteKeyIndex === undefined) return;
     
-    const left = `${(whiteKeyIndex / whites.length * 100) + (betweenOffset * (100 / whites.length))}%`;
-    const width = `${100 / whites.length * 0.6}%`;
-
-    // Non-interactive spacer for alignment
-    const spacer=document.createElement('div');
-    spacer.className='absolute';
-    spacer.style.left = left;
-    spacer.style.width = width;
-    spacer.style.height = '65%';
-    spacer.style.top = '0';
-    spacingGuide.appendChild(spacer);
-
-    // Actual interactive black key
-    const wrap=document.createElement('div');
-    wrap.className='absolute';
-    wrap.style.left = left;
-    wrap.style.width = width;
-    wrap.style.height = '65%';
+    const wrap=document.createElement('div'); 
+    wrap.className='absolute pointer-events-none'; 
+    // Simple percentage-based positioning
+    wrap.style.left = `${(whiteKeyIndex / whites.length * 100) + (betweenOffset * (100 / whites.length))}%`;
+    wrap.style.width = `${100 / whites.length * 0.6}%`;
+    wrap.style.height = '65%'; 
     wrap.style.top = '0';
-
-    const blk=document.createElement('div');
-    blk.dataset.midi=String(m);
-    blk.dataset.pc=String(pc);
-    blk.className='black-key piano-key-3d w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto';
+    
+    const blk=document.createElement('div'); 
+    blk.dataset.midi=String(m); 
+    blk.dataset.pc=String(pc); 
+    blk.className='black-key w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto'; 
     blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
     const lbl=document.createElement('div'); 
     lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; 
     lbl.textContent=''; 
     blk.appendChild(lbl);
-    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1';
-      // Create particle effect (temporarily disabled)
-      // const rect = blk.getBoundingClientRect();
-      // createNoteParticles(rect.left + rect.width/2, rect.top + rect.height/2, m);
-    } });
+    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
     const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
-    wrap.appendChild(blk); blackLayer.appendChild(wrap); });
+    wrap.appendChild(blk); overlay.appendChild(wrap); });
   pianoHost.appendChild(container);
 }
 function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); updateBadges(); renderHighlights(); }
 function clearSelection(){ selection.clear(); updateBadges(); renderHighlights(); }
 function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
   // Whites (robust selector — no Tailwind arbitrary value in query)
-  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key piano-key-3d relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
+  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
     const rootBadge = el.querySelector('.rootbadge'); if(rootBadge) rootBadge.remove(); if(rootPc===pc){ const b=document.createElement('div'); b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; b.textContent='ROOT'; el.appendChild(b); } });
   // Blacks (robust selector)
-  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key piano-key-3d w-full h-full rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
+  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key w-full h-full rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
   // Selection highlights
   selection.forEach((m)=>{ const el = pianoHost.querySelector(`[data-midi="${m}"]`); if(el) el.classList.add('key-selected'); });
 }
@@ -2537,191 +2353,115 @@ function buildFluteChart(){
   svg.setAttribute('viewBox', isHoriz ? '0 0 320 80' : '0 0 80 320');
   svg.setAttribute('class','mx-auto');
   
-  // Ultra-realistic flute based on professional instrument anatomy
+  // Realistic flute body with sections and proper proportions
   if(isHoriz){
-    // Define gradients and patterns
-    const defs = document.createElementNS(svgNS,'defs');
+    // Main tube body (cylindrical appearance with gradient)
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','fluteGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#e2e8f0');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','50%');
+    stop2.setAttribute('stop-color','#f8fafc');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','100%');
+    stop3.setAttribute('stop-color','#cbd5e1');
+    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
     
-    // Silver/metal gradient for main body
-    const metalGrad = document.createElementNS(svgNS,'linearGradient');
-    metalGrad.setAttribute('id','metalGrad');
-    metalGrad.setAttribute('x1','0%');
-    metalGrad.setAttribute('y1','0%');
-    metalGrad.setAttribute('x2','0%');
-    metalGrad.setAttribute('y2','100%');
-    const metalStops = [
-      {offset:'0%', color:'#f1f5f9'},
-      {offset:'20%', color:'#e2e8f0'}, 
-      {offset:'50%', color:'#f8fafc'},
-      {offset:'80%', color:'#e2e8f0'},
-      {offset:'100%', color:'#cbd5e1'}
-    ];
-    metalStops.forEach(s => {
-      const stop = document.createElementNS(svgNS,'stop');
-      stop.setAttribute('offset', s.offset);
-      stop.setAttribute('stop-color', s.color);
-      metalGrad.appendChild(stop);
-    });
-    defs.appendChild(metalGrad);
-    
-    // Gold embouchure plate gradient
-    const goldGrad = document.createElementNS(svgNS,'linearGradient');
-    goldGrad.setAttribute('id','goldGrad');
-    goldGrad.setAttribute('x1','0%');
-    goldGrad.setAttribute('y1','0%');
-    goldGrad.setAttribute('x2','0%');
-    goldGrad.setAttribute('y2','100%');
-    const goldStops = [
-      {offset:'0%', color:'#fef3c7'},
-      {offset:'30%', color:'#fbbf24'},
-      {offset:'70%', color:'#f59e0b'},
-      {offset:'100%', color:'#d97706'}
-    ];
-    goldStops.forEach(s => {
-      const stop = document.createElementNS(svgNS,'stop');
-      stop.setAttribute('offset', s.offset);
-      stop.setAttribute('stop-color', s.color);
-      goldGrad.appendChild(stop);
-    });
-    defs.appendChild(goldGrad);
-    
-    svg.appendChild(defs);
-    
-    // Head joint - professional flute proportions  
+    // Head joint with embouchure
     const headJoint = document.createElementNS(svgNS,'rect');
-    headJoint.setAttribute('x', fluteLeftToRight ? '5' : '245');
-    headJoint.setAttribute('y','32');
-    headJoint.setAttribute('width','70');
-    headJoint.setAttribute('height','16');
-    headJoint.setAttribute('rx','8');
-    headJoint.setAttribute('fill','url(#metalGrad)');
+    headJoint.setAttribute('x', fluteLeftToRight ? '10' : '250');
+    headJoint.setAttribute('y','25');
+    headJoint.setAttribute('width','60');
+    headJoint.setAttribute('height','30');
+    headJoint.setAttribute('rx','15');
+    headJoint.setAttribute('fill','url(#fluteGrad)');
     headJoint.setAttribute('stroke','#64748b');
-    headJoint.setAttribute('stroke-width','0.8');
+    headJoint.setAttribute('stroke-width','1.5');
     svg.appendChild(headJoint);
     
-    // Embouchure plate - gold plated
-    const embPlate = document.createElementNS(svgNS,'rect');
-    embPlate.setAttribute('x', fluteLeftToRight ? '28' : '268');
-    embPlate.setAttribute('y','28');
-    embPlate.setAttribute('width','24');
-    embPlate.setAttribute('height','24');
-    embPlate.setAttribute('rx','12');
-    embPlate.setAttribute('fill','url(#goldGrad)');
-    embPlate.setAttribute('stroke','#b45309');
-    embPlate.setAttribute('stroke-width','0.5');
-    svg.appendChild(embPlate);
-    
-    // Embouchure hole - precise oval 
+    // Embouchure hole
     const embHole = document.createElementNS(svgNS,'ellipse');
     embHole.setAttribute('cx', fluteLeftToRight ? '40' : '280');
     embHole.setAttribute('cy','40');
-    embHole.setAttribute('rx','6');
-    embHole.setAttribute('ry','3');
-    embHole.setAttribute('fill','#0f172a');
-    embHole.setAttribute('stroke','#374151');
-    embHole.setAttribute('stroke-width','0.5');
+    embHole.setAttribute('rx','8');
+    embHole.setAttribute('ry','4');
+    embHole.setAttribute('fill','#1e293b');
+    embHole.setAttribute('stroke','#475569');
+    embHole.setAttribute('stroke-width','1');
     svg.appendChild(embHole);
     
-    // Body joint - main tube
+    // Body joint
     const bodyJoint = document.createElementNS(svgNS,'rect');
-    bodyJoint.setAttribute('x', fluteLeftToRight ? '78' : '142');
-    bodyJoint.setAttribute('y','33');
+    bodyJoint.setAttribute('x', fluteLeftToRight ? '75' : '145');
+    bodyJoint.setAttribute('y','27');
     bodyJoint.setAttribute('width','100');
-    bodyJoint.setAttribute('height','14');
-    bodyJoint.setAttribute('rx','7');
-    bodyJoint.setAttribute('fill','url(#metalGrad)');
+    bodyJoint.setAttribute('height','26');
+    bodyJoint.setAttribute('rx','13');
+    bodyJoint.setAttribute('fill','url(#fluteGrad)');
     bodyJoint.setAttribute('stroke','#64748b');
-    bodyJoint.setAttribute('stroke-width','0.8');
+    bodyJoint.setAttribute('stroke-width','1.5');
     svg.appendChild(bodyJoint);
     
-    // Foot joint - tapered end
+    // Foot joint
     const footJoint = document.createElementNS(svgNS,'rect');
-    footJoint.setAttribute('x', fluteLeftToRight ? '181' : '89');
-    footJoint.setAttribute('y','34');
-    footJoint.setAttribute('width','50');
-    footJoint.setAttribute('height','12');
-    footJoint.setAttribute('rx','6');
-    footJoint.setAttribute('fill','url(#metalGrad)');
+    footJoint.setAttribute('x', fluteLeftToRight ? '180' : '80');
+    footJoint.setAttribute('y','28');
+    footJoint.setAttribute('width','70');
+    footJoint.setAttribute('height','24');
+    footJoint.setAttribute('rx','12');
+    footJoint.setAttribute('fill','url(#fluteGrad)');
     footJoint.setAttribute('stroke','#64748b');
-    footJoint.setAttribute('stroke-width','0.8');
+    footJoint.setAttribute('stroke-width','1.5');
     svg.appendChild(footJoint);
     
-    // Joint rings - realistic connection points
-    const joints = fluteLeftToRight ? [75, 178] : [142, 92];
-    joints.forEach(x => {
-      const ring = document.createElementNS(svgNS,'rect');
-      ring.setAttribute('x', String(x));
-      ring.setAttribute('y','32');
-      ring.setAttribute('width','3');
-      ring.setAttribute('height','16');
-      ring.setAttribute('fill','#94a3b8');
-      ring.setAttribute('stroke','#64748b');
-      ring.setAttribute('stroke-width','0.5');
-      svg.appendChild(ring);
-    });
+    // Realistic tone hole positions and keys
+    const holePositions = fluteLeftToRight ? 
+      [90, 105, 125, 145, 165, 185] : 
+      [230, 215, 195, 175, 155, 135];
     
-    // Professional key mechanism positions (accurate to real flute)
-    const keyData = fluteLeftToRight ? [
-      {x: 92, name: 'G', type: 'open'},
-      {x: 108, name: 'A', type: 'closed'}, 
-      {x: 124, name: 'B', type: 'closed'},
-      {x: 140, name: 'C', type: 'closed'},
-      {x: 156, name: 'D', type: 'closed'},
-      {x: 190, name: 'Eb', type: 'trill'}
-    ] : [
-      {x: 228, name: 'Eb', type: 'trill'},
-      {x: 194, name: 'D', type: 'closed'},
-      {x: 180, name: 'C', type: 'closed'},
-      {x: 164, name: 'B', type: 'closed'},
-      {x: 148, name: 'A', type: 'closed'},
-      {x: 132, name: 'G', type: 'open'}
-    ];
-    
-    fing.forEach((pressed, i) => {
-      if (i >= keyData.length) return;
-      const keyInfo = keyData[i];
+    fing.forEach((closed,i)=>{
+      const holeX = holePositions[i];
       
-      // Professional key cup
-      const keyCup = document.createElementNS(svgNS, 'circle');
-      keyCup.setAttribute('cx', String(keyInfo.x));
-      keyCup.setAttribute('cy', '40');
-      keyCup.setAttribute('r', keyInfo.type === 'trill' ? '4' : '5');
-      keyCup.setAttribute('fill', pressed ? 'url(#goldGrad)' : 'url(#metalGrad)');
-      keyCup.setAttribute('stroke', '#64748b');
-      keyCup.setAttribute('stroke-width', '0.8');
-      svg.appendChild(keyCup);
+      // Key mechanism (small rectangle above hole)
+      const key = document.createElementNS(svgNS,'rect');
+      key.setAttribute('x', String(holeX - 8));
+      key.setAttribute('y','20');
+      key.setAttribute('width','16');
+      key.setAttribute('height','8');
+      key.setAttribute('rx','2');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
+      key.setAttribute('stroke','#64748b');
+      key.setAttribute('stroke-width','1');
+      svg.appendChild(key);
       
-      // Tone hole (underneath key)
-      const hole = document.createElementNS(svgNS, 'circle');
-      hole.setAttribute('cx', String(keyInfo.x));
-      hole.setAttribute('cy', '40');
-      hole.setAttribute('r', '3');
-      hole.setAttribute('fill', pressed ? '#1e293b' : '#0f172a');
-      hole.setAttribute('stroke', '#374151');
-      hole.setAttribute('stroke-width', '0.5');
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','40');
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
+      hole.setAttribute('stroke','#64748b');
+      hole.setAttribute('stroke-width','1');
       svg.appendChild(hole);
       
-      // Key mechanism arm
-      const arm = document.createElementNS(svgNS, 'rect');
-      arm.setAttribute('x', String(keyInfo.x - 1));
-      arm.setAttribute('y', keyInfo.type === 'open' ? '25' : '22');
-      arm.setAttribute('width', '2');
-      arm.setAttribute('height', keyInfo.type === 'open' ? '8' : '12');
-      arm.setAttribute('fill', '#94a3b8');
-      arm.setAttribute('stroke', '#64748b');
-      arm.setAttribute('stroke-width', '0.3');
-      svg.appendChild(arm);
-      
-      // Key pad (when closed)
-      if (pressed) {
-        const pad = document.createElementNS(svgNS, 'circle');
-        pad.setAttribute('cx', String(keyInfo.x));
-        pad.setAttribute('cy', '40');
-        pad.setAttribute('r', '2');
-        pad.setAttribute('fill', '#fef3c7');
-        pad.setAttribute('opacity', '0.8');
-        svg.appendChild(pad);
-      }
+      // Key spring/mechanism rod
+      const rod = document.createElementNS(svgNS,'line');
+      rod.setAttribute('x1', String(holeX));
+      rod.setAttribute('y1','28');
+      rod.setAttribute('x2', String(holeX));
+      rod.setAttribute('y2','33');
+      rod.setAttribute('stroke','#94a3b8');
+      rod.setAttribute('stroke-width','1');
+      svg.appendChild(rod);
     });
     
   } else {
@@ -4280,479 +4020,46 @@ function updateAll(){
     buildNeyChart();
 }
 
-// === FANCY UI UPGRADE: Animated Audio Visualizer ===
-let audioAnalyser = null;
-let visualizerCanvas = null;
-let visualizerContext = null;
-let visualizerAnimationId = null;
-
-function initAudioVisualizer() {
-  // Create visualizer canvas
-  visualizerCanvas = document.createElement('canvas');
-  visualizerCanvas.id = 'audioVisualizer';
-  visualizerCanvas.width = 300;
-  visualizerCanvas.height = 60;
-  visualizerCanvas.className = 'fixed bottom-4 right-4 bg-black/50 backdrop-blur border border-slate-600 rounded-lg opacity-0 transition-opacity duration-300 z-50';
-  document.body.appendChild(visualizerCanvas);
-  visualizerContext = visualizerCanvas.getContext('2d');
-  
-  // Setup audio analyser
-  if(Tone.context.rawContext && Tone.context.rawContext.createAnalyser) {
-    audioAnalyser = Tone.context.rawContext.createAnalyser();
-    audioAnalyser.fftSize = 64;
-    audioAnalyser.smoothingTimeConstant = 0.8;
-    
-    // Connect master output to analyser
-    if(Tone.Destination._internalNode) {
-      Tone.Destination._internalNode.connect(audioAnalyser);
-    }
-  }
-}
-
-function startVisualizer() {
-  if(!audioAnalyser || !visualizerContext) return;
-  
-  visualizerCanvas.style.opacity = '1';
-  
-  const bufferLength = audioAnalyser.frequencyBinCount;
-  const dataArray = new Uint8Array(bufferLength);
-  
-  function draw() {
-    visualizerAnimationId = requestAnimationFrame(draw);
-    
-    audioAnalyser.getByteFrequencyData(dataArray);
-    
-    visualizerContext.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    visualizerContext.fillRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-    
-    const barWidth = visualizerCanvas.width / bufferLength;
-    let barHeight;
-    let x = 0;
-    
-    for(let i = 0; i < bufferLength; i++) {
-      barHeight = (dataArray[i] / 255) * visualizerCanvas.height;
-      
-      // Create gradient effect
-      const gradient = visualizerContext.createLinearGradient(0, visualizerCanvas.height - barHeight, 0, visualizerCanvas.height);
-      gradient.addColorStop(0, '#3b82f6'); // Blue
-      gradient.addColorStop(0.5, '#8b5cf6'); // Purple  
-      gradient.addColorStop(1, '#f59e0b'); // Amber
-      
-      visualizerContext.fillStyle = gradient;
-      visualizerContext.fillRect(x, visualizerCanvas.height - barHeight, barWidth, barHeight);
-      
-      x += barWidth + 1;
-    }
-  }
-  
-  draw();
-}
-
-function stopVisualizer() {
-  if(visualizerAnimationId) {
-    cancelAnimationFrame(visualizerAnimationId);
-    visualizerAnimationId = null;
-  }
-  if(visualizerCanvas) {
-    visualizerCanvas.style.opacity = '0';
-  }
-}
-
-// Build UI after DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    buildPiano();
-    refreshInstruments();
-    updateAll();
-    runTests();
-    initSequencer();
-    generatePatternLibrary();
-    refreshPatternSelector();
-  } catch(e) {
-    console.error('Error during UI build:', e);
-  }
-
-  // === TAB: Sequencer wiring (non-destructive) ===
-  btnModeChord.addEventListener('click', ()=>{
-    mode='Chord';
-    btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
-    btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    wrapChord.classList.remove('hidden');
-    wrapScale.classList.add('hidden');
-    listenChord.classList.remove('hidden');
-    listenScale.classList.add('hidden');
-    sequencerHost.classList.add('hidden');
-    updateAll();
-  });
-  btnModeScale.addEventListener('click', ()=>{
-    mode='Scale/Mode';
-    btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
-    btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    wrapScale.classList.remove('hidden');
-    wrapChord.classList.add('hidden');
-    listenScale.classList.remove('hidden');
-    listenChord.classList.add('hidden');
-    sequencerHost.classList.add('hidden');
-    updateAll();
-  });
-  btnModeSequencer.addEventListener('click', ()=>{
-    mode='Sequencer';
-    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
-    btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-    wrapChord.classList.add('hidden');
-    wrapScale.classList.add('hidden');
-    listenChord.classList.add('hidden');
-    listenScale.classList.add('hidden');
-    sequencerHost.classList.remove('hidden');
-    updateAll();
-  });
+// Build UI
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector();
+// === TAB: Sequencer wiring (non-destructive) ===
+btnModeChord.addEventListener('click', ()=>{
+  mode='Chord';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.remove('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.remove('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeScale.addEventListener('click', ()=>{
+  mode='Scale/Mode';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapScale.classList.remove('hidden');
+  wrapChord.classList.add('hidden');
+  listenScale.classList.remove('hidden');
+  listenChord.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeSequencer.addEventListener('click', ()=>{
+  mode='Sequencer';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.add('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.add('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.remove('hidden');
+  updateAll();
 });
 
-// Initialize visualizer after Tone.js is ready
-setTimeout(() => {
-  initAudioVisualizer();
-}, 1000);
-
-// === QOL UPGRADE: Chord Progression Builder ===
-const ROMAN_NUMERALS = {
-  'I': 0, 'ii': 1, 'iii': 2, 'IV': 3, 'V': 4, 'vi': 5, 'vii°': 6, 'bVII': 10
-};
-
-const CHORD_QUALITIES = {
-  'I': 'maj', 'ii': 'min', 'iii': 'min', 'IV': 'maj', 'V': 'maj', 'vi': 'min', 'vii°': 'dim', 'bVII': 'maj'
-};
-
-let currentProgression = null;
-
-function romanNumeralToChord(numeral, key) {
-  const keyIndex = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'].indexOf(key);
-  const degree = ROMAN_NUMERALS[numeral];
-  if (degree === undefined) return null;
-  
-  const rootIndex = (keyIndex + degree) % 12;
-  const rootNote = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][rootIndex];
-  const quality = CHORD_QUALITIES[numeral] || 'maj';
-  
-  // Generate chord intervals based on quality
-  let intervals;
-  switch(quality) {
-    case 'maj': intervals = [0, 4, 7]; break;
-    case 'min': intervals = [0, 3, 7]; break;
-    case 'dim': intervals = [0, 3, 6]; break;
-    default: intervals = [0, 4, 7];
-  }
-  
-  return {
-    root: rootNote,
-    intervals: intervals.map(i => (rootIndex + i) % 12),
-    quality: quality,
-    name: rootNote + (quality === 'min' ? 'm' : quality === 'dim' ? '°' : '')
-  };
-}
-
-function generateProgression(romanNumerals, key) {
-  return romanNumerals.map(numeral => romanNumeralToChord(numeral, key)).filter(Boolean);
-}
-
-function displayProgression(progression) {
-  const preview = document.getElementById('progressionPreview');
-  if (!progression) {
-    preview.innerHTML = '<div class="text-slate-400 text-sm italic">Select a progression above to preview chords</div>';
-    return;
-  }
-  
-  const chordDivs = progression.map((chord, i) => {
-    return `<div class="inline-flex flex-col items-center bg-slate-800/50 rounded-lg p-3 mr-2 mb-2">
-      <div class="text-lg font-semibold text-slate-200">${chord.name}</div>
-      <div class="text-xs text-slate-400">${chord.root} ${chord.quality}</div>
-    </div>`;
-  }).join('');
-  
-  preview.innerHTML = `<div class="flex flex-wrap">${chordDivs}</div>`;
-}
-
-async function playProgression(progression) {
-  if (!progression) return;
-  
-  startVisualizer();
-  
-  for (let i = 0; i < progression.length; i++) {
-    const chord = progression[i];
-    const midiNotes = chord.intervals.map(pc => midiFrom(pcName(pc), 4));
-    
-    _synth.triggerAttackRelease(midiNotes.map(midiToFreq), '2n');
-    
-    // Highlight current chord
-    const chordDivs = document.querySelectorAll('#progressionPreview > div > div');
-    chordDivs.forEach((div, idx) => {
-      div.className = idx === i ? 
-        'inline-flex flex-col items-center bg-blue-600/70 rounded-lg p-3 mr-2 mb-2 transition-colors' :
-        'inline-flex flex-col items-center bg-slate-800/50 rounded-lg p-3 mr-2 mb-2 transition-colors';
-    });
-    
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second per chord
-  }
-  
-  // Reset highlighting
-  const chordDivs = document.querySelectorAll('#progressionPreview > div > div');
-  chordDivs.forEach(div => {
-    div.className = 'inline-flex flex-col items-center bg-slate-800/50 rounded-lg p-3 mr-2 mb-2 transition-colors';
-  });
-  
-  setTimeout(() => stopVisualizer(), 500);
-}
-
-function addProgressionToSequencer(progression) {
-  if (!progression) return;
-  
-  const clip = song.tracks[activeTrack].clips[0];
-  const startTick = Tone.Transport.ticks || 0;
-  const chordDuration = song.ppq * 4; // 1 bar per chord
-  
-  progression.forEach((chord, i) => {
-    const tick = startTick + (i * chordDuration);
-    chord.intervals.forEach(pc => {
-      const midi = midiFrom(pcName(pc), 4);
-      clip.notes.push({
-        tick: tick,
-        dur: chordDuration,
-        midi: midi,
-        vel: 0.8
-      });
-    });
-  });
-  
-  drawPianoRoll();
-  if(Tone.Transport.state === 'started') scheduleSong();
-}
-
-// === FANCY UI UPGRADE: Musical Note Particles ===
-class NoteParticle {
-  constructor(x, y, note) {
-    this.x = x;
-    this.y = y;
-    this.note = note;
-    this.vx = (Math.random() - 0.5) * 4;
-    this.vy = -Math.random() * 3 - 1;
-    this.life = 1.0;
-    this.decay = 0.02;
-    this.size = Math.random() * 20 + 15;
-    this.rotation = Math.random() * 360;
-    this.rotationSpeed = (Math.random() - 0.5) * 5;
-  }
-  
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.vy += 0.1; // gravity
-    this.life -= this.decay;
-    this.rotation += this.rotationSpeed;
-    return this.life > 0;
-  }
-  
-  draw(ctx) {
-    ctx.save();
-    ctx.globalAlpha = this.life;
-    ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotation * Math.PI / 180);
-    ctx.font = `${this.size}px serif`;
-    ctx.fillStyle = `hsl(${(this.note * 30) % 360}, 70%, 60%)`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('♫', 0, 0);
-    ctx.restore();
-  }
-}
-
-let particles = [];
-let particleCanvas = null;
-let particleContext = null;
-let particleAnimationId = null;
-
-function initParticleSystem() {
-  particleCanvas = document.createElement('canvas');
-  particleCanvas.className = 'fixed top-0 left-0 pointer-events-none z-40';
-  particleCanvas.width = window.innerWidth;
-  particleCanvas.height = window.innerHeight;
-  document.body.appendChild(particleCanvas);
-  particleContext = particleCanvas.getContext('2d');
-  
-  // Resize handler
-  window.addEventListener('resize', () => {
-    particleCanvas.width = window.innerWidth;
-    particleCanvas.height = window.innerHeight;
-  });
-}
-
-function createNoteParticles(x, y, notes) {
-  if (!Array.isArray(notes)) notes = [notes];
-  notes.forEach((note, i) => {
-    setTimeout(() => {
-      particles.push(new NoteParticle(x + i * 10, y, note));
-      if (!particleAnimationId) startParticleAnimation();
-    }, i * 100);
-  });
-}
-
-function startParticleAnimation() {
-  function animate() {
-    particleAnimationId = requestAnimationFrame(animate);
-    
-    particleContext.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-    
-    particles = particles.filter(particle => {
-      particle.draw(particleContext);
-      return particle.update();
-    });
-    
-    if (particles.length === 0) {
-      cancelAnimationFrame(particleAnimationId);
-      particleAnimationId = null;
-    }
-  }
-  animate();
-}
-
-// Initialize particle system (temporarily disabled to fix UI)
-// setTimeout(() => {
-//   initParticleSystem();
-// }, 1000);
-
-// === QOL UPGRADE: Smart Auto-Accompaniment ===
-function analyzeChordProgression() {
-  const chords = [];
-  const clip = song.tracks[activeTrack].clips[0];
-  const chordDuration = song.ppq * 4; // 4 beats per chord
-  
-  // Group notes by time to detect chords
-  const notesByTime = {};
-  clip.notes.forEach(note => {
-    const chordTime = Math.floor(note.tick / chordDuration) * chordDuration;
-    if (!notesByTime[chordTime]) notesByTime[chordTime] = [];
-    notesByTime[chordTime].push(note);
-  });
-  
-  // Analyze each chord
-  Object.keys(notesByTime).forEach(time => {
-    const notes = notesByTime[time];
-    const pitchClasses = [...new Set(notes.map(n => n.midi % 12))].sort((a,b) => a-b);
-    const root = pitchClasses[0];
-    chords.push({
-      time: parseInt(time),
-      root: root,
-      pitches: pitchClasses,
-      duration: chordDuration
-    });
-  });
-  
-  return chords;
-}
-
-function generateBassLine(chords, style) {
-  const bassTrack = 1; // Use track 2 for bass
-  song.tracks[bassTrack].clips[0].notes = []; // Clear existing notes
-  
-  chords.forEach(chord => {
-    const rootNote = chord.root + 24; // Bass octave (C2)
-    
-    switch(style) {
-      case 'root':
-        song.tracks[bassTrack].clips[0].notes.push({
-          tick: chord.time,
-          dur: chord.duration,
-          midi: rootNote,
-          vel: 0.7
-        });
-        break;
-        
-      case 'walking':
-        // Walking bass pattern
-        const walkingNotes = [rootNote, rootNote + 2, rootNote + 4, rootNote + 5];
-        walkingNotes.forEach((midi, i) => {
-          song.tracks[bassTrack].clips[0].notes.push({
-            tick: chord.time + (i * chord.duration / 4),
-            dur: chord.duration / 4,
-            midi: midi,
-            vel: 0.6
-          });
-        });
-        break;
-        
-      case 'alberti':
-        // Alberti bass pattern (1-5-3-5)
-        const albertiPattern = [rootNote, rootNote + 7, rootNote + 4, rootNote + 7];
-        albertiPattern.forEach((midi, i) => {
-          song.tracks[bassTrack].clips[0].notes.push({
-            tick: chord.time + (i * chord.duration / 4),
-            dur: chord.duration / 8,
-            midi: midi,
-            vel: 0.5
-          });
-        });
-        break;
-    }
-  });
-  
-  song.tracks[bassTrack].instrument = 'Bass';
-}
-
-function generateDrumPattern(chords, style) {
-  const drumTrack = 2; // Use track 3 for drums
-  song.tracks[drumTrack].clips[0].notes = []; // Clear existing notes
-  
-  const kick = 36; // C2
-  const snare = 38; // D2
-  const hihat = 42; // F#2
-  
-  chords.forEach(chord => {
-    const measures = chord.duration / (song.ppq * 4);
-    
-    switch(style) {
-      case 'basic':
-        // Simple 4/4 pattern
-        [0, 2, 1, 3].forEach((beat, i) => {
-          const tick = chord.time + (beat * song.ppq);
-          if (beat % 2 === 0) {
-            song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/4, midi: kick, vel: 0.8});
-          } else {
-            song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/4, midi: snare, vel: 0.7});
-          }
-          song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/4, midi: hihat, vel: 0.4});
-        });
-        break;
-        
-      case 'rock':
-        // Rock beat pattern
-        [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].forEach((beat, i) => {
-          const tick = chord.time + (beat * song.ppq);
-          if (beat === 0 || beat === 2) {
-            song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/4, midi: kick, vel: 0.9});
-          }
-          if (beat === 1 || beat === 3) {
-            song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/4, midi: snare, vel: 0.8});
-          }
-          song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/8, midi: hihat, vel: 0.3});
-        });
-        break;
-        
-      case 'jazz':
-        // Jazz swing pattern
-        [0, 0.67, 1.33, 2, 2.67, 3.33].forEach((beat, i) => {
-          const tick = chord.time + (beat * song.ppq);
-          if (i % 3 === 0) {
-            song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/3, midi: kick, vel: 0.6});
-          }
-          song.tracks[drumTrack].clips[0].notes.push({tick, dur: song.ppq/6, midi: hihat, vel: 0.4});
-        });
-        break;
-    }
-  });
-  
-  song.tracks[drumTrack].instrument = 'Drums';
-}
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
@@ -4777,7 +4084,6 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
-seqAutoStop.addEventListener('change', updateLoop);
 seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
 seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
 
@@ -4858,88 +4164,6 @@ patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
 btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
 
-// Chord Progression Builder event listeners (with error handling)
-try {
-  document.querySelectorAll('.progression-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      try {
-        const progressionString = btn.dataset.progression;
-        const romanNumerals = progressionString.split(',');
-        currentProgression = generateProgression(romanNumerals, keyRoot);
-        displayProgression(currentProgression);
-        
-        // Highlight selected button
-        document.querySelectorAll('.progression-btn').forEach(b => {
-          b.className = 'progression-btn bg-slate-700/50 hover:bg-slate-600/50 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-200 transition-all duration-200';
-        });
-        btn.className = 'progression-btn bg-blue-600/70 hover:bg-blue-500/70 border border-blue-500 rounded-lg px-3 py-2 text-sm text-white transition-all duration-200';
-      } catch(e) {
-        console.error('Error with progression button:', e);
-      }
-    });
-  });
-
-  document.getElementById('playProgression')?.addEventListener('click', () => {
-    try {
-      if (currentProgression) {
-        playProgression(currentProgression);
-      }
-    } catch(e) {
-      console.error('Error playing progression:', e);
-    }
-  });
-
-  document.getElementById('addProgressionToTrack')?.addEventListener('click', () => {
-    try {
-      if (currentProgression) {
-        addProgressionToSequencer(currentProgression);
-      }
-    } catch(e) {
-      console.error('Error adding progression to track:', e);
-    }
-  });
-} catch(e) {
-  console.error('Error setting up progression listeners:', e);
-}
-
-// Auto-Accompaniment event listeners (with error handling)
-try {
-  document.getElementById('generateAccompaniment')?.addEventListener('click', () => {
-    try {
-      const chords = analyzeChordProgression();
-      if (chords.length === 0) {
-        alert('No chords detected. Please add some chord notes to the sequencer first.');
-        return;
-      }
-      
-      const bassStyle = document.querySelector('input[name="bassStyle"]:checked')?.value || 'root';
-      const rhythmStyle = document.querySelector('input[name="rhythmStyle"]:checked')?.value || 'basic';
-      
-      generateBassLine(chords, bassStyle);
-      generateDrumPattern(chords, rhythmStyle);
-      
-      drawPianoRoll();
-      if(Tone.Transport.state === 'started') scheduleSong();
-    } catch(e) {
-      console.error('Error generating accompaniment:', e);
-    }
-  });
-
-  document.getElementById('clearAccompaniment')?.addEventListener('click', () => {
-    try {
-      // Clear bass and drum tracks
-      song.tracks[1].clips[0].notes = [];
-      song.tracks[2].clips[0].notes = [];
-      drawPianoRoll();
-      if(Tone.Transport.state === 'started') scheduleSong();
-    } catch(e) {
-      console.error('Error clearing accompaniment:', e);
-    }
-  });
-} catch(e) {
-  console.error('Error setting up accompaniment listeners:', e);
-}
-
 // Listen buttons
 $('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
 $('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
@@ -4971,9 +4195,6 @@ $('#btnPlaySelArp').addEventListener('click', ()=>{
 seqPlay.addEventListener('click', async ()=>{
   try {
     await ensureTone('Piano');
-    
-    // Start visualizer
-    startVisualizer();
     
     if(sequencerState === 'paused') {
       // Resume from pause
@@ -5023,9 +4244,6 @@ seqStop.addEventListener('click', ()=>{
   Tone.Transport.cancel();
   if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
   if(autoStopId!==null){ Tone.Transport.clear(autoStopId); autoStopId=null; }
-  
-  // Stop visualizer
-  stopVisualizer();
   song.tracks.forEach(t=>{ 
     if(t.part) { t.part.dispose(); t.part = null; }
     if(t.player){ t.player.dispose(); t.player=null; }
