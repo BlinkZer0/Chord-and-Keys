@@ -8,6 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+  <!-- Tonejs-instruments for high-quality sampled instruments -->
+  <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
@@ -262,6 +264,79 @@
     </section>
 
     <!-- ============ Tests ============ -->
+    <details id="settings">
+      <summary class="flex items-center gap-1 cursor-pointer" title="Toggle settings panel" aria-expanded="false">
+        <span class="chevron">▼</span> Settings
+      </summary>
+      <section class="mb-6 bg-slate-800/30 rounded-lg p-4 border border-slate-600">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Audio Settings -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Audio Settings</h3>
+            
+            <div class="space-y-2">
+              <label class="block text-xs text-slate-400">Sample Quality</label>
+              <select id="sampleQuality" class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1 text-sm w-full">
+                <option value="high">High Quality (slower loading)</option>
+                <option value="medium" selected>Medium Quality (balanced)</option>
+                <option value="low">Low Quality (faster loading)</option>
+              </select>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs text-slate-400">Reverb Amount</label>
+              <div class="flex items-center gap-2">
+                <input type="range" id="reverbAmount" min="0" max="100" value="15" class="flex-1">
+                <span id="reverbValue" class="text-xs text-slate-400 w-8">15%</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="enableSamples" checked class="rounded">
+              <label for="enableSamples" class="text-xs text-slate-400">Use high-quality samples</label>
+            </div>
+          </div>
+
+          <!-- Interface Settings -->
+          <div class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Interface Settings</h3>
+            
+            <div class="space-y-2">
+              <label class="block text-xs text-slate-400">Piano Key Size</label>
+              <select id="pianoKeySize" class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1 text-sm w-full">
+                <option value="small">Small</option>
+                <option value="medium" selected>Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="enableKeyLabels" checked class="rounded">
+              <label for="enableKeyLabels" class="text-xs text-slate-400">Show note labels on keys</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="enableAnimations" checked class="rounded">
+              <label for="enableAnimations" class="text-xs text-slate-400">Enable animations</label>
+            </div>
+
+            <!-- Session Management -->
+            <div class="space-y-2 pt-2 border-t border-slate-600">
+              <h4 class="text-xs font-medium text-slate-400">Session Management</h4>
+              <div class="flex gap-2">
+                <button id="saveSession" class="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 text-white">Save Session</button>
+                <button id="loadSession" class="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 text-white">Load Session</button>
+              </div>
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="enableAutoSave" checked class="rounded">
+                <label for="enableAutoSave" class="text-xs text-slate-400">Auto-save every 30s</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </details>
+
     <details id="devTests">
       <summary class="flex items-center gap-1 cursor-pointer" title="Toggle automated self-tests" aria-expanded="false">
         <span class="chevron">▼</span> Automated Self‑Tests (dev)
@@ -647,15 +722,77 @@ function makeAM(env){
   };
 }
 
+// ========================= SAMPLE-BASED INSTRUMENTS =========================
+let sampleLibrary = null;
+const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar', 'flute'];
+
+function makeSampler(instrumentName) {
+  if (!sampleLibrary || !sampleLibrary[instrumentName]) {
+    console.warn(`Sample library not loaded for ${instrumentName}, falling back to synthesis`);
+    return null;
+  }
+  
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const sampler = sampleLibrary[instrumentName];
+  
+  if (sampler) {
+    sampler.disconnect();
+    sampler.connect(gain);
+  }
+  
+  return {
+    trigger(midi, time = Tone.now(), velocity = 1, dur = '8n') {
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        sampler.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn(`Sampler trigger error for ${instrumentName}:`, e);
+      }
+    },
+    release(midi, time = Tone.now()) {
+      try {
+        sampler.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors for samplers
+      }
+    },
+    setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose() { 
+      if (sampler) sampler.disconnect();
+      gain.dispose(); 
+      panner.dispose(); 
+    }
+  };
+}
+
+// Initialize the sample library
+async function initSampleLibrary() {
+  try {
+    if (typeof SampleLibrary !== 'undefined') {
+      console.log('Loading sample library...');
+      sampleLibrary = SampleLibrary.load({
+        instruments: SAMPLED_INSTRUMENTS,
+        baseUrl: "https://nbrosowsky.github.io/tonejs-instruments/samples/"
+      });
+      console.log('Sample library loaded successfully');
+    }
+  } catch(e) {
+    console.warn('Failed to load sample library:', e);
+  }
+}
+
 const SEQ_INSTR = {
-  Piano: () => makePoly(ENV.Piano, {vibrato: false}),
-  Guitar: () => makePluck(),
+  Piano: () => makeSampler('piano') || makePoly(ENV.Piano, {vibrato: false}),
+  Guitar: () => makeSampler('guitar') || makePluck(),
   Bass: () => makeMono(ENV.Bass),
-  Violin: () => makePoly(ENV.Violin, {vibrato: true}),
-  Flute: () => makePoly(ENV.Flute, {vibrato: true}),
+  Violin: () => makeSampler('violin') || makePoly(ENV.Violin, {vibrato: true}),
+  Flute: () => makeSampler('flute') || makePoly(ENV.Flute, {vibrato: true}),
   Recorder: () => makePoly(ENV.Recorder, {vibrato: false}),
-  Trumpet: () => makePoly(ENV.Trumpet, {vibrato: true}),
-  Saxophone: () => makePoly(ENV.Saxophone, {vibrato: true}),
+  Trumpet: () => makeSampler('trumpet') || makePoly(ENV.Trumpet, {vibrato: true}),
+  Saxophone: () => makeSampler('saxophone') || makePoly(ENV.Saxophone, {vibrato: true}),
   Koto: () => makePluck(),
   Oud: () => makePluck(),
   Ney: () => makePoly(ENV.Ney, {vibrato: true}),
@@ -680,7 +817,14 @@ function createSeqInstrument(name){
 }
 
 async function ensureTone(instr){ 
-  if(!_started){ try{ await Tone.start(); }catch{} _started=true; } 
+  if(!_started){ 
+    try{ 
+      await Tone.start(); 
+      // Initialize sample library after Tone.js is started
+      initSampleLibrary();
+    }catch{} 
+    _started=true; 
+  } 
   if(!_synth){ 
     _synth = new Tone.PolySynth(Tone.Synth);
     
@@ -2376,16 +2520,16 @@ function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createEle
 const FLUTE_FINGERINGS = {
   C:[1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1],
-  D:[0,0,1,1,1,1],
-  'D#':[0,0,0,1,1,1],
-  E:[0,0,0,0,1,1],
-  F:[0,0,0,0,0,1],
-  'F#':[0,0,0,0,0,0],
-  G:[1,0,0,0,0,0],
-  'G#':[1,1,0,0,0,0],
-  A:[1,1,1,0,0,0],
-  'A#':[1,1,1,1,0,0],
-  B:[1,1,1,1,1,0]
+  D:[0,1,1,1,1,1],
+  'D#':[1,0,0,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,0,1],
+  'G#':[0,0,0,0,0,0],
+  A:[0,1,0,0,0,0],
+  'A#':[1,0,0,0,0,0],
+  B:[0,1,1,0,0,0]
 };
 /*
   Flute chart layout
@@ -2658,15 +2802,15 @@ const RECORDER_FINGERINGS = {
   C:[1,1,1,1,1,1,1,1],
   'C#':[1,1,1,1,1,1,1,0],
   D:[1,1,1,1,1,1,0,0],
-  'D#':[1,1,1,1,1,0,0,0],
+  'D#':[1,1,1,1,1,0,0,1],
   E:[1,1,1,1,0,0,0,0],
   F:[1,1,1,0,0,0,0,0],
   'F#':[1,1,0,0,0,0,0,0],
   G:[1,0,0,0,0,0,0,0],
-  'G#':[0,0,0,0,0,0,0,0],
-  A:[0,0,0,0,0,0,0,1],
-  'A#':[0,0,0,0,0,0,1,1],
-  B:[0,0,0,0,0,1,1,1]
+  'G#':[0,1,1,0,0,0,0,0],
+  A:[0,1,0,0,0,0,0,0],
+  'A#':[0,1,1,1,0,0,0,0],
+  B:[0,1,1,0,0,0,0,0]
 };
 /*
   Recorder chart layout
@@ -2997,7 +3141,7 @@ const TRUMPET_FINGERINGS = {
   F:[1,0,0],
   'F#':[0,1,0],
   G:[0,0,0],
-  'G#':[0,1,1],
+  'G#':[1,0,1],
   A:[1,1,0],
   'A#':[1,0,0],
   B:[0,1,0]
@@ -3318,16 +3462,16 @@ function buildTrumpetChart(){
 const SAX_FINGERINGS = {
   C:[1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1],
-  D:[0,0,1,1,1,1],
-  'D#':[0,0,0,1,1,1],
-  E:[0,0,0,0,1,1],
-  F:[0,0,0,0,0,1],
-  'F#':[0,0,0,0,0,0],
-  G:[1,0,0,0,0,0],
-  'G#':[1,1,0,0,0,0],
-  A:[1,1,1,0,0,0],
-  'A#':[1,1,1,1,0,0],
-  B:[1,1,1,1,1,0]
+  D:[0,1,1,1,1,1],
+  'D#':[1,0,0,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,0,1],
+  'G#':[0,0,0,0,0,0],
+  A:[0,1,0,0,0,0],
+  'A#':[1,0,0,0,0,0],
+  B:[0,1,1,0,0,0]
 };
 /*
   Saxophone chart layout
@@ -3660,11 +3804,11 @@ function buildSaxophoneChart(){
 const NEY_FINGERINGS = {
   C:[1,1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1,1],
-  D:[0,0,1,1,1,1,1],
-  'D#':[0,0,0,1,1,1,1],
-  E:[0,0,0,0,1,1,1],
-  F:[0,0,0,0,0,1,1],
-  'F#':[0,0,0,0,0,0,1],
+  D:[0,1,1,1,1,1,0],
+  'D#':[1,0,0,1,1,1,1],
+  E:[0,0,1,1,1,0,0],
+  F:[0,0,0,1,1,0,0],
+  'F#':[0,0,0,0,1,0,0],
   G:[0,0,0,0,0,0,0],
   'G#':[1,0,0,0,0,0,0],
   A:[1,1,0,0,0,0,0],
@@ -4129,6 +4273,169 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
+
+// Settings event listeners
+const reverbAmountSlider = $('#reverbAmount');
+const reverbValue = $('#reverbValue');
+const enableSamplesCheckbox = $('#enableSamples');
+const sampleQualitySelect = $('#sampleQuality');
+
+reverbAmountSlider?.addEventListener('input', (e) => {
+  const value = e.target.value;
+  reverbValue.textContent = value + '%';
+  // Store in localStorage
+  localStorage.setItem('reverbAmount', value);
+});
+
+enableSamplesCheckbox?.addEventListener('change', (e) => {
+  const enabled = e.target.checked;
+  localStorage.setItem('enableSamples', enabled);
+  // Reinitialize audio system if needed
+  if (enabled && !sampleLibrary) {
+    initSampleLibrary();
+  }
+});
+
+sampleQualitySelect?.addEventListener('change', (e) => {
+  const quality = e.target.value;
+  localStorage.setItem('sampleQuality', quality);
+});
+
+// Load settings from localStorage
+function loadSettings() {
+  const reverbAmount = localStorage.getItem('reverbAmount') || '15';
+  const enableSamples = localStorage.getItem('enableSamples') !== 'false';
+  const sampleQuality = localStorage.getItem('sampleQuality') || 'medium';
+  
+  if (reverbAmountSlider) {
+    reverbAmountSlider.value = reverbAmount;
+    reverbValue.textContent = reverbAmount + '%';
+  }
+  if (enableSamplesCheckbox) {
+    enableSamplesCheckbox.checked = enableSamples;
+  }
+  if (sampleQualitySelect) {
+    sampleQualitySelect.value = sampleQuality;
+  }
+}
+
+// Load settings on page load
+loadSettings();
+
+// Session management
+const saveSessionBtn = $('#saveSession');
+const loadSessionBtn = $('#loadSession');
+const enableAutoSaveCheckbox = $('#enableAutoSave');
+let autoSaveInterval = null;
+
+function saveSessionToLocal() {
+  try {
+    const sessionData = {
+      timestamp: Date.now(),
+      song: JSON.parse(serializeSong()),
+      settings: {
+        reverbAmount: localStorage.getItem('reverbAmount') || '15',
+        enableSamples: localStorage.getItem('enableSamples') !== 'false',
+        sampleQuality: localStorage.getItem('sampleQuality') || 'medium'
+      },
+      version: '1.0'
+    };
+    localStorage.setItem('chordsAndKeys_session', JSON.stringify(sessionData));
+    return true;
+  } catch(e) {
+    console.error('Failed to save session:', e);
+    return false;
+  }
+}
+
+function loadSessionFromLocal() {
+  try {
+    const sessionData = localStorage.getItem('chordsAndKeys_session');
+    if (sessionData) {
+      const data = JSON.parse(sessionData);
+      if (data.song) {
+        loadSong(data.song);
+      }
+      if (data.settings) {
+        // Apply settings
+        Object.entries(data.settings).forEach(([key, value]) => {
+          localStorage.setItem(key, value);
+        });
+        loadSettings();
+      }
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.error('Failed to load session:', e);
+    return false;
+  }
+}
+
+function setupAutoSave() {
+  const enabled = enableAutoSaveCheckbox?.checked !== false;
+  localStorage.setItem('enableAutoSave', enabled);
+  
+  if (autoSaveInterval) {
+    clearInterval(autoSaveInterval);
+    autoSaveInterval = null;
+  }
+  
+  if (enabled) {
+    autoSaveInterval = setInterval(() => {
+      if (saveSessionToLocal()) {
+        // Show brief indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-2 py-1 rounded text-xs opacity-75 z-50';
+        indicator.textContent = 'Session saved';
+        document.body.appendChild(indicator);
+        setTimeout(() => indicator.remove(), 2000);
+      }
+    }, 30000); // 30 seconds
+  }
+}
+
+saveSessionBtn?.addEventListener('click', () => {
+  if (saveSessionToLocal()) {
+    seqStatus.textContent = '✅ Session saved locally';
+  } else {
+    seqStatus.textContent = '❌ Failed to save session';
+  }
+});
+
+loadSessionBtn?.addEventListener('click', () => {
+  if (loadSessionFromLocal()) {
+    seqStatus.textContent = '✅ Session loaded from local storage';
+  } else {
+    seqStatus.textContent = '❌ No saved session found';
+  }
+});
+
+enableAutoSaveCheckbox?.addEventListener('change', setupAutoSave);
+
+// Load auto-save setting and start if enabled
+function initSessionManagement() {
+  const enableAutoSave = localStorage.getItem('enableAutoSave') !== 'false';
+  if (enableAutoSaveCheckbox) {
+    enableAutoSaveCheckbox.checked = enableAutoSave;
+  }
+  setupAutoSave();
+  
+  // Try to load last session on startup
+  const hasSession = localStorage.getItem('chordsAndKeys_session');
+  if (hasSession) {
+    // Show option to restore previous session
+    setTimeout(() => {
+      if (confirm('Would you like to restore your previous session?')) {
+        loadSessionFromLocal();
+      }
+    }, 1000);
+  }
+}
+
+// Initialize session management after page load
+setTimeout(initSessionManagement, 500);
+
 const skinClasses = {
   default: 'skin-default',
   solarized: 'skin-solarized',

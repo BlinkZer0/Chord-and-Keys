@@ -5,7 +5,11 @@
       "Bash(node:*)",
       "WebSearch",
       "WebFetch(domain:www.svgrepo.com)",
-      "WebFetch(domain:freesvg.org)"
+      "WebFetch(domain:freesvg.org)",
+      "Bash(cp:*)",
+      "Bash(start chord_scale_library_html_tailwind_tone.html)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:nbrosowsky.github.io)"
     ],
     "deny": [],
     "ask": []

@@ -1,36 +1,69 @@
-<?xml version="1.0" encoding="iso-8859-1"?>
-<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg fill="#000000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
-	 width="800px" height="800px" viewBox="0 0 445.57 445.571"
-	 xml:space="preserve">
-<g>
-	<g>
-		<path d="M372.867,234.644c-10.716-20.554-31.858-57.386-56.997-81.798c-6.741-6.546-18.646-6.017-25.106,0.802
-			c-17.597,18.536-48.538,56.958-53.359,102.216c-1.591,14.896-2.26,30.604-2.692,45.828h-28.068
-			c1.44-39.825,5.035-87.925,9.019-132.813h12.465c1.775,3.039,5.033,5.113,8.8,5.113c5.643,0,10.219-4.579,10.219-10.231
-			c0-5.643-4.576-10.213-10.219-10.213c-3.768,0-7.033,2.082-8.8,5.104h-11.563c0.845-9.303,1.705-18.408,2.559-27.241h13.26
-			c1.768,3.038,5.029,5.104,8.793,5.104c5.643,0,10.219-4.57,10.219-10.223c0-5.643-4.576-10.213-10.219-10.213
-			c-3.764,0-7.033,2.07-8.793,5.104h-12.278c0.936-9.538,1.852-18.661,2.733-27.243h13.805c1.779,3.04,5.029,5.105,8.797,5.105
-			c5.643,0,10.219-4.57,10.219-10.223c0-5.646-4.576-10.213-10.219-10.213c-3.768,0-7.025,2.062-8.797,5.104h-12.747
-			c3.094-29.709,5.566-51.243,6.271-57.395c0.693-4.412,1.36-8.684,2.012-12.815c0,0,0.533-3.366,1.179-7.536
-			c0.657-4.152-2.136-6.734-6.226-5.761l-7.421,1.781c-54.998,13.148-102.548,12.531-103.017,12.509l-0.357,20.434
-			c1.872,0.024,42.441,0.595,93.351-9.782c-0.204,1.364-0.431,2.855-0.675,4.404c-6.321,25.15-46.811,188.236-60.135,290.157
-			c-14.475,110.682,24.582,120.893,63.792,125.141c39.219,4.26,66.465-8.513,77.533-88.524
-			c9.767-70.695,32.829-98.867,73.276-105.079C372.764,249.824,377.216,242.975,372.867,234.644z M180.465,357.873
-			c-5.643,0-10.219-4.585-10.219-10.228s4.576-10.211,10.219-10.211c5.641,0,10.225,4.568,10.225,10.211
-			C190.682,353.288,186.098,357.873,180.465,357.873z M180.465,315.293c-5.643,0-10.219-4.568-10.219-10.211
-			s4.576-10.211,10.219-10.211c5.641,0,10.225,4.568,10.225,10.211C190.682,310.725,186.098,315.293,180.465,315.293z
-			 M180.465,266.214c-6.277,0-11.365-5.077-11.365-11.36c0-6.272,5.095-11.357,11.365-11.357c6.284,0,11.363,5.094,11.363,11.357
-			C191.828,261.137,186.749,266.214,180.465,266.214z M188.42,230.756c-4.391,0-7.961-3.566-7.961-7.967
-			c0-4.399,3.564-7.96,7.961-7.96c4.396,0,7.953,3.561,7.953,7.96C196.373,227.19,192.816,230.756,188.42,230.756z M214.42,389.511
-			c-4.681-1.595-7.125-14.595-8.023-34.765h26.465C231.041,378.586,226.721,393.707,214.42,389.511z M233.483,344.524h-27.401
-			c-0.172-9.734-0.068-20.742,0.254-32.621h28.126C234.179,323.445,233.962,334.529,233.483,344.524z M255.658,357.873
-			c-5.643,0-10.219-4.585-10.219-10.228s4.576-10.211,10.219-10.211s10.227,4.568,10.227,10.211S261.301,357.873,255.658,357.873z
-			 M255.658,315.293c-5.643,0-10.219-4.568-10.219-10.211s4.576-10.211,10.219-10.211s10.227,4.568,10.227,10.211
-			S261.301,315.293,255.658,315.293z"/>
-		<path d="M76.599,30.979c15.701,4.412,35.656,3.753,35.656,3.753l0.815-19.785c0,0-11.986,1.347-23.927,3.833
-			C82.7,20.123,60.897,26.566,76.599,30.979z"/>
-	</g>
-</g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Brass gradient for saxophone -->
+    <linearGradient id="saxGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="30%" style="stop-color:#d97706;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#b45309;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#92400e;stop-opacity:1" />
+    </linearGradient>
+    <!-- Key gradient -->
+    <radialGradient id="keyGradient" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#cbd5e1;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Mouthpiece -->
+  <ellipse cx="100" cy="20" rx="8" ry="12" fill="#1c1917" stroke="#92400e" stroke-width="2"/>
+  
+  <!-- Neck (curved) -->
+  <path d="M 100 32 Q 90 45 95 60 Q 100 75 105 90" stroke="url(#saxGradient)" stroke-width="12" fill="none" stroke-linecap="round"/>
+  
+  <!-- Upper body (straight section) -->
+  <rect x="95" y="90" width="20" height="80" rx="10" fill="url(#saxGradient)" stroke="#92400e" stroke-width="2"/>
+  
+  <!-- Curved body section (characteristic sax curve) -->
+  <path d="M 105 170 Q 120 185 135 200 Q 150 215 160 235 Q 165 250 160 265" stroke="url(#saxGradient)" stroke-width="18" fill="none" stroke-linecap="round"/>
+  
+  <!-- Bell section -->
+  <path d="M 160 265 Q 155 280 140 290 Q 120 295 95 290 Q 75 285 70 270 Q 68 255 75 245 Q 85 240 100 245 Q 120 250 135 260 Q 150 270 160 265 Z" fill="url(#saxGradient)" stroke="#92400e" stroke-width="2"/>
+  
+  <!-- Keys and tone holes -->
+  <g id="keys">
+    <!-- Upper keys (left hand) -->
+    <circle cx="85" cy="105" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="85" cy="105" r="4" fill="#1e293b"/>
+    
+    <circle cx="85" cy="125" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="85" cy="125" r="4" fill="#1e293b"/>
+    
+    <circle cx="85" cy="145" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="85" cy="145" r="4" fill="#1e293b"/>
+    
+    <!-- Lower keys (right hand) -->
+    <circle cx="125" cy="185" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="125" cy="185" r="4" fill="#1e293b"/>
+    
+    <circle cx="135" cy="205" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="135" cy="205" r="4" fill="#1e293b"/>
+    
+    <circle cx="145" cy="225" r="8" fill="url(#keyGradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="145" cy="225" r="4" fill="#1e293b"/>
+  </g>
+  
+  <!-- Key mechanisms and guards -->
+  <g id="mechanisms">
+    <!-- Key guards -->
+    <circle cx="85" cy="105" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    <circle cx="85" cy="125" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    <circle cx="85" cy="145" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    <circle cx="125" cy="185" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    <circle cx="135" cy="205" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    <circle cx="145" cy="225" r="12" fill="none" stroke="#78350f" stroke-width="1"/>
+    
+    <!-- Octave key -->
+    <circle cx="90" cy="95" r="4" fill="#94a3b8" stroke="#64748b" stroke-width="1"/>
+  </g>
 </svg>
