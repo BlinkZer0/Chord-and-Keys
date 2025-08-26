@@ -844,6 +844,7 @@ function cutSelected() {
   }
 
   function populatePatternCategories() {
+    const selected = patternCategory.value;
     patternCategory.innerHTML='';
     Object.keys(PATTERN_LIBRARY).forEach(cat=>{
       const opt=document.createElement('option');
@@ -851,19 +852,28 @@ function cutSelected() {
       opt.textContent=cat[0].toUpperCase()+cat.slice(1);
       patternCategory.appendChild(opt);
     });
-    updatePatternOptions();
+    if(selected && PATTERN_LIBRARY[selected])
+      patternCategory.value = selected;
   }
 
   function updatePatternOptions() {
     const cat = patternCategory.value;
+    const selected = patternKey.value;
     patternKey.innerHTML='';
-    Object.keys(PATTERN_LIBRARY[cat]).forEach(name=>{
+    Object.keys(PATTERN_LIBRARY[cat]||{}).forEach(name=>{
       const opt=document.createElement('option');
       opt.value=name;
       opt.textContent=name;
       patternKey.appendChild(opt);
     });
+    if(selected && PATTERN_LIBRARY[cat] && PATTERN_LIBRARY[cat][selected])
+      patternKey.value = selected;
     drawPatternPreview();
+  }
+
+  function refreshPatternSelector() {
+    populatePatternCategories();
+    updatePatternOptions();
   }
 
   // Quantization
@@ -1104,7 +1114,29 @@ const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymb
 
 const PATTERN_PPQ = 192; // ticks per quarter note used in patterns
 // Preset note patterns for quick insertion
-const PATTERN_LIBRARY = {
+
+const patternCategoryHandler = {
+  set(obj, key, val) {
+    obj[key] = val;
+    refreshPatternSelector();
+    return true;
+  }
+};
+
+function createPatternLibrary(library) {
+  Object.keys(library).forEach(cat => {
+    library[cat] = new Proxy(library[cat], patternCategoryHandler);
+  });
+  return new Proxy(library, {
+    set(target, prop, value) {
+      target[prop] = new Proxy(value, patternCategoryHandler);
+      refreshPatternSelector();
+      return true;
+    }
+  });
+}
+
+const PATTERN_LIBRARY = createPatternLibrary({
   chords: {
     'Cmaj Triad': [
       {tick:0, dur:96, midi:60, vel:0.8},
@@ -1146,7 +1178,7 @@ const PATTERN_LIBRARY = {
       {tick:288, dur:48, midi:36, vel:0.9}
     ]
   }
-};
+});
 
 /**
  * @typedef {Object} SeqNote
@@ -2384,7 +2416,7 @@ function updateAll(){
 }
 
 // Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); populatePatternCategories();
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); refreshPatternSelector();
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
