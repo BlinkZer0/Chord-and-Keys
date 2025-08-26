@@ -33,6 +33,75 @@
       transform: translateY(2px); 
       transition: all 0.1s ease;
     }
+    
+    /* Enhanced grid visibility and scaling improvements */
+    #pianoRollScroll {
+      scrollbar-width: thin;
+      scrollbar-color: #475569 #1e293b;
+    }
+    
+    #pianoRollScroll::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    #pianoRollScroll::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    
+    #pianoRollScroll::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    
+    #pianoRollScroll::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+    
+    /* Better grid visibility at different zoom levels */
+    #gridOverlay svg line {
+      stroke-dasharray: 1, 2;
+      stroke-opacity: 0.4;
+    }
+    
+    /* Production mode improvements */
+    #channelRack {
+      scrollbar-width: thin;
+      scrollbar-color: #475569 #1e293b;
+    }
+    
+    #channelRack::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #channelRack::-webkit-scrollbar-track {
+      background: #1e293b;
+    }
+    
+    #channelRack::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 3px;
+    }
+    
+    /* Responsive improvements */
+    @media (max-width: 768px) {
+      #pianoRollWrap {
+        flex-direction: column;
+      }
+      
+      #pianoRollGutter {
+        width: 100% !important;
+        height: 60px !important;
+      }
+    }
+    
+    /* Empty state improvements */
+    #emptyStateMessage {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.8));
+      border: 1px solid rgba(71, 85, 105, 0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -40,21 +109,27 @@
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
         <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
         <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
-        <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
-          <option value="default">Default</option>
-          <option value="solarized">Solarized</option>
-          <option value="mono">Mono</option>
-          <option value="spring">Spring</option>
-          <option value="summer">Summer</option>
-          <option value="autumn">Autumn</option>
-          <option value="winter">Winter</option>
-          <option value="forest">Forest</option>
-          <option value="ocean">Ocean</option>
-          <option value="desert">Desert</option>
-          <option value="mountain">Mountain</option>
-          <option value="sunrise">Sunrise</option>
-          <option value="sunset">Sunset</option>
-        </select>
+        <div class="flex items-center gap-2">
+          <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+            <option value="default">Default</option>
+            <option value="solarized">Solarized</option>
+            <option value="mono">Mono</option>
+            <option value="spring">Spring</option>
+            <option value="summer">Summer</option>
+            <option value="autumn">Autumn</option>
+            <option value="winter">Winter</option>
+            <option value="forest">Forest</option>
+            <option value="ocean">Ocean</option>
+            <option value="desert">Desert</option>
+            <option value="mountain">Mountain</option>
+            <option value="sunrise">Sunrise</option>
+            <option value="sunset">Sunset</option>
+          </select>
+          <button id="productionModeToggle" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition-colors">
+            🎛️ Production Mode
+          </button>
+          <span id="modeIndicator" class="text-xs text-slate-400">Basic Mode</span>
+        </div>
       </header>
 
     <!-- ============ 1) Choose What To Explore ============ -->
@@ -224,12 +299,27 @@
 
         <div id="seqTracks" class="space-y-2"></div>
 
+        <div id="emptyStateMessage" class="text-center py-12 text-slate-400 hidden">
+          <div class="text-4xl mb-4">🎵</div>
+          <h3 class="text-lg font-semibold mb-2">Welcome to the Sequencer!</h3>
+          <p class="mb-4">Click anywhere on the grid to place your first note</p>
+          <div class="flex justify-center gap-2">
+            <button id="addSampleNote" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors">
+              Add Sample Note
+            </button>
+            <button id="importPattern" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
+              Import Pattern
+            </button>
+          </div>
+        </div>
+
         <div id="pianoRollWrap" class="flex">
           <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
           <div id="pianoRollScroll" class="overflow-auto relative">
             <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
             <div id="pianoRollSpacer"></div>
-
+            <!-- Grid overlay for better visibility -->
+            <div id="gridOverlay" class="absolute top-0 left-0 pointer-events-none"></div>
           </div>
         </div>
 
@@ -347,6 +437,84 @@
         </div>
       </section>
     </details>
+
+    <!-- ============ Production Mode ============ -->
+    <section id="productionModeHost" class="mb-6 hidden">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">Production Studio</h2>
+      
+      <!-- Channel Rack -->
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-md font-semibold text-slate-200">Channel Rack</h3>
+          <div class="flex gap-2">
+            <button id="addChannel" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors">
+              + Add Channel
+            </button>
+            <button id="importSample" class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm transition-colors">
+              📁 Import Sample
+            </button>
+          </div>
+        </div>
+        
+        <div id="channelRack" class="space-y-2 max-h-64 overflow-y-auto">
+          <!-- Channels will be dynamically added here -->
+        </div>
+      </div>
+      
+      <!-- Pattern Library -->
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 mb-4">
+        <h3 class="text-md font-semibold text-slate-200 mb-4">Pattern Library</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+            <div class="text-sm font-semibold text-slate-200 mb-2">Drum Patterns</div>
+            <div class="space-y-1">
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="four-on-floor">Four on Floor</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="breakbeat">Breakbeat</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="trap">Trap</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="house">House</button>
+            </div>
+          </div>
+          
+          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+            <div class="text-sm font-semibold text-slate-200 mb-2">Bass Lines</div>
+            <div class="space-y-1">
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="walking-bass">Walking Bass</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="trap-bass">Trap Bass</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="house-bass">House Bass</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="acid-bass">Acid Bass</button>
+            </div>
+          </div>
+          
+          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+            <div class="text-sm font-semibold text-slate-200 mb-2">Melodies</div>
+            <div class="space-y-1">
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="arpeggio">Arpeggio</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="pentatonic">Pentatonic</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="blues">Blues</button>
+              <button class="pattern-btn w-full text-left px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs transition-colors" data-pattern="jazz">Jazz</button>
+            </div>
+          </div>
+          
+          <div class="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+            <div class="text-sm font-semibold text-slate-200 mb-2">Custom Loops</div>
+            <div class="space-y-1">
+              <button id="saveLoop" class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs text-white transition-colors">Save Current</button>
+              <button id="loadLoop" class="w-full px-2 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white transition-colors">Load Loop</button>
+              <button id="clearLoop" class="w-full px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs text-white transition-colors">Clear</button>
+              <button id="exportLoop" class="w-full px-2 py-1 bg-purple-600 hover:bg-purple-500 rounded text-xs text-white transition-colors">Export</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Sample Library -->
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <h3 class="text-md font-semibold text-slate-200 mb-4">Sample Library</h3>
+        <div id="sampleLibrary" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- Samples will be dynamically added here -->
+        </div>
+      </div>
+    </section>
 
     <details id="devTests">
       <summary class="flex items-center gap-1 cursor-pointer" title="Toggle automated self-tests" aria-expanded="false">
@@ -517,7 +685,7 @@ const CHORD_DICT = CHORD_QUALITIES; // reuse
 function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
 function intersection(a,b){ return a.filter(x=>b.includes(x)); }
 function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
-function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+efunction chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
@@ -1374,6 +1542,12 @@ let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
 let system = 'Western';
 let tempo = 120;
+
+// Production mode variables
+let productionMode = false;
+let productionSampleLibrary = new Map();
+let customLoops = new Map();
+let loopCounter = 0;
 let fluteLeftToRight = true;
 let recorderLeftToRight = true;
 let neyLeftToRight = true;
@@ -1461,6 +1635,187 @@ const PATTERN_LIBRARY = createPatternLibrary({
     ]
   }
 });
+
+// Production mode patterns
+const PRODUCTION_PATTERNS = {
+  'four-on-floor': {
+    name: 'Four on Floor',
+    tracks: [
+      { instrument: 'Kick 808', notes: [
+        {tick: 0, dur: 48, midi: 36, vel: 0.9},
+        {tick: 192, dur: 48, midi: 36, vel: 0.9},
+        {tick: 384, dur: 48, midi: 36, vel: 0.9},
+        {tick: 576, dur: 48, midi: 36, vel: 0.9}
+      ]},
+      { instrument: 'Snare Tight', notes: [
+        {tick: 192, dur: 48, midi: 38, vel: 0.8},
+        {tick: 576, dur: 48, midi: 38, vel: 0.8}
+      ]},
+      { instrument: 'Cymbal ClosedHat', notes: [
+        {tick: 0, dur: 24, midi: 42, vel: 0.6},
+        {tick: 96, dur: 24, midi: 42, vel: 0.6},
+        {tick: 192, dur: 24, midi: 42, vel: 0.6},
+        {tick: 288, dur: 24, midi: 42, vel: 0.6},
+        {tick: 384, dur: 24, midi: 42, vel: 0.6},
+        {tick: 480, dur: 24, midi: 42, vel: 0.6},
+        {tick: 576, dur: 24, midi: 42, vel: 0.6},
+        {tick: 672, dur: 24, midi: 42, vel: 0.6}
+      ]}
+    ]
+  },
+  'trap': {
+    name: 'Trap Beat',
+    tracks: [
+      { instrument: 'Kick 808', notes: [
+        {tick: 0, dur: 48, midi: 36, vel: 0.9},
+        {tick: 144, dur: 48, midi: 36, vel: 0.9},
+        {tick: 384, dur: 48, midi: 36, vel: 0.9},
+        {tick: 528, dur: 48, midi: 36, vel: 0.9}
+      ]},
+      { instrument: 'Snare Tight', notes: [
+        {tick: 192, dur: 48, midi: 38, vel: 0.8},
+        {tick: 576, dur: 48, midi: 38, vel: 0.8}
+      ]},
+      { instrument: 'Clap Short', notes: [
+        {tick: 192, dur: 24, midi: 39, vel: 0.7},
+        {tick: 576, dur: 24, midi: 39, vel: 0.7}
+      ]}
+    ]
+  },
+  'breakbeat': {
+    name: 'Breakbeat',
+    tracks: [
+      { instrument: 'Kick 808', notes: [
+        {tick: 0, dur: 48, midi: 36, vel: 0.9},
+        {tick: 144, dur: 48, midi: 36, vel: 0.9},
+        {tick: 288, dur: 48, midi: 36, vel: 0.9},
+        {tick: 432, dur: 48, midi: 36, vel: 0.9}
+      ]},
+      { instrument: 'Snare Tight', notes: [
+        {tick: 96, dur: 48, midi: 38, vel: 0.8},
+        {tick: 240, dur: 48, midi: 38, vel: 0.8},
+        {tick: 384, dur: 48, midi: 38, vel: 0.8},
+        {tick: 528, dur: 48, midi: 38, vel: 0.8}
+      ]}
+    ]
+  },
+  'house': {
+    name: 'House',
+    tracks: [
+      { instrument: 'Kick 808', notes: [
+        {tick: 0, dur: 48, midi: 36, vel: 0.9},
+        {tick: 192, dur: 48, midi: 36, vel: 0.9},
+        {tick: 384, dur: 48, midi: 36, vel: 0.9},
+        {tick: 576, dur: 48, midi: 36, vel: 0.9}
+      ]},
+      { instrument: 'Cymbal ClosedHat', notes: [
+        {tick: 0, dur: 24, midi: 42, vel: 0.6},
+        {tick: 96, dur: 24, midi: 42, vel: 0.6},
+        {tick: 192, dur: 24, midi: 42, vel: 0.6},
+        {tick: 288, dur: 24, midi: 42, vel: 0.6},
+        {tick: 384, dur: 24, midi: 42, vel: 0.6},
+        {tick: 480, dur: 24, midi: 42, vel: 0.6},
+        {tick: 576, dur: 24, midi: 42, vel: 0.6},
+        {tick: 672, dur: 24, midi: 42, vel: 0.6}
+      ]}
+    ]
+  },
+  'walking-bass': {
+    name: 'Walking Bass',
+    tracks: [
+      { instrument: 'Bass', notes: [
+        {tick: 0, dur: 96, midi: 36, vel: 0.8},
+        {tick: 96, dur: 96, midi: 38, vel: 0.8},
+        {tick: 192, dur: 96, midi: 40, vel: 0.8},
+        {tick: 288, dur: 96, midi: 41, vel: 0.8}
+      ]}
+    ]
+  },
+  'trap-bass': {
+    name: 'Trap Bass',
+    tracks: [
+      { instrument: 'Bass', notes: [
+        {tick: 0, dur: 192, midi: 36, vel: 0.9},
+        {tick: 192, dur: 192, midi: 36, vel: 0.9},
+        {tick: 384, dur: 192, midi: 36, vel: 0.9},
+        {tick: 576, dur: 192, midi: 36, vel: 0.9}
+      ]}
+    ]
+  },
+  'house-bass': {
+    name: 'House Bass',
+    tracks: [
+      { instrument: 'Bass', notes: [
+        {tick: 0, dur: 48, midi: 36, vel: 0.8},
+        {tick: 48, dur: 48, midi: 36, vel: 0.8},
+        {tick: 96, dur: 48, midi: 36, vel: 0.8},
+        {tick: 144, dur: 48, midi: 36, vel: 0.8},
+        {tick: 192, dur: 48, midi: 36, vel: 0.8},
+        {tick: 240, dur: 48, midi: 36, vel: 0.8},
+        {tick: 288, dur: 48, midi: 36, vel: 0.8},
+        {tick: 336, dur: 48, midi: 36, vel: 0.8}
+      ]}
+    ]
+  },
+  'acid-bass': {
+    name: 'Acid Bass',
+    tracks: [
+      { instrument: 'Bass', notes: [
+        {tick: 0, dur: 96, midi: 36, vel: 0.9},
+        {tick: 96, dur: 96, midi: 43, vel: 0.9},
+        {tick: 192, dur: 96, midi: 36, vel: 0.9},
+        {tick: 288, dur: 96, midi: 43, vel: 0.9}
+      ]}
+    ]
+  },
+  'arpeggio': {
+    name: 'Arpeggio',
+    tracks: [
+      { instrument: 'Piano', notes: [
+        {tick: 0, dur: 48, midi: 60, vel: 0.7},
+        {tick: 48, dur: 48, midi: 64, vel: 0.7},
+        {tick: 96, dur: 48, midi: 67, vel: 0.7},
+        {tick: 144, dur: 48, midi: 72, vel: 0.7}
+      ]}
+    ]
+  },
+  'pentatonic': {
+    name: 'Pentatonic',
+    tracks: [
+      { instrument: 'Piano', notes: [
+        {tick: 0, dur: 96, midi: 60, vel: 0.7},
+        {tick: 96, dur: 96, midi: 62, vel: 0.7},
+        {tick: 192, dur: 96, midi: 64, vel: 0.7},
+        {tick: 288, dur: 96, midi: 67, vel: 0.7},
+        {tick: 384, dur: 96, midi: 69, vel: 0.7}
+      ]}
+    ]
+  },
+  'blues': {
+    name: 'Blues',
+    tracks: [
+      { instrument: 'Piano', notes: [
+        {tick: 0, dur: 96, midi: 60, vel: 0.7},
+        {tick: 96, dur: 96, midi: 63, vel: 0.7},
+        {tick: 192, dur: 96, midi: 65, vel: 0.7},
+        {tick: 288, dur: 96, midi: 66, vel: 0.7},
+        {tick: 384, dur: 96, midi: 67, vel: 0.7},
+        {tick: 480, dur: 96, midi: 70, vel: 0.7}
+      ]}
+    ]
+  },
+  'jazz': {
+    name: 'Jazz',
+    tracks: [
+      { instrument: 'Piano', notes: [
+        {tick: 0, dur: 96, midi: 60, vel: 0.7},
+        {tick: 96, dur: 96, midi: 64, vel: 0.7},
+        {tick: 192, dur: 96, midi: 67, vel: 0.7},
+        {tick: 288, dur: 96, midi: 71, vel: 0.7}
+      ]}
+    ]
+  }
+};
 
 /**
  * @typedef {Object} SeqNote
@@ -2001,6 +2356,75 @@ function drawPianoRoll(){
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  
+  // Add grid overlay for better visibility
+  drawGridOverlay();
+  updateEmptyState();
+}
+
+function drawGridOverlay() {
+  const overlay = document.getElementById('gridOverlay');
+  if (!overlay) return;
+  
+  const cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  const width = pianoRollScroll.clientWidth;
+  const height = (MAX_MIDI - MIN_MIDI) * cellH;
+  
+  overlay.style.width = width + 'px';
+  overlay.style.height = height + 'px';
+  
+  // Create SVG grid for better scaling
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', width);
+  svg.setAttribute('height', height);
+  svg.style.position = 'absolute';
+  svg.style.top = '0';
+  svg.style.left = '0';
+  
+  // Draw vertical grid lines
+  for (let i = 0; i <= width; i += cellW) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', i);
+    line.setAttribute('y1', 0);
+    line.setAttribute('x2', i);
+    line.setAttribute('y2', height);
+    line.setAttribute('stroke', '#2d3c4a');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.3');
+    svg.appendChild(line);
+  }
+  
+  // Draw horizontal grid lines
+  for (let i = 0; i <= height; i += cellH) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('y1', i);
+    line.setAttribute('x2', width);
+    line.setAttribute('y2', i);
+    line.setAttribute('stroke', '#2d3c4a');
+    line.setAttribute('stroke-width', '1');
+    line.setAttribute('opacity', '0.3');
+    svg.appendChild(line);
+  }
+  
+  overlay.innerHTML = '';
+  overlay.appendChild(svg);
+}
+
+function updateEmptyState() {
+  const emptyState = document.getElementById('emptyStateMessage');
+  if (!emptyState) return;
+  
+  const hasNotes = song.tracks.some(track => 
+    track.clips.some(clip => clip.notes.length > 0)
+  );
+  
+  if (hasNotes) {
+    emptyState.classList.add('hidden');
+  } else {
+    emptyState.classList.remove('hidden');
+  }
 }
 
 function cancelTrackSwitch(){
@@ -2360,6 +2784,342 @@ function initSequencer(){
   refreshActiveTrackHighlight();
   seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
+}
+
+// Production mode functions
+function initializeProductionMode() {
+  createChannelRack();
+  setupPatternButtons();
+  setupProductionEventListeners();
+}
+
+function createChannelRack() {
+  const rack = document.getElementById('channelRack');
+  if (!rack) return;
+  
+  rack.innerHTML = '';
+  
+  song.tracks.forEach((track, index) => {
+    const channel = document.createElement('div');
+    channel.className = 'flex items-center gap-3 p-3 bg-slate-700/50 rounded-lg border border-slate-600';
+    channel.innerHTML = `
+      <div class="flex items-center gap-2 flex-1">
+        <button class="mute-btn px-2 py-1 rounded text-xs ${track.mute ? 'bg-red-600' : 'bg-slate-600'} transition-colors" data-track="${index}">
+          ${track.mute ? '🔇' : '🔊'}
+        </button>
+        <button class="solo-btn px-2 py-1 rounded text-xs ${track.solo ? 'bg-yellow-600' : 'bg-slate-600'} transition-colors" data-track="${index}">
+          ${track.solo ? '⭐' : '☆'}
+        </button>
+        <span class="text-sm font-semibold text-slate-200 min-w-[80px]">${track.name}</span>
+        <input type="range" class="volume-slider flex-1" min="0" max="1" step="0.1" value="${track.volume}" data-track="${index}">
+        <span class="text-xs text-slate-400 w-8">${Math.round(track.volume * 100)}%</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <select class="instrument-select bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs" data-track="${index}">
+          ${INSTRUMENTS.map(instr => `<option value="${instr}" ${track.instrument === instr ? 'selected' : ''}>${instr}</option>`).join('')}
+        </select>
+        <button class="delete-channel px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-xs text-white transition-colors" data-track="${index}">×</button>
+      </div>
+    `;
+    rack.appendChild(channel);
+  });
+  
+  setupChannelRackEvents();
+}
+
+function setupChannelRackEvents() {
+  // Mute/Solo buttons
+  document.querySelectorAll('.mute-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const trackIndex = parseInt(e.target.dataset.track);
+      song.tracks[trackIndex].mute = !song.tracks[trackIndex].mute;
+      e.target.textContent = song.tracks[trackIndex].mute ? '🔇' : '🔊';
+      e.target.className = `mute-btn px-2 py-1 rounded text-xs ${song.tracks[trackIndex].mute ? 'bg-red-600' : 'bg-slate-600'} transition-colors`;
+      if (Tone.Transport.state === 'started') scheduleSong();
+    });
+  });
+  
+  // Solo buttons
+  document.querySelectorAll('.solo-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const trackIndex = parseInt(e.target.dataset.track);
+      song.tracks[trackIndex].solo = !song.tracks[trackIndex].solo;
+      e.target.textContent = song.tracks[trackIndex].solo ? '⭐' : '☆';
+      e.target.className = `solo-btn px-2 py-1 rounded text-xs ${song.tracks[trackIndex].solo ? 'bg-yellow-600' : 'bg-slate-600'} transition-colors`;
+      if (Tone.Transport.state === 'started') scheduleSong();
+    });
+  });
+  
+  // Volume sliders
+  document.querySelectorAll('.volume-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      const trackIndex = parseInt(e.target.dataset.track);
+      const volume = parseFloat(e.target.value);
+      song.tracks[trackIndex].volume = volume;
+      e.target.nextElementSibling.textContent = `${Math.round(volume * 100)}%`;
+      if (song.tracks[trackIndex].player) {
+        song.tracks[trackIndex].player.setVolume(volume);
+      }
+    });
+  });
+  
+  // Instrument selects
+  document.querySelectorAll('.instrument-select').forEach(select => {
+    select.addEventListener('change', (e) => {
+      const trackIndex = parseInt(e.target.dataset.track);
+      const instrument = e.target.value;
+      song.tracks[trackIndex].instrument = instrument;
+      song.tracks[trackIndex].name = instrument;
+      e.target.closest('.flex').querySelector('span').textContent = instrument;
+      if (song.tracks[trackIndex].player) {
+        song.tracks[trackIndex].player.dispose();
+        song.tracks[trackIndex].player = null;
+      }
+      if (Tone.Transport.state === 'started') scheduleSong(trackIndex);
+    });
+  });
+  
+  // Delete channel buttons
+  document.querySelectorAll('.delete-channel').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const trackIndex = parseInt(e.target.dataset.track);
+      if (confirm(`Delete track "${song.tracks[trackIndex].name}"?`)) {
+        song.tracks.splice(trackIndex, 1);
+        createChannelRack();
+        drawPianoRoll();
+      }
+    });
+  });
+}
+
+function setupPatternButtons() {
+  document.querySelectorAll('.pattern-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const patternName = e.target.dataset.pattern;
+      loadProductionPattern(patternName);
+    });
+  });
+}
+
+function loadProductionPattern(patternName) {
+  const pattern = PRODUCTION_PATTERNS[patternName];
+  if (!pattern) return;
+  
+  // Clear existing tracks
+  song.tracks = [];
+  
+  // Add pattern tracks
+  pattern.tracks.forEach((trackData, index) => {
+    const track = {
+      id: 'trk' + index,
+      name: trackData.instrument,
+      instrument: trackData.instrument,
+      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: trackData.notes }],
+      mute: false,
+      solo: false,
+      volume: 0.8,
+      pan: 0,
+      color: '',
+      player: null,
+      part: null
+    };
+    song.tracks.push(track);
+  });
+  
+  // Update UI
+  createChannelRack();
+  drawPianoRoll();
+  seqStatus.textContent = `Loaded: ${pattern.name}`;
+}
+
+function setupProductionEventListeners() {
+  // Add channel button
+  document.getElementById('addChannel')?.addEventListener('click', () => {
+    const newTrack = {
+      id: 'trk' + song.tracks.length,
+      name: 'New Track',
+      instrument: 'Piano',
+      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: [] }],
+      mute: false,
+      solo: false,
+      volume: 0.8,
+      pan: 0,
+      color: '',
+      player: null,
+      part: null
+    };
+    song.tracks.push(newTrack);
+    createChannelRack();
+    drawPianoRoll();
+  });
+  
+  // Import sample button
+  document.getElementById('importSample')?.addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.mp3,.wav,.ogg';
+    input.multiple = true;
+    
+    input.addEventListener('change', (e) => {
+      Array.from(e.target.files).forEach(file => {
+        importSample(file);
+      });
+    });
+    
+    input.click();
+  });
+  
+  // Save loop button
+  document.getElementById('saveLoop')?.addEventListener('click', () => {
+    const loopName = prompt('Enter loop name:');
+    if (loopName) {
+      const loopData = {
+        name: loopName,
+        tracks: song.tracks.map(track => ({
+          name: track.name,
+          instrument: track.instrument,
+          notes: track.clips[0].notes
+        }))
+      };
+      customLoops.set(loopName, loopData);
+      alert(`Loop "${loopName}" saved!`);
+    }
+  });
+  
+  // Load loop button
+  document.getElementById('loadLoop')?.addEventListener('click', () => {
+    if (customLoops.size === 0) {
+      alert('No saved loops found.');
+      return;
+    }
+    
+    const loopNames = Array.from(customLoops.keys());
+    const loopName = prompt(`Enter loop name to load:\nAvailable: ${loopNames.join(', ')}`);
+    
+    if (loopName && customLoops.has(loopName)) {
+      const loopData = customLoops.get(loopName);
+      song.tracks = loopData.tracks.map((trackData, index) => ({
+        id: 'trk' + index,
+        name: trackData.name,
+        instrument: trackData.instrument,
+        clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: trackData.notes }],
+        mute: false,
+        solo: false,
+        volume: 0.8,
+        pan: 0,
+        color: '',
+        player: null,
+        part: null
+      }));
+      createChannelRack();
+      drawPianoRoll();
+      seqStatus.textContent = `Loaded: ${loopData.name}`;
+    }
+  });
+  
+  // Clear loop button
+  document.getElementById('clearLoop')?.addEventListener('click', () => {
+    if (confirm('Clear all tracks?')) {
+      song.tracks.forEach(track => {
+        track.clips[0].notes = [];
+      });
+      drawPianoRoll();
+    }
+  });
+  
+  // Export loop button
+  document.getElementById('exportLoop')?.addEventListener('click', () => {
+    const loopData = {
+      name: 'Exported Loop',
+      tracks: song.tracks.map(track => ({
+        name: track.name,
+        instrument: track.instrument,
+        notes: track.clips[0].notes
+      }))
+    };
+    
+    const blob = new Blob([JSON.stringify(loopData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'loop.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+async function importSample(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const audioBuffer = await Tone.context.decodeAudioData(arrayBuffer);
+    
+    const sampleName = file.name.replace(/\.[^/.]+$/, '');
+    productionSampleLibrary.set(sampleName, {
+      buffer: audioBuffer,
+      name: sampleName,
+      duration: audioBuffer.duration
+    });
+    
+    addSampleToLibrary(sampleName, audioBuffer);
+  } catch (error) {
+    console.error('Failed to import sample:', error);
+    alert('Failed to import sample. Please check the file format.');
+  }
+}
+
+function addSampleToLibrary(name, buffer) {
+  const library = document.getElementById('sampleLibrary');
+  if (!library) return;
+  
+  const sampleElement = document.createElement('div');
+  sampleElement.className = 'bg-slate-700/50 rounded-lg p-3 border border-slate-600';
+  sampleElement.innerHTML = `
+    <div class="text-sm font-semibold text-slate-200 mb-2">${name}</div>
+    <div class="text-xs text-slate-400 mb-2">${buffer.duration.toFixed(2)}s</div>
+    <div class="flex gap-2">
+      <button class="play-sample px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-xs text-white transition-colors" data-sample="${name}">▶️</button>
+      <button class="add-to-track px-2 py-1 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white transition-colors" data-sample="${name}">+ Track</button>
+    </div>
+  `;
+  library.appendChild(sampleElement);
+  
+  // Add event listeners
+  sampleElement.querySelector('.play-sample').addEventListener('click', () => playSample(name));
+  sampleElement.querySelector('.add-to-track').addEventListener('click', () => addSampleToTrack(name));
+}
+
+function playSample(name) {
+  const sample = productionSampleLibrary.get(name);
+  if (sample) {
+    const player = new Tone.Player(sample.buffer);
+    player.connect(masterLim);
+    player.start();
+  }
+}
+
+function addSampleToTrack(name) {
+  const sample = productionSampleLibrary.get(name);
+  if (sample) {
+    // Add a new track for the sample
+    const newTrack = {
+      id: 'trk' + song.tracks.length,
+      name: name,
+      instrument: 'Sample',
+      clips: [{ id: 'clip0', start: 0, length: 192 * 64, loop: false, notes: [] }],
+      mute: false,
+      solo: false,
+      volume: 0.8,
+      pan: 0,
+      color: '',
+      player: null,
+      part: null,
+      sample: sample
+    };
+    
+    song.tracks.push(newTrack);
+    createChannelRack();
+    drawPianoRoll();
+  }
 }
 
 function updateSelButtons(){
@@ -4454,6 +5214,46 @@ btnModeSequencer.addEventListener('click', ()=>{
   listenScale.classList.add('hidden');
   sequencerHost.classList.remove('hidden');
   updateAll();
+});
+
+// Production mode toggle
+document.getElementById('productionModeToggle').addEventListener('click', () => {
+  productionMode = !productionMode;
+  const toggle = document.getElementById('productionModeToggle');
+  const indicator = document.getElementById('modeIndicator');
+  const prodHost = document.getElementById('productionModeHost');
+  
+  if (productionMode) {
+    toggle.textContent = '🎵 Basic Mode';
+    toggle.className = 'px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-semibold transition-colors';
+    indicator.textContent = 'Production Mode';
+    prodHost.classList.remove('hidden');
+    initializeProductionMode();
+  } else {
+    toggle.textContent = '🎛️ Production Mode';
+    toggle.className = 'px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-semibold transition-colors';
+    indicator.textContent = 'Basic Mode';
+    prodHost.classList.add('hidden');
+  }
+});
+
+// Empty state button handlers
+document.getElementById('addSampleNote')?.addEventListener('click', () => {
+  const newNote = {
+    tick: 0,
+    dur: SIXTEENTH * 4, // 1 beat
+    midi: midiFrom('C', 4), // Middle C
+    vel: 0.8
+  };
+  
+  song.tracks[activeTrack].clips[0].notes.push(newNote);
+  drawPianoRoll();
+  seqStatus.textContent = 'Added sample note';
+});
+
+document.getElementById('importPattern')?.addEventListener('click', () => {
+  // Load a simple pattern
+  loadProductionPattern('four-on-floor');
 });
 
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
