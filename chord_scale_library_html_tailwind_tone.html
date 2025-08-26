@@ -1639,18 +1639,47 @@ function drawPianoRoll(){
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
       if(x+w<0 || x>width) return;
+      
+      // Piano-style coloring: black keys (sharps) vs white keys (naturals)
+      const pc = n.midi % 12;
+      const isBlackKey = [1,3,6,8,10].includes(pc); // C#, D#, F#, G#, A#
+      const pianoColor = isBlackKey ? '#1f2937' : '#f9fafb'; // Dark gray for sharps, light for naturals
+      const borderColor = isBlackKey ? '#374151' : '#d1d5db';
+      
       // Highlight selected notes
       if(idx === activeTrack && selectedNotes.has(n)) {
         ctx.fillStyle = '#ff6b9d';
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
-      ctx.fillStyle = baseColor;
+      
+      // Draw note with piano colors
+      ctx.fillStyle = pianoColor;
       ctx.fillRect(x,y,w,cellH);
+      
+      // Add border to distinguish notes
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x,y,w,cellH);
+      
+      // Add track color as small indicator on active track notes
+      if(idx === activeTrack) {
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
+      }
     });
   });
   if(dragNote){
-    ctx.fillStyle='rgba(236,72,153,0.6)';
-    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; if(x+w>=0 && x<=width) ctx.fillRect(x,y,w,cellH);
+    const pc = dragNote.midi % 12;
+    const isBlackKey = [1,3,6,8,10].includes(pc);
+    ctx.fillStyle = isBlackKey ? 'rgba(31,41,55,0.8)' : 'rgba(249,250,251,0.8)';
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; 
+    if(x+w>=0 && x<=width) {
+      ctx.fillRect(x,y,w,cellH);
+      // Add pink border for drag preview
+      ctx.strokeStyle = 'rgba(236,72,153,0.8)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x,y,w,cellH);
+    }
   }
   
   // Selection rectangle
@@ -2104,9 +2133,33 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
     const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
     whiteRow.appendChild(k); });
-  // Black overlay (pointer-enabled only on keys)
-  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2 flex'; shell.appendChild(overlay);
-  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const wrap=document.createElement('div'); wrap.className='relative w-[6.66%] mx-[1.67%]'; wrap.style.visibility = [1,3,6,8,10].includes(pc)?'visible':'hidden'; const blk=document.createElement('div'); blk.dataset.midi=String(m); blk.dataset.pc=String(pc); blk.className='black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border bg-black border-black pointer-events-auto'; blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; lbl.textContent=''; blk.appendChild(lbl);
+  // Black overlay with realistic piano spacing
+  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const octave = Math.floor(m/OCTAVE); const whiteKeyIndex = whites.findIndex(w => Math.floor(w/OCTAVE) === octave && mod(w,OCTAVE) > pc) + whites.filter(w => Math.floor(w/OCTAVE) < octave).length;
+    // Real piano black key positions - between specific white keys
+    let leftOffset;
+    if(pc === 1) leftOffset = 0.7;      // C# between C-D 
+    else if(pc === 3) leftOffset = 0.3; // D# between D-E
+    else if(pc === 6) leftOffset = 0.75; // F# between F-G
+    else if(pc === 8) leftOffset = 0.5;  // G# between G-A
+    else if(pc === 10) leftOffset = 0.25; // A# between A-B
+    
+    const wrap=document.createElement('div'); 
+    wrap.className='absolute pointer-events-none'; 
+    wrap.style.left = `${((whiteKeyIndex - 1) / whites.length * 100) + (leftOffset * (100 / whites.length))}%`;
+    wrap.style.width = `${100 / whites.length * 0.58}%`; // Slightly narrower than before
+    wrap.style.height = '65%'; 
+    wrap.style.top = '0';
+    
+    const blk=document.createElement('div'); 
+    blk.dataset.midi=String(m); 
+    blk.dataset.pc=String(pc); 
+    blk.className='black-key w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto'; 
+    blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
+    const lbl=document.createElement('div'); 
+    lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; 
+    lbl.textContent=''; 
+    blk.appendChild(lbl);
     blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
     const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
     blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
@@ -2120,7 +2173,7 @@ function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visua
   pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
     const rootBadge = el.querySelector('.rootbadge'); if(rootBadge) rootBadge.remove(); if(rootPc===pc){ const b=document.createElement('div'); b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; b.textContent='ROOT'; el.appendChild(b); } });
   // Blacks (robust selector)
-  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key absolute left-1/2 -translate-x-1/2 w-3/5 h-2/3 rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
+  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key w-full h-full rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
   // Selection highlights
   selection.forEach((m)=>{ const el = pianoHost.querySelector(`[data-midi="${m}"]`); if(el) el.classList.add('key-selected'); });
 }
@@ -2165,42 +2218,231 @@ function buildFluteChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = fluteOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 320 80' : '0 0 80 320');
   svg.setAttribute('class','mx-auto');
-  // Instrument outline
-  const body=document.createElementNS(svgNS,'polygon');
-  const mouth=document.createElementNS(svgNS,'polygon');
+  
+  // Realistic flute body with sections and proper proportions
   if(isHoriz){
-    body.setAttribute('points','20,20 140,20 140,40 20,40');
-    mouth.setAttribute('points', fluteLeftToRight ? '0,20 20,20 20,40 0,40' : '140,20 160,20 160,40 140,40');
+    // Main tube body (cylindrical appearance with gradient)
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','fluteGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#e2e8f0');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','50%');
+    stop2.setAttribute('stop-color','#f8fafc');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','100%');
+    stop3.setAttribute('stop-color','#cbd5e1');
+    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head joint with embouchure
+    const headJoint = document.createElementNS(svgNS,'rect');
+    headJoint.setAttribute('x', fluteLeftToRight ? '10' : '250');
+    headJoint.setAttribute('y','25');
+    headJoint.setAttribute('width','60');
+    headJoint.setAttribute('height','30');
+    headJoint.setAttribute('rx','15');
+    headJoint.setAttribute('fill','url(#fluteGrad)');
+    headJoint.setAttribute('stroke','#64748b');
+    headJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(headJoint);
+    
+    // Embouchure hole
+    const embHole = document.createElementNS(svgNS,'ellipse');
+    embHole.setAttribute('cx', fluteLeftToRight ? '40' : '280');
+    embHole.setAttribute('cy','40');
+    embHole.setAttribute('rx','8');
+    embHole.setAttribute('ry','4');
+    embHole.setAttribute('fill','#1e293b');
+    embHole.setAttribute('stroke','#475569');
+    embHole.setAttribute('stroke-width','1');
+    svg.appendChild(embHole);
+    
+    // Body joint
+    const bodyJoint = document.createElementNS(svgNS,'rect');
+    bodyJoint.setAttribute('x', fluteLeftToRight ? '75' : '145');
+    bodyJoint.setAttribute('y','27');
+    bodyJoint.setAttribute('width','100');
+    bodyJoint.setAttribute('height','26');
+    bodyJoint.setAttribute('rx','13');
+    bodyJoint.setAttribute('fill','url(#fluteGrad)');
+    bodyJoint.setAttribute('stroke','#64748b');
+    bodyJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(bodyJoint);
+    
+    // Foot joint
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x', fluteLeftToRight ? '180' : '80');
+    footJoint.setAttribute('y','28');
+    footJoint.setAttribute('width','70');
+    footJoint.setAttribute('height','24');
+    footJoint.setAttribute('rx','12');
+    footJoint.setAttribute('fill','url(#fluteGrad)');
+    footJoint.setAttribute('stroke','#64748b');
+    footJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(footJoint);
+    
+    // Realistic tone hole positions and keys
+    const holePositions = fluteLeftToRight ? 
+      [90, 105, 125, 145, 165, 185] : 
+      [230, 215, 195, 175, 155, 135];
+    
+    fing.forEach((closed,i)=>{
+      const holeX = holePositions[i];
+      
+      // Key mechanism (small rectangle above hole)
+      const key = document.createElementNS(svgNS,'rect');
+      key.setAttribute('x', String(holeX - 8));
+      key.setAttribute('y','20');
+      key.setAttribute('width','16');
+      key.setAttribute('height','8');
+      key.setAttribute('rx','2');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
+      key.setAttribute('stroke','#64748b');
+      key.setAttribute('stroke-width','1');
+      svg.appendChild(key);
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','40');
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
+      hole.setAttribute('stroke','#64748b');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Key spring/mechanism rod
+      const rod = document.createElementNS(svgNS,'line');
+      rod.setAttribute('x1', String(holeX));
+      rod.setAttribute('y1','28');
+      rod.setAttribute('x2', String(holeX));
+      rod.setAttribute('y2','33');
+      rod.setAttribute('stroke','#94a3b8');
+      rod.setAttribute('stroke-width','1');
+      svg.appendChild(rod);
+    });
+    
   } else {
-    body.setAttribute('points','20,20 40,20 40,140 20,140');
-    mouth.setAttribute('points', fluteLeftToRight ? '20,0 40,0 40,20 20,20' : '20,140 40,140 40,160 20,160');
+    // Vertical orientation - similar but rotated layout
+    // Main gradient for vertical
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','fluteGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#e2e8f0');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','50%');
+    stop2.setAttribute('stop-color','#f8fafc');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','100%');
+    stop3.setAttribute('stop-color','#cbd5e1');
+    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head joint vertical
+    const headJoint = document.createElementNS(svgNS,'rect');
+    headJoint.setAttribute('x','25');
+    headJoint.setAttribute('y', fluteLeftToRight ? '10' : '250');
+    headJoint.setAttribute('width','30');
+    headJoint.setAttribute('height','60');
+    headJoint.setAttribute('rx','15');
+    headJoint.setAttribute('fill','url(#fluteGradV)');
+    headJoint.setAttribute('stroke','#64748b');
+    headJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(headJoint);
+    
+    // Embouchure hole vertical
+    const embHole = document.createElementNS(svgNS,'ellipse');
+    embHole.setAttribute('cx','40');
+    embHole.setAttribute('cy', fluteLeftToRight ? '40' : '280');
+    embHole.setAttribute('rx','4');
+    embHole.setAttribute('ry','8');
+    embHole.setAttribute('fill','#1e293b');
+    embHole.setAttribute('stroke','#475569');
+    embHole.setAttribute('stroke-width','1');
+    svg.appendChild(embHole);
+    
+    // Body joint vertical
+    const bodyJoint = document.createElementNS(svgNS,'rect');
+    bodyJoint.setAttribute('x','27');
+    bodyJoint.setAttribute('y', fluteLeftToRight ? '75' : '145');
+    bodyJoint.setAttribute('width','26');
+    bodyJoint.setAttribute('height','100');
+    bodyJoint.setAttribute('rx','13');
+    bodyJoint.setAttribute('fill','url(#fluteGradV)');
+    bodyJoint.setAttribute('stroke','#64748b');
+    bodyJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(bodyJoint);
+    
+    // Foot joint vertical
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x','28');
+    footJoint.setAttribute('y', fluteLeftToRight ? '180' : '80');
+    footJoint.setAttribute('width','24');
+    footJoint.setAttribute('height','70');
+    footJoint.setAttribute('rx','12');
+    footJoint.setAttribute('fill','url(#fluteGradV)');
+    footJoint.setAttribute('stroke','#64748b');
+    footJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(footJoint);
+    
+    // Tone holes vertical
+    const holePositions = fluteLeftToRight ? 
+      [90, 105, 125, 145, 165, 185] : 
+      [230, 215, 195, 175, 155, 135];
+    
+    fing.forEach((closed,i)=>{
+      const holeY = holePositions[i];
+      
+      // Key mechanism
+      const key = document.createElementNS(svgNS,'rect');
+      key.setAttribute('x','52');
+      key.setAttribute('y', String(holeY - 8));
+      key.setAttribute('width','8');
+      key.setAttribute('height','16');
+      key.setAttribute('rx','2');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
+      key.setAttribute('stroke','#64748b');
+      key.setAttribute('stroke-width','1');
+      svg.appendChild(key);
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','40');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
+      hole.setAttribute('stroke','#64748b');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Key mechanism rod
+      const rod = document.createElementNS(svgNS,'line');
+      rod.setAttribute('x1','47');
+      rod.setAttribute('y1', String(holeY));
+      rod.setAttribute('x2','52');
+      rod.setAttribute('y2', String(holeY));
+      rod.setAttribute('stroke','#94a3b8');
+      rod.setAttribute('stroke-width','1');
+      svg.appendChild(rod);
+    });
   }
-  [body,mouth].forEach(el=>{
-    el.setAttribute('stroke','#94a3b8');
-    el.setAttribute('stroke-width','2');
-    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
-    svg.appendChild(el);
-  });
-  fing.forEach((closed,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
-      y = 30;
-    } else {
-      y = fluteLeftToRight ? 20 + i*22 : 140 - i*22;
-      x = 30;
-    }
-    c.setAttribute('cx', String(x));
-    c.setAttribute('cy', String(y));
-    c.setAttribute('r','10');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', closed ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
-  });
   fluteHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='fluteFlip';
@@ -2348,54 +2590,277 @@ function buildTrumpetChart(){
   const svgNS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(svgNS,'svg');
   const isHoriz = trumpetOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 120 60' : '0 0 60 120');
+  svg.setAttribute('viewBox', isHoriz ? '0 0 280 120' : '0 0 120 280');
   svg.setAttribute('class','mx-auto');
-  const body=document.createElementNS(svgNS,'polygon');
-  const mouth=document.createElementNS(svgNS,'polygon');
-  const bell=document.createElementNS(svgNS,'polygon');
+  
+  // Realistic trumpet with proper brass instrument details
   if(isHoriz){
-    body.setAttribute('points','20,20 100,20 100,40 20,40');
-    if(trumpetLeftToRight){
-      mouth.setAttribute('points','0,25 20,20 20,40 0,35');
-      bell.setAttribute('points','100,20 120,30 100,40');
-    } else {
-      mouth.setAttribute('points','100,20 120,25 120,35 100,40');
-      bell.setAttribute('points','20,20 0,30 20,40');
-    }
+    // Brass gradient for realistic metallic look
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','brassGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx', trumpetLeftToRight ? '15' : '265');
+    mouthpiece.setAttribute('cy','60');
+    mouthpiece.setAttribute('rx','12');
+    mouthpiece.setAttribute('ry','8');
+    mouthpiece.setAttribute('fill','url(#brassGrad)');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Lead pipe
+    const leadPipe = document.createElementNS(svgNS,'rect');
+    leadPipe.setAttribute('x', trumpetLeftToRight ? '25' : '215');
+    leadPipe.setAttribute('y','54');
+    leadPipe.setAttribute('width','40');
+    leadPipe.setAttribute('height','12');
+    leadPipe.setAttribute('rx','6');
+    leadPipe.setAttribute('fill','url(#brassGrad)');
+    leadPipe.setAttribute('stroke','#92400e');
+    leadPipe.setAttribute('stroke-width','1.5');
+    svg.appendChild(leadPipe);
+    
+    // Main tubing with curves (simplified representation of the wrap-around)
+    const mainTube1 = document.createElementNS(svgNS,'rect');
+    mainTube1.setAttribute('x', trumpetLeftToRight ? '70' : '150');
+    mainTube1.setAttribute('y','50');
+    mainTube1.setAttribute('width','60');
+    mainTube1.setAttribute('height','10');
+    mainTube1.setAttribute('rx','5');
+    mainTube1.setAttribute('fill','url(#brassGrad)');
+    mainTube1.setAttribute('stroke','#92400e');
+    mainTube1.setAttribute('stroke-width','1.5');
+    svg.appendChild(mainTube1);
+    
+    // Valve section
+    const valveSection = document.createElementNS(svgNS,'rect');
+    valveSection.setAttribute('x', trumpetLeftToRight ? '130' : '90');
+    valveSection.setAttribute('y','45');
+    valveSection.setAttribute('width','60');
+    valveSection.setAttribute('height','20');
+    valveSection.setAttribute('rx','4');
+    valveSection.setAttribute('fill','url(#brassGrad)');
+    valveSection.setAttribute('stroke','#92400e');
+    valveSection.setAttribute('stroke-width','2');
+    svg.appendChild(valveSection);
+    
+    // Second tubing section
+    const mainTube2 = document.createElementNS(svgNS,'rect');
+    mainTube2.setAttribute('x', trumpetLeftToRight ? '190' : '50');
+    mainTube2.setAttribute('y','52');
+    mainTube2.setAttribute('width','40');
+    mainTube2.setAttribute('height','8');
+    mainTube2.setAttribute('rx','4');
+    mainTube2.setAttribute('fill','url(#brassGrad)');
+    mainTube2.setAttribute('stroke','#92400e');
+    mainTube2.setAttribute('stroke-width','1.5');
+    svg.appendChild(mainTube2);
+    
+    // Bell section - realistic trumpet bell shape
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = trumpetLeftToRight ? 
+      'M 230 56 Q 250 45, 270 35 Q 275 50, 270 60 Q 275 70, 270 85 Q 250 75, 230 64 Z' :
+      'M 50 56 Q 30 45, 10 35 Q 5 50, 10 60 Q 5 70, 10 85 Q 30 75, 50 64 Z';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#brassGrad)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Valve pistons in correct positions
+    const valvePositions = trumpetLeftToRight ? [140, 155, 170] : [170, 155, 140];
+    fing.forEach((down,i)=>{
+      const valveX = valvePositions[i];
+      
+      // Valve casing
+      const casing = document.createElementNS(svgNS,'rect');
+      casing.setAttribute('x', String(valveX - 6));
+      casing.setAttribute('y','30');
+      casing.setAttribute('width','12');
+      casing.setAttribute('height','25');
+      casing.setAttribute('rx','3');
+      casing.setAttribute('fill','#e5e7eb');
+      casing.setAttribute('stroke','#6b7280');
+      casing.setAttribute('stroke-width','1');
+      svg.appendChild(casing);
+      
+      // Valve piston
+      const piston = document.createElementNS(svgNS,'rect');
+      piston.setAttribute('x', String(valveX - 4));
+      piston.setAttribute('y', down ? '32' : '28');
+      piston.setAttribute('width','8');
+      piston.setAttribute('height','15');
+      piston.setAttribute('rx','2');
+      piston.setAttribute('fill', down ? '#fbbf24' : '#d1d5db');
+      piston.setAttribute('stroke','#374151');
+      piston.setAttribute('stroke-width','1');
+      svg.appendChild(piston);
+      
+      // Valve button/cap
+      const button = document.createElementNS(svgNS,'circle');
+      button.setAttribute('cx', String(valveX));
+      button.setAttribute('cy','23');
+      button.setAttribute('r','5');
+      button.setAttribute('fill', down ? '#f59e0b' : '#9ca3af');
+      button.setAttribute('stroke','#374151');
+      button.setAttribute('stroke-width','1.5');
+      svg.appendChild(button);
+      
+      // Valve springs (visual representation)
+      const spring = document.createElementNS(svgNS,'line');
+      spring.setAttribute('x1', String(valveX));
+      spring.setAttribute('y1','55');
+      spring.setAttribute('x2', String(valveX));
+      spring.setAttribute('y2','65');
+      spring.setAttribute('stroke','#6b7280');
+      spring.setAttribute('stroke-width','2');
+      spring.setAttribute('stroke-dasharray','2,1');
+      svg.appendChild(spring);
+    });
+    
+    // Decorative details - water keys and bracing
+    const waterKey = document.createElementNS(svgNS,'circle');
+    waterKey.setAttribute('cx', trumpetLeftToRight ? '110' : '170');
+    waterKey.setAttribute('cy','65');
+    waterKey.setAttribute('r','2');
+    waterKey.setAttribute('fill','#94a3b8');
+    waterKey.setAttribute('stroke','#64748b');
+    waterKey.setAttribute('stroke-width','1');
+    svg.appendChild(waterKey);
+    
   } else {
-    body.setAttribute('points','20,20 40,20 40,100 20,100');
-    if(trumpetLeftToRight){
-      mouth.setAttribute('points','25,0 20,20 40,20 35,0');
-      bell.setAttribute('points','20,100 30,120 40,100');
-    } else {
-      mouth.setAttribute('points','20,100 40,100 35,120 25,120');
-      bell.setAttribute('points','20,20 30,0 40,20');
-    }
+    // Vertical orientation - similar detailed structure but rotated
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','brassGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx','60');
+    mouthpiece.setAttribute('cy', trumpetLeftToRight ? '15' : '265');
+    mouthpiece.setAttribute('rx','8');
+    mouthpiece.setAttribute('ry','12');
+    mouthpiece.setAttribute('fill','url(#brassGradV)');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Lead pipe vertical
+    const leadPipe = document.createElementNS(svgNS,'rect');
+    leadPipe.setAttribute('x','54');
+    leadPipe.setAttribute('y', trumpetLeftToRight ? '25' : '215');
+    leadPipe.setAttribute('width','12');
+    leadPipe.setAttribute('height','40');
+    leadPipe.setAttribute('rx','6');
+    leadPipe.setAttribute('fill','url(#brassGradV)');
+    leadPipe.setAttribute('stroke','#92400e');
+    leadPipe.setAttribute('stroke-width','1.5');
+    svg.appendChild(leadPipe);
+    
+    // Main valve section vertical
+    const valveSection = document.createElementNS(svgNS,'rect');
+    valveSection.setAttribute('x','45');
+    valveSection.setAttribute('y', trumpetLeftToRight ? '130' : '90');
+    valveSection.setAttribute('width','20');
+    valveSection.setAttribute('height','60');
+    valveSection.setAttribute('rx','4');
+    valveSection.setAttribute('fill','url(#brassGradV)');
+    valveSection.setAttribute('stroke','#92400e');
+    valveSection.setAttribute('stroke-width','2');
+    svg.appendChild(valveSection);
+    
+    // Bell vertical
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = trumpetLeftToRight ? 
+      'M 56 230 Q 45 250, 35 270 Q 50 275, 60 270 Q 70 275, 85 270 Q 75 250, 64 230 Z' :
+      'M 56 50 Q 45 30, 35 10 Q 50 5, 60 10 Q 70 5, 85 10 Q 75 30, 64 50 Z';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#brassGradV)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Valve pistons vertical
+    const valvePositions = trumpetLeftToRight ? [140, 155, 170] : [170, 155, 140];
+    fing.forEach((down,i)=>{
+      const valveY = valvePositions[i];
+      
+      // Valve casing vertical
+      const casing = document.createElementNS(svgNS,'rect');
+      casing.setAttribute('x','30');
+      casing.setAttribute('y', String(valveY - 6));
+      casing.setAttribute('width','25');
+      casing.setAttribute('height','12');
+      casing.setAttribute('rx','3');
+      casing.setAttribute('fill','#e5e7eb');
+      casing.setAttribute('stroke','#6b7280');
+      casing.setAttribute('stroke-width','1');
+      svg.appendChild(casing);
+      
+      // Valve piston vertical
+      const piston = document.createElementNS(svgNS,'rect');
+      piston.setAttribute('x', down ? '32' : '28');
+      piston.setAttribute('y', String(valveY - 4));
+      piston.setAttribute('width','15');
+      piston.setAttribute('height','8');
+      piston.setAttribute('rx','2');
+      piston.setAttribute('fill', down ? '#fbbf24' : '#d1d5db');
+      piston.setAttribute('stroke','#374151');
+      piston.setAttribute('stroke-width','1');
+      svg.appendChild(piston);
+      
+      // Valve button vertical
+      const button = document.createElementNS(svgNS,'circle');
+      button.setAttribute('cx','23');
+      button.setAttribute('cy', String(valveY));
+      button.setAttribute('r','5');
+      button.setAttribute('fill', down ? '#f59e0b' : '#9ca3af');
+      button.setAttribute('stroke','#374151');
+      button.setAttribute('stroke-width','1.5');
+      svg.appendChild(button);
+    });
   }
-  [body,mouth,bell].forEach(el=>{
-    el.setAttribute('stroke','#94a3b8');
-    el.setAttribute('stroke-width','2');
-    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
-    svg.appendChild(el);
-  });
-  fing.forEach((down,i)=>{
-    const c=document.createElementNS(svgNS,'circle');
-    let x,y;
-    if(isHoriz){
-      x = trumpetLeftToRight ? 20 + i*40 : 100 - i*40;
-      y = 30;
-    } else {
-      y = trumpetLeftToRight ? 20 + i*40 : 100 - i*40;
-      x = 30;
-    }
-    c.setAttribute('cx',String(x));
-    c.setAttribute('cy',String(y));
-    c.setAttribute('r','12');
-    c.setAttribute('stroke','#fbbf24');
-    c.setAttribute('stroke-width','2');
-    c.setAttribute('fill', down ? '#fbbf24' : 'transparent');
-    svg.appendChild(c);
-  });
   trumpetHost.appendChild(svg);
   const flip=document.createElement('button');
   flip.id='trumpetFlip';
