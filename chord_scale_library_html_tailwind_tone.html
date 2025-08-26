@@ -1689,25 +1689,15 @@ function drawPianoRoll(){
   const cellH = 20 * ui.zoomY;
   let totalWidth = totalSteps * cellW;
   
-  // Debug logging for large MIDI files
-  if(clip.length > 192*64) {
-    console.log('Large MIDI detected - clip.length:', clip.length, 'totalSteps:', totalSteps, 'totalWidth:', totalWidth, 'cellW:', cellW);
-    
-    // Check for browser width limits
-    const maxBrowserWidth = 33554427; // Chrome/Firefox limit
-    if(totalWidth > maxBrowserWidth) {
-      console.warn('totalWidth exceeds browser limit:', totalWidth, '> max:', maxBrowserWidth);
-      // Reduce zoom to fit within browser limits
-      const maxZoomX = maxBrowserWidth / (totalSteps * 20);
-      if(ui.zoomX > maxZoomX) {
-        console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
-        ui.zoomX = maxZoomX;
-        seqZoomX.value = maxZoomX;
-        // Recalculate with new zoom
-        cellW = 20 * ui.zoomX;
-        totalWidth = totalSteps * cellW;
-        console.log('Adjusted totalWidth:', totalWidth);
-      }
+  // Ensure we don't exceed browser canvas size limits
+  const maxBrowserWidth = 33554427; // Chrome/Firefox limit
+  if(totalWidth > maxBrowserWidth) {
+    const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+    if(ui.zoomX > maxZoomX) {
+      ui.zoomX = maxZoomX;
+      seqZoomX.value = maxZoomX;
+      cellW = 20 * ui.zoomX;
+      totalWidth = totalSteps * cellW;
     }
   }
   const scrollLeft = pianoRollScroll.scrollLeft;
@@ -2346,6 +2336,7 @@ const FLUTE_FINGERINGS = {
   Change these numbers to resize the chart or adjust hole placement for custom layouts.
 */
 let fluteBodyPath = null;
+const FLUTE_BODY_FALLBACK = 'M5 25h310a15 15 0 0 1 0 30H5a15 15 0 0 1 0-30z';
 async function buildFluteChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
@@ -2363,9 +2354,13 @@ async function buildFluteChart(){
   svg.style.transform = (isHoriz? '' : 'rotate(90deg)') + (fluteLeftToRight ? '' : ' scaleX(-1)');
 
   if(!fluteBodyPath){
-    const txt = await fetch('assets/instruments/flute.svg').then(r=>r.text());
-    const doc = new DOMParser().parseFromString(txt,'image/svg+xml');
-    fluteBodyPath = doc.querySelector('path').getAttribute('d');
+    try{
+      const txt = await fetch('assets/instruments/flute.svg').then(r=>r.text());
+      const doc = new DOMParser().parseFromString(txt,'image/svg+xml');
+      fluteBodyPath = doc.querySelector('path').getAttribute('d');
+    }catch(e){
+      fluteBodyPath = FLUTE_BODY_FALLBACK;
+    }
   }
   const body = document.createElementNS(svgNS,'path');
   body.setAttribute('d', fluteBodyPath);
@@ -2458,6 +2453,10 @@ const RECORDER_FINGERINGS = {
   - Hole radius: r=8
   Adjust these values to change chart size, spacing, or hole size for custom recorders.
 */
+codex/update-recorder-chart-with-svg-and-gradients-vkzzw2
+let recorderSvgTxt = null;
+const RECORDER_SVG_FALLBACK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100"><g id="instrument"><path id="body" d="M20 35h300a15 15 0 0 1 0 30H20a15 15 0 0 1 0-30z"/><circle id="hole0" cx="85" cy="50" r="6"/><circle id="hole1" cx="100" cy="50" r="6"/><circle id="hole2" cx="115" cy="50" r="6"/><circle id="hole3" cx="130" cy="50" r="6"/><circle id="hole4" cx="150" cy="50" r="6"/><circle id="hole5" cx="170" cy="50" r="6"/><circle id="hole6" cx="190" cy="50" r="6"/><circle id="hole7" cx="210" cy="50" r="6"/><ellipse id="thumb" cx="95" cy="32" rx="3" ry="2"/></g></svg>`;
+main
 async function buildRecorderChart(){
   const {rootPc} = computeSelected();
   const note = pcName(rootPc);
@@ -2469,8 +2468,17 @@ async function buildRecorderChart(){
   const wrapper=document.createElementNS(svgNS,'svg');
   wrapper.setAttribute('viewBox', isHoriz ? '0 0 340 100' : '0 0 100 340');
   wrapper.setAttribute('class','mx-auto');
+codex/update-recorder-chart-with-svg-and-gradients-vkzzw2
+  wrapper.style.width = isHoriz ? '340px' : '100px';
+  wrapper.style.height = isHoriz ? '100px' : '340px';
+  if(!recorderSvgTxt){
+    try{ recorderSvgTxt = await fetch('assets/instruments/recorder.svg').then(r=>r.text()); }
+    catch(e){ recorderSvgTxt = RECORDER_SVG_FALLBACK; }
+  }
+  const doc=new DOMParser().parseFromString(recorderSvgTxt,'image/svg+xml');
   const txt=await fetch('assets/instruments/recorder.svg').then(r=>r.text());
   const doc=new DOMParser().parseFromString(txt,'image/svg+xml');
+main
   const instrument=doc.getElementById('instrument');
   const body=doc.getElementById('body');
   const holes=[...instrument.querySelectorAll('[id^=hole]')];
