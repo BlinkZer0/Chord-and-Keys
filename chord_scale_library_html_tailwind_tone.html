@@ -1631,14 +1631,24 @@ function drawPianoRoll(){
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
-  // notes
+  // notes - with viewport culling for performance
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+  const topMidi = MAX_MIDI - Math.floor(pianoRollScroll.scrollTop / cellH);
+  const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
+  
   song.tracks.forEach((track,idx)=>{
     const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
-    track.clips[0].notes.forEach(n=>{
+    // Pre-filter notes for viewport culling - major performance improvement for large files
+    const visibleNotes = track.clips[0].notes.filter(n => 
+      n.tick + n.dur >= startTick && n.tick <= endTick && 
+      n.midi >= bottomMidi && n.midi <= topMidi
+    );
+    
+    visibleNotes.forEach(n=>{
       const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
-      if(x+w<0 || x>width) return;
       
       // Piano-style coloring: black keys (sharps) vs white keys (naturals)
       const pc = n.midi % 12;
@@ -2135,18 +2145,30 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
     whiteRow.appendChild(k); });
   // Black overlay with realistic piano spacing
   const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
-  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); const octave = Math.floor(m/OCTAVE); const whiteKeyIndex = whites.findIndex(w => Math.floor(w/OCTAVE) === octave && mod(w,OCTAVE) > pc) + whites.filter(w => Math.floor(w/OCTAVE) < octave).length;
-    // Real piano black key positions - between specific white keys
-    let leftOffset;
-    if(pc === 1) leftOffset = 0.7;      // C# between C-D 
-    else if(pc === 3) leftOffset = 0.3; // D# between D-E
-    else if(pc === 6) leftOffset = 0.75; // F# between F-G
-    else if(pc === 8) leftOffset = 0.5;  // G# between G-A
-    else if(pc === 10) leftOffset = 0.25; // A# between A-B
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); 
+    // Find the correct white key to position this black key relative to
+    let leftWhiteKey;
+    if(pc === 1) leftWhiteKey = m - 1; // C# positioned relative to C
+    else if(pc === 3) leftWhiteKey = m - 1; // D# positioned relative to D  
+    else if(pc === 6) leftWhiteKey = m - 1; // F# positioned relative to F
+    else if(pc === 8) leftWhiteKey = m - 1; // G# positioned relative to G
+    else if(pc === 10) leftWhiteKey = m - 1; // A# positioned relative to A
+    
+    // Find the index of this left white key in our whites array
+    const leftWhiteIndex = whites.indexOf(leftWhiteKey);
+    if(leftWhiteIndex === -1) return; // Skip if white key not found
+    
+    // Position offsets for realistic piano spacing
+    let rightOffset;
+    if(pc === 1) rightOffset = 0.75;    // C# positioned 75% toward D
+    else if(pc === 3) rightOffset = 0.25; // D# positioned 25% toward E
+    else if(pc === 6) rightOffset = 0.67;  // F# positioned 67% toward G
+    else if(pc === 8) rightOffset = 0.5;   // G# positioned 50% toward A (centered)
+    else if(pc === 10) rightOffset = 0.33; // A# positioned 33% toward B
     
     const wrap=document.createElement('div'); 
     wrap.className='absolute pointer-events-none'; 
-    wrap.style.left = `${((whiteKeyIndex - 1) / whites.length * 100) + (leftOffset * (100 / whites.length))}%`;
+    wrap.style.left = `${(leftWhiteIndex / whites.length * 100) + (rightOffset * (100 / whites.length))}%`;
     wrap.style.width = `${100 / whites.length * 0.58}%`; // Slightly narrower than before
     wrap.style.height = '65%'; 
     wrap.style.top = '0';
