@@ -117,6 +117,11 @@
           <button id="seqPlay" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
           <button id="seqPause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
           <button id="seqStop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
+          <div class="flex items-center gap-2">
+            <span id="seqPosition" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 font-mono text-sm text-slate-300 min-w-[100px] text-center">0:0:0</span>
+            <button id="seqToStart" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">|&lt;</button>
+            <button id="seqToEnd" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">&gt;|</button>
+          </div>
           <label class="text-sm text-slate-300 flex items-center gap-2">BPM
             <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
           </label>
@@ -129,6 +134,17 @@
           <label class="flex items-center gap-2 text-sm text-slate-300">
             <input id="seqAutoScroll" type="checkbox" class="h-4 w-4" checked>Auto-scroll
           </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            Snap
+            <select id="seqQuantize" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+              <option value="0">Off</option>
+              <option value="48">1/4</option>
+              <option value="24">1/8</option>
+              <option value="12" selected>1/16</option>
+              <option value="6">1/32</option>
+            </select>
+          </label>
+          <button id="seqQuantizeBtn" class="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium">Quantize</button>
           <label class="flex items-center gap-2 text-sm text-slate-300">
             TS
             <input id="seqTSNum" type="number" min="1" max="16" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
@@ -546,6 +562,254 @@ function releaseHeld(midi){
 function allNotesOff(){ _synth?.releaseAll(); }
 window.addEventListener('blur', allNotesOff);
 
+// Global keyboard shortcuts
+document.addEventListener('keydown', (ev) => {
+  // Don't interfere with input fields
+  if(ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
+  
+  const ctrl = ev.ctrlKey || ev.metaKey;
+  
+  switch(ev.code) {
+    case 'Space':
+      ev.preventDefault();
+      if(sequencerState === 'playing') {
+        seqPause.click();
+      } else {
+        seqPlay.click();
+      }
+      break;
+      
+    case 'Escape':
+      ev.preventDefault();
+      seqStop.click();
+      break;
+      
+    case 'Delete':
+    case 'Backspace':
+      ev.preventDefault();
+      deleteSelected();
+      break;
+      
+    case 'KeyA':
+      if(ctrl) {
+        ev.preventDefault();
+        selectAll();
+      }
+      break;
+      
+    case 'KeyC':
+      if(ctrl) {
+        ev.preventDefault();
+        copySelected();
+      }
+      break;
+      
+    case 'KeyX':
+      if(ctrl) {
+        ev.preventDefault();
+        cutSelected();
+      }
+      break;
+      
+    case 'KeyV':
+      if(ctrl) {
+        ev.preventDefault();
+        pasteNotes();
+      }
+      break;
+      
+    case 'KeyZ':
+      if(ctrl && !ev.shiftKey) {
+        ev.preventDefault();
+        undo();
+      }
+      break;
+      
+    case 'KeyY':
+      if(ctrl) {
+        ev.preventDefault();
+        redo();
+      }
+      break;
+      
+    case 'KeyZ':
+      if(ctrl && ev.shiftKey) {
+        ev.preventDefault();
+        redo();
+      }
+      break;
+      
+    case 'KeyQ':
+      if(ctrl) {
+        ev.preventDefault();
+        quantizeSelected();
+      }
+      break;
+  }
+});
+
+// Undo/Redo system
+function saveState(description) {
+  const state = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description
+  };
+  undoStack.push(state);
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0; // Clear redo stack
+}
+
+function undo() {
+  if(undoStack.length === 0) return;
+  const currentState = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description: 'current'
+  };
+  redoStack.push(currentState);
+  
+  const prevState = undoStack.pop();
+  song.tracks = prevState.tracks;
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+}
+
+function redo() {
+  if(redoStack.length === 0) return;
+  const currentState = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description: 'current'
+  };
+  undoStack.push(currentState);
+  
+  const nextState = redoStack.pop();
+  song.tracks = nextState.tracks;
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+}
+
+// Selection helpers
+function selectAll() {
+  selectedNotes.clear();
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes.forEach(note => selectedNotes.add(note));
+  drawPianoRoll();
+}
+
+function deleteSelected() {
+  if(selectedNotes.size === 0) return;
+  saveState('Delete notes');
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes = track.clips[0].notes.filter(note => !selectedNotes.has(note));
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+}
+
+function copySelected() {
+  if(selectedNotes.size === 0) return;
+  clipboard = Array.from(selectedNotes).map(note => ({...note}));
+}
+
+function cutSelected() {
+  copySelected();
+  deleteSelected();
+}
+
+function pasteNotes() {
+  if(clipboard.length === 0) return;
+  saveState('Paste notes');
+  
+  const track = song.tracks[activeTrack];
+  const minTick = Math.min(...clipboard.map(n => n.tick));
+  const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+  
+  selectedNotes.clear();
+  clipboard.forEach(note => {
+    const newNote = {
+      ...note,
+      tick: playheadTick + (note.tick - minTick)
+    };
+    track.clips[0].notes.push(newNote);
+    selectedNotes.add(newNote);
+  });
+  
+  track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+}
+
+// Quantization
+function quantizeSelected() {
+  if(selectedNotes.size === 0) return;
+  saveState('Quantize notes');
+  
+  selectedNotes.forEach(note => {
+    note.tick = Math.round(note.tick / quantizeSnap) * quantizeSnap;
+  });
+  
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+}
+
+// Transport position display
+function ticksToBarsBeatsTicks(ticks) {
+  const ppq = song.ppq;
+  const beatsPerBar = song.ts.num;
+  const ticksPerBeat = ppq;
+  const ticksPerBar = beatsPerBar * ticksPerBeat;
+  
+  const bars = Math.floor(ticks / ticksPerBar);
+  const beats = Math.floor((ticks % ticksPerBar) / ticksPerBeat);
+  const ticksRemainder = ticks % ticksPerBeat;
+  
+  return `${bars + 1}:${beats + 1}:${ticksRemainder.toString().padStart(3, '0')}`;
+}
+
+function updatePositionDisplay() {
+  if(seqPosition) {
+    const currentTicks = Tone.Transport.ticks;
+    seqPosition.textContent = ticksToBarsBeatsTicks(currentTicks);
+  }
+}
+
+function jumpToStart() {
+  Tone.Transport.position = 0;
+  updatePositionDisplay();
+  drawPianoRoll();
+}
+
+function jumpToEnd() {
+  // Find the last note across all tracks
+  const lastTick = Math.max(0, ...song.tracks.flatMap(t => 
+    t.clips[0].notes.map(n => n.tick + n.dur)
+  ));
+  Tone.Transport.ticks = lastTick;
+  updatePositionDisplay();
+  drawPianoRoll();
+}
+
 // Simple Tone.js drum recipes
 function makeMembrane(pitch, opts){
   const gain = new Tone.Gain(1).connect(masterLim);
@@ -675,6 +939,11 @@ const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
 const seqAutoScroll = $('#seqAutoScroll');
+const seqQuantize = $('#seqQuantize');
+const seqQuantizeBtn = $('#seqQuantizeBtn');
+const seqPosition = $('#seqPosition');
+const seqToStart = $('#seqToStart');
+const seqToEnd = $('#seqToEnd');
 const seqTSNum = $('#seqTSNum'); const seqTSDen = $('#seqTSDen');
 const seqColorScheme = $('#seqColorScheme');
 const pianoRoll = $('#pianoRoll');
@@ -759,12 +1028,12 @@ const song = {
   ppq: 192,
   bpm: 120,
   ts:{num:4,den:4},
-  loop:{enabled:false,start:0,end:192*4},
+  loop:{enabled:false,start:0,end:192*16},
   tracks: defaultSeqTracks.map((name,i) => ({
     id:'trk'+i,
     name,
     instrument: name,
-    clips: [{ id:'clip0', start:0, length:192*16, loop:false, notes: [] }],
+    clips: [{ id:'clip0', start:0, length:192*64, loop:false, notes: [] }],
     mute:false,
     solo:false,
     volume:0.8,
@@ -784,7 +1053,7 @@ let activeTrack = 0;
 let dragNote = null;
 let trackSwitchTimeout = null;
 const TRACK_SWITCH_DELAY = 500;
-const ui = {zoomX:1, zoomY:1, scrollX:0, scrollY:0, scheme:'Classic'};
+const ui = {zoomX:1, zoomY:1, scrollX:0, scrollY:0, scheme:'Classic', selecting:false, selectStart:{x:0,y:0}};
 
 // [fix] active track highlight
 function refreshActiveTrackHighlight(){
@@ -817,9 +1086,30 @@ function setBpm(val){
 }
 
 function updateLoop(){
-  Tone.Transport.loopStart = `${song.loop.start}i`;
-  Tone.Transport.loopEnd = `${song.loop.end}i`;
-  Tone.Transport.loop = seqLoop.checked && song.loop.enabled;
+  // Clear any existing auto-stop
+  if(autoStopId) {
+    Tone.Transport.clear(autoStopId);
+    autoStopId = null;
+  }
+  
+  if(seqLoop.checked && song.loop.enabled) {
+    Tone.Transport.loopStart = `${song.loop.start}i`;
+    Tone.Transport.loopEnd = `${song.loop.end}i`;
+    Tone.Transport.loop = true;
+  } else {
+    // For one-shot playback, disable looping
+    Tone.Transport.loop = false;
+    // Calculate song length based on actual notes
+    const maxNoteTick = Math.max(192*16, ...song.tracks.flatMap(t => 
+      t.clips[0].notes.map(n => t.clips[0].start + n.tick + n.dur)
+    ));
+    // Schedule a stop event at the end of the song
+    autoStopId = Tone.Transport.scheduleOnce(() => {
+      if(sequencerState === 'playing') {
+        seqStop.click();
+      }
+    }, `${maxNoteTick + 192}i`); // Add small buffer
+  }
 }
 
 function scheduleSong(changedIdx){
@@ -851,9 +1141,13 @@ function scheduleSong(changedIdx){
     }
 
     if(changedIdx !== undefined && changedIdx !== idx && track.part){
-      track.part.loopStart = `${song.loop.start}i`;
-      track.part.loopEnd = `${song.loop.end}i`;
-      track.part.loop = true;
+      if(seqLoop.checked && song.loop.enabled) {
+        track.part.loopStart = `${song.loop.start}i`;
+        track.part.loopEnd = `${song.loop.end}i`;
+        track.part.loop = true;
+      } else {
+        track.part.loop = false;
+      }
       return;
     }
 
@@ -880,9 +1174,13 @@ function scheduleSong(changedIdx){
             track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
           }
         }, events);
-        part.loopStart = `${song.loop.start}i`;
-        part.loopEnd = `${song.loop.end}i`;
-        part.loop = true;
+        if(seqLoop.checked && song.loop.enabled) {
+          part.loopStart = `${song.loop.start}i`;
+          part.loopEnd = `${song.loop.end}i`;
+          part.loop = true;
+        } else {
+          part.loop = false;
+        }
         part.start(0);
         track.part = part;
       } catch(error) {
@@ -895,6 +1193,15 @@ function scheduleSong(changedIdx){
 
 let clickId = null;
 let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
+let autoStopId = null; // Store the auto-stop event ID
+
+// Selection and editing state
+let selectedNotes = new Set(); // Set of note objects
+let clipboard = []; // Copied notes
+let undoStack = []; // Undo history
+let redoStack = []; // Redo history
+const MAX_UNDO = 50;
+let quantizeSnap = SIXTEENTH; // Current quantization snap
 
 setBpm(song.bpm);
 updateLoop();
@@ -944,6 +1251,14 @@ function exportSongMidi(){
 function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
 function drawPianoRoll(){
   const clip = song.tracks[activeTrack].clips[0];
+  // Auto-extend clip length if needed based on actual notes
+  const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t => 
+    t.clips[0].notes.map(n => n.tick + n.dur)
+  ));
+  const minClipLength = Math.max(clip.length, maxNoteTick + 192*4); // Add 4 bars buffer
+  if(minClipLength > clip.length) {
+    song.tracks.forEach(t => t.clips[0].length = minClipLength);
+  }
   const steps = clip.length / SIXTEENTH;
   const noteCount = MAX_MIDI - MIN_MIDI;
   const cellW = 20 * ui.zoomX;
@@ -963,9 +1278,21 @@ function drawPianoRoll(){
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
   // notes
   song.tracks.forEach((track,idx)=>{
-    const color = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
-    ctx.fillStyle = color;
-    track.clips[0].notes.forEach(n=>{ const x=n.tick/SIXTEENTH*cellW; const w=n.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-n.midi-1)*cellH; ctx.fillRect(x,y,w,cellH); });
+    const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
+    track.clips[0].notes.forEach(n=>{
+      const x=n.tick/SIXTEENTH*cellW;
+      const w=n.dur/SIXTEENTH*cellW;
+      const y=(MAX_MIDI-n.midi-1)*cellH;
+      
+      // Highlight selected notes
+      if(idx === activeTrack && selectedNotes.has(n)) {
+        ctx.fillStyle = '#ff6b9d'; // Pink highlight for selected notes
+        ctx.fillRect(x-2, y-2, w+4, cellH+4);
+      }
+      
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(x,y,w,cellH);
+    });
   });
   if(dragNote){
     ctx.fillStyle='rgba(236,72,153,0.6)';
@@ -1024,23 +1351,68 @@ pianoRoll.addEventListener('pointerdown', ev => {
   }
   const clip=song.tracks[activeTrack].clips[0];
   // check existing notes first
+  let foundNote = null;
   for(let i=clip.notes.length-1;i>=0;i--){
     const n=clip.notes[i];
     const noteX=n.tick/SIXTEENTH*cellW;
     const noteW=n.dur/SIXTEENTH*cellW;
     if(n.midi===midi && x>=noteX && x<noteX+noteW){
-      if(ev.shiftKey){
-        clip.notes.splice(i,1); drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); return;
+      foundNote = n;
+      break;
+    }
+  }
+  
+  if(foundNote) {
+    if(ev.shiftKey && ev.altKey) {
+      // Shift+Alt = Delete note
+      saveState('Delete note');
+      clip.notes.splice(clip.notes.indexOf(foundNote), 1);
+      selectedNotes.delete(foundNote);
+      drawPianoRoll();
+      if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+      return;
+    } else if(ev.shiftKey) {
+      // Shift+Click = Toggle selection
+      if(selectedNotes.has(foundNote)) {
+        selectedNotes.delete(foundNote);
+      } else {
+        selectedNotes.add(foundNote);
       }
+      drawPianoRoll();
+      return;
+    } else if(ev.ctrlKey || ev.metaKey) {
+      // Ctrl+Click = Add to selection
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+      return;
+    } else if(!selectedNotes.has(foundNote)) {
+      // Regular click on unselected note = Select only this note
+      selectedNotes.clear();
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+    }
+    
+    // Start dragging if note is selected
+    if(selectedNotes.has(foundNote)) {
+      const noteX=foundNote.tick/SIXTEENTH*cellW;
+      const noteW=foundNote.dur/SIXTEENTH*cellW;
       const nearRight = x>noteX+noteW-5; // resize handle ~5px
-      dragNote={note:n, mode:nearRight?'resize':'move', offsetTick:tick-n.tick, offsetMidi:midi-n.midi};
+      saveState(nearRight ? 'Resize note' : 'Move note');
+      dragNote={note:foundNote, mode:nearRight?'resize':'move', offsetTick:tick-foundNote.tick, offsetMidi:midi-foundNote.midi};
       pianoRoll.setPointerCapture(ev.pointerId);
       drawPianoRoll();
       return;
     }
+  } else {
+    // Clicked on empty space
+    if(!ev.shiftKey && !ev.ctrlKey && !ev.metaKey) {
+      selectedNotes.clear();
+      drawPianoRoll();
+    }
   }
   // otherwise create new note
-  dragNote={tick, dur:lastNoteDur, midi, mode:'new'};
+  const snappedTick = quantizeSnap > 0 ? Math.round(tick / quantizeSnap) * quantizeSnap : tick;
+  dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
   pianoRoll.setPointerCapture(ev.pointerId);
   drawPianoRoll();
 });
@@ -1051,10 +1423,33 @@ pianoRoll.addEventListener('pointermove', ev=>{
   const cellW=20*ui.zoomX; const cellH=20*ui.zoomY;
   const tick=Math.floor(x/cellW)*SIXTEENTH; const midi=MAX_MIDI-1-Math.floor(y/cellH);
   if(dragNote.mode==='new'){
-    const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.dur=Math.max(SIXTEENTH,endTick-dragNote.tick);
+    let endTick=Math.floor(x/cellW+1)*SIXTEENTH;
+    if(quantizeSnap > 0) {
+      endTick = Math.round(endTick / quantizeSnap) * quantizeSnap;
+    }
+    dragNote.dur=Math.max(quantizeSnap || SIXTEENTH, endTick-dragNote.tick);
   } else if(dragNote.mode==='move'){
-    dragNote.note.tick=Math.max(0,tick-dragNote.offsetTick);
-    dragNote.note.midi=Math.min(MAX_MIDI-1,Math.max(0,midi-dragNote.offsetMidi));
+    let newTick = Math.max(0,tick-dragNote.offsetTick);
+    if(quantizeSnap > 0) {
+      newTick = Math.round(newTick / quantizeSnap) * quantizeSnap;
+    }
+    const newMidi = Math.min(MAX_MIDI-1,Math.max(0,midi-dragNote.offsetMidi));
+    
+    // If multiple notes are selected, move them all relative to the dragged note
+    if(selectedNotes.size > 1) {
+      const tickDelta = newTick - dragNote.note.tick;
+      const midiDelta = newMidi - dragNote.note.midi;
+      
+      selectedNotes.forEach(note => {
+        if(note !== dragNote.note) {
+          note.tick = Math.max(0, note.tick + tickDelta);
+          note.midi = Math.min(MAX_MIDI-1, Math.max(0, note.midi + midiDelta));
+        }
+      });
+    }
+    
+    dragNote.note.tick = newTick;
+    dragNote.note.midi = newMidi;
   } else if(dragNote.mode==='resize'){
     const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.note.dur=Math.max(SIXTEENTH,endTick-dragNote.note.tick);
   }
@@ -1063,8 +1458,14 @@ pianoRoll.addEventListener('pointermove', ev=>{
 pianoRoll.addEventListener('pointerup', ev=>{
   if(!dragNote) return; const track=song.tracks[activeTrack];
   if(dragNote.mode==='new') {
-    track.clips[0].notes.push({tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8});
+    saveState('Add note');
+    const newNote = {tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8};
+    track.clips[0].notes.push(newNote);
+    selectedNotes.clear();
+    selectedNotes.add(newNote);
     lastNoteDur = dragNote.dur;
+  } else if(dragNote.mode === 'move' || dragNote.mode === 'resize') {
+    // Save state was already called on pointerdown for existing notes
   }
   // keep notes ordered after edits
   track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
@@ -1084,12 +1485,18 @@ function startPlayhead(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
     if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
+    updatePositionDisplay();
     drawPianoRoll();
     playheadReq=requestAnimationFrame(loop);
   }
   loop();
 }
-function stopPlayhead(){ if(playheadReq) cancelAnimationFrame(playheadReq); playheadReq=null; drawPianoRoll(); }
+function stopPlayhead(){ 
+  if(playheadReq) cancelAnimationFrame(playheadReq); 
+  playheadReq=null; 
+  updatePositionDisplay();
+  drawPianoRoll(); 
+}
 
 function initSequencer(){
   seqTracks.innerHTML='';
@@ -1754,6 +2161,31 @@ seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm)
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
 seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
 seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
+
+// Quantization controls
+seqQuantize.addEventListener('change', ()=>{
+  const value = Number(seqQuantize.value);
+  quantizeSnap = value || SIXTEENTH; // Default to 1/16 if "Off" is selected for snap-to-grid
+});
+
+seqQuantizeBtn.addEventListener('click', ()=>{
+  if(selectedNotes.size === 0) {
+    // If no notes selected, select all notes on active track
+    selectAll();
+  }
+  quantizeSelected();
+});
+
+// Transport controls
+seqToStart.addEventListener('click', jumpToStart);
+seqToEnd.addEventListener('click', jumpToEnd);
+
+// Update position display every 100ms when playing
+setInterval(() => {
+  if(sequencerState === 'playing') {
+    updatePositionDisplay();
+  }
+}, 100);
 seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
 seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
 seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
@@ -1821,6 +2253,7 @@ seqStop.addEventListener('click', ()=>{
   Tone.Transport.stop();
   Tone.Transport.cancel();
   if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
+  if(autoStopId!==null){ Tone.Transport.clear(autoStopId); autoStopId=null; }
   song.tracks.forEach(t=>{ 
     if(t.part) { t.part.dispose(); t.part = null; }
     if(t.player){ t.player.dispose(); t.player=null; }
