@@ -1419,22 +1419,83 @@ const PATTERN_LIBRARY = {
   ],
 
   // ============ CHORDS ============
-  // Basic triads
-  'chord-C-major': generateChordPattern('Maj', 60),
-  'chord-C-minor': generateChordPattern('Min', 60),
-  'chord-C-diminished': generateChordPattern('Dim', 60),
-  'chord-C-augmented': generateChordPattern('Aug', 60),
+  // Basic triads - C Major
+  'chord-C-major': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}  // G
+  ],
+  // C Minor
+  'chord-C-minor': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 63, vel: 0.7}, // Eb
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}  // G
+  ],
+  // C Diminished
+  'chord-C-diminished': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 63, vel: 0.7}, // Eb
+    {tick: 0, dur: 768, midi: 66, vel: 0.7}  // Gb
+  ],
+  // C Augmented
+  'chord-C-augmented': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 68, vel: 0.7}  // G#
+  ],
   
-  // Seventh chords
-  'chord-C-dom7': generateChordPattern('7', 60),
-  'chord-C-maj7': generateChordPattern('Maj7', 60),
-  'chord-C-min7': generateChordPattern('Min7', 60),
-  'chord-C-dim7': generateChordPattern('Dim7', 60),
-  
+  // Seventh chords - C Dominant 7
+  'chord-C-dom7': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 70, vel: 0.7}  // Bb
+  ],
+  // C Major 7
+  'chord-C-maj7': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 71, vel: 0.7}  // B
+  ],
+  // C Minor 7
+  'chord-C-min7': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 63, vel: 0.7}, // Eb
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 70, vel: 0.7}  // Bb
+  ],
+  // C Diminished 7
+  'chord-C-dim7': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 63, vel: 0.7}, // Eb
+    {tick: 0, dur: 768, midi: 66, vel: 0.7}, // Gb
+    {tick: 0, dur: 768, midi: 69, vel: 0.7}  // A
+  ],
   // Extended chords
-  'chord-C-maj9': generateChordPattern('Maj9', 60),
-  'chord-C-min9': generateChordPattern('Min9', 60),
-  'chord-C-dom13': generateChordPattern('13', 60),
+  'chord-C-maj9': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 71, vel: 0.7}, // B
+    {tick: 0, dur: 768, midi: 74, vel: 0.7}  // D
+  ],
+  'chord-C-min9': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 63, vel: 0.7}, // Eb
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 70, vel: 0.7}, // Bb
+    {tick: 0, dur: 768, midi: 74, vel: 0.7}  // D
+  ],
+  'chord-C-dom13': [
+    {tick: 0, dur: 768, midi: 60, vel: 0.7}, // C
+    {tick: 0, dur: 768, midi: 64, vel: 0.7}, // E
+    {tick: 0, dur: 768, midi: 67, vel: 0.7}, // G
+    {tick: 0, dur: 768, midi: 70, vel: 0.7}, // Bb
+    {tick: 0, dur: 768, midi: 74, vel: 0.7}, // D
+    {tick: 0, dur: 768, midi: 77, vel: 0.7}, // F
+    {tick: 0, dur: 768, midi: 81, vel: 0.7}  // A
+  ],
 
   // Jazz chord progressions
   'progression-ii-V-I': [
@@ -1456,14 +1517,39 @@ const PATTERN_LIBRARY = {
   ],
 
   // ============ SCALES ============
-  'scale-C-major': generateScalePattern('Ionian', 60),
-  'scale-C-minor': generateScalePattern('Aeolian', 60),
-  'scale-C-dorian': generateScalePattern('Dorian', 60),
-  'scale-C-mixolydian': generateScalePattern('Mixolydian', 60),
-  'scale-C-pentatonic': generateScalePattern('Major Pentatonic', 60),
-  'scale-C-blues': generateScalePattern('Blues', 60),
-  'scale-C-harmonic-minor': generateScalePattern('Harmonic Minor', 60),
-  'scale-C-melodic-minor': generateScalePattern('Melodic Minor', 60),
+  'scale-C-major': [
+    {tick: 0, dur: 96, midi: 60, vel: 0.6},   // C
+    {tick: 96, dur: 96, midi: 62, vel: 0.6},  // D
+    {tick: 192, dur: 96, midi: 64, vel: 0.6}, // E
+    {tick: 288, dur: 96, midi: 65, vel: 0.6}, // F
+    {tick: 384, dur: 96, midi: 67, vel: 0.6}, // G
+    {tick: 480, dur: 96, midi: 69, vel: 0.6}, // A
+    {tick: 576, dur: 96, midi: 71, vel: 0.6}  // B
+  ],
+  'scale-C-minor': [
+    {tick: 0, dur: 96, midi: 60, vel: 0.6},   // C
+    {tick: 96, dur: 96, midi: 62, vel: 0.6},  // D
+    {tick: 192, dur: 96, midi: 63, vel: 0.6}, // Eb
+    {tick: 288, dur: 96, midi: 65, vel: 0.6}, // F
+    {tick: 384, dur: 96, midi: 67, vel: 0.6}, // G
+    {tick: 480, dur: 96, midi: 68, vel: 0.6}, // Ab
+    {tick: 576, dur: 96, midi: 70, vel: 0.6}  // Bb
+  ],
+  'scale-C-pentatonic': [
+    {tick: 0, dur: 96, midi: 60, vel: 0.6},   // C
+    {tick: 96, dur: 96, midi: 62, vel: 0.6},  // D
+    {tick: 192, dur: 96, midi: 64, vel: 0.6}, // E
+    {tick: 288, dur: 96, midi: 67, vel: 0.6}, // G
+    {tick: 384, dur: 96, midi: 69, vel: 0.6}  // A
+  ],
+  'scale-C-blues': [
+    {tick: 0, dur: 96, midi: 60, vel: 0.6},   // C
+    {tick: 96, dur: 96, midi: 63, vel: 0.6},  // Eb
+    {tick: 192, dur: 96, midi: 65, vel: 0.6}, // F
+    {tick: 288, dur: 96, midi: 66, vel: 0.6}, // F#
+    {tick: 384, dur: 96, midi: 67, vel: 0.6}, // G
+    {tick: 480, dur: 96, midi: 70, vel: 0.6}  // Bb
+  ],
 
   // ============ CLASSICAL THEMES ============
   'classical-twinkle-twinkle': [
