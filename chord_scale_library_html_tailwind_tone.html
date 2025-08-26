@@ -3248,7 +3248,7 @@ function updateAll(){
 }
 
 // Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer();
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); initPatternSearch();
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
@@ -3405,30 +3405,32 @@ document.querySelectorAll('.pattern-btn').forEach(btn => {
   });
 });
 
-// Pattern search functionality
-const patternSearch = document.getElementById('patternSearch');
-if(patternSearch) {
-  patternSearch.addEventListener('input', (e) => {
-    const searchTerm = e.target.value.toLowerCase();
-    const allPatternBtns = document.querySelectorAll('.pattern-btn');
-    
-    allPatternBtns.forEach(btn => {
-      const patternText = btn.textContent.toLowerCase();
-      const patternName = btn.dataset.pattern.toLowerCase();
-      const matches = patternText.includes(searchTerm) || patternName.includes(searchTerm);
+// Pattern search functionality - run after DOM is loaded
+function initPatternSearch() {
+  const patternSearch = document.getElementById('patternSearch');
+  if(patternSearch) {
+    patternSearch.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const allPatternBtns = document.querySelectorAll('.pattern-btn');
       
-      // Show/hide button
-      btn.style.display = matches || searchTerm === '' ? 'block' : 'none';
-      
-      // Show/hide parent details if no children match
-      const parentDetails = btn.closest('details');
-      if(parentDetails) {
-        const visibleChildren = [...parentDetails.querySelectorAll('.pattern-btn')]
-          .filter(child => child.style.display !== 'none');
-        parentDetails.style.display = visibleChildren.length > 0 || searchTerm === '' ? 'block' : 'none';
-      }
+      allPatternBtns.forEach(btn => {
+        const patternText = btn.textContent.toLowerCase();
+        const patternName = btn.dataset.pattern.toLowerCase();
+        const matches = patternText.includes(searchTerm) || patternName.includes(searchTerm);
+        
+        // Show/hide button
+        btn.style.display = matches || searchTerm === '' ? 'block' : 'none';
+        
+        // Show/hide parent details if no children match
+        const parentDetails = btn.closest('details');
+        if(parentDetails) {
+          const visibleChildren = [...parentDetails.querySelectorAll('.pattern-btn')]
+            .filter(child => child.style.display !== 'none');
+          parentDetails.style.display = visibleChildren.length > 0 || searchTerm === '' ? 'block' : 'none';
+        }
+      });
     });
-  });
+  }
 }
 
 document.getElementById('savePatternBtn').addEventListener('click', () => {
