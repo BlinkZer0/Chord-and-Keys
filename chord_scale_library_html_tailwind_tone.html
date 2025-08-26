@@ -209,6 +209,9 @@
             <input id="seqLoop" type="checkbox" class="h-4 w-4">Loop
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqAutoStop" type="checkbox" class="h-4 w-4" checked>Auto-stop
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
             <input id="seqClick" type="checkbox" class="h-4 w-4">Click
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">
@@ -1317,7 +1320,7 @@ const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
-const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
+const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick'); const seqAutoStop = $('#seqAutoStop');
 const seqAutoScroll = $('#seqAutoScroll');
 const seqQuantize = $('#seqQuantize');
 const seqQuantizeBtn = $('#seqQuantizeBtn');
@@ -1546,33 +1549,21 @@ function setBpm(val){
 }
 
 function updateLoop(){
-  // Clear any existing auto-stop
-  if(autoStopId) {
+  if(autoStopId !== null){
     Tone.Transport.clear(autoStopId);
     autoStopId = null;
   }
-  
+
   if(seqLoop.checked && song.loop.enabled) {
     Tone.Transport.loopStart = `${song.loop.start}i`;
     Tone.Transport.loopEnd = `${song.loop.end}i`;
     Tone.Transport.loop = true;
   } else {
-    // For one-shot playback, disable looping
     Tone.Transport.loop = false;
-    // Determine the latest note end across all tracks
-    const maxNoteTick = Math.max(
-      0,
-      ...song.tracks.flatMap(t =>
-        t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-      )
-    );
-    // Schedule a stop event slightly after the final note
-    const buffer = 192; // allow trailing releases
-    autoStopId = Tone.Transport.scheduleOnce(() => {
-      if(sequencerState === 'playing') {
-        seqStop.click();
-      }
-    }, `${maxNoteTick + buffer}i`);
+    if(seqAutoStop.checked){
+      updateSongEndTick();
+      scheduleAutoStop();
+    }
   }
 }
 
@@ -1581,6 +1572,32 @@ let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
 let scheduledUntil = 0;
 let rescheduleId = null;
 let songEndTick = 0;
+let autoStopId = null; // Store the auto-stop event ID
+const AUTO_STOP_BUFFER = 192;
+
+function scheduleAutoStop(){
+  if(autoStopId !== null){
+    Tone.Transport.clear(autoStopId);
+    autoStopId = null;
+  }
+  if(!seqLoop.checked && seqAutoStop.checked){
+    autoStopId = Tone.Transport.scheduleOnce(() => {
+      if(sequencerState === 'playing'){
+        seqStop.click();
+      }
+    }, `${songEndTick + AUTO_STOP_BUFFER}i`);
+  }
+}
+
+function updateSongEndTick(){
+  const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t =>
+    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+  ));
+  if(maxNoteTick > songEndTick){
+    songEndTick = maxNoteTick;
+    scheduleAutoStop();
+  }
+}
 
 function scheduleSong(){
   const anySolo = song.tracks.some(t => t.solo);
@@ -1607,9 +1624,7 @@ function scheduleSong(){
   // Determine song length and dynamic scheduling window
   const ticksPerBeat = song.ppq * (4 / song.ts.den);
   const ticksPerBar = ticksPerBeat * song.ts.num;
-  songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
-    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-  ));
+  updateSongEndTick();
   const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
   scheduleAheadBars = Math.max(16, Math.ceil(totalBars * 0.25));
 
@@ -1621,10 +1636,12 @@ function scheduleSong(){
 }
 
 function scheduleAhead(){
+  updateSongEndTick();
   const anySolo = song.tracks.some(t => t.solo);
   const ticksPerBeat = song.ppq * (4 / song.ts.den);
   const ticksPerBar = ticksPerBeat * song.ts.num;
-  const endTick = Math.min(songEndTick, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
+  const targetEnd = seqAutoStop.checked ? songEndTick : Number.MAX_SAFE_INTEGER;
+  const endTick = Math.min(targetEnd, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
   song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active || !track.player) return;
@@ -1643,7 +1660,7 @@ function scheduleAhead(){
     });
   });
   scheduledUntil = endTick;
-  if(rescheduleId !== null && scheduledUntil >= songEndTick){
+  if(rescheduleId !== null && seqAutoStop.checked && scheduledUntil >= songEndTick){
     Tone.Transport.clear(rescheduleId);
     rescheduleId = null;
   }
@@ -1651,7 +1668,6 @@ function scheduleAhead(){
 
 let clickId = null;
 let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
-let autoStopId = null; // Store the auto-stop event ID
 
 // Selection and editing state
 let selectedNotes = new Set(); // Set of note objects
@@ -4783,6 +4799,7 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
+seqAutoStop.addEventListener('change', updateLoop);
 seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
 seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
 
