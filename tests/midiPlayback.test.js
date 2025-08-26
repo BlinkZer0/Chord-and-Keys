@@ -56,15 +56,19 @@ describe('MIDI playback scheduling', function() {
 });
 
 // Simulate the dynamic scheduling logic from scheduleSong / scheduleAhead
-function simulateDynamicScheduling(totalBars) {
+function simulateDynamicScheduling(totalBars, notesPerBar) {
   const ppq = 480;
   const ts = { num: 4, den: 4 };
   const ticksPerBeat = ppq * (4 / ts.den);
   const ticksPerBar = ticksPerBeat * ts.num;
+  notesPerBar = notesPerBar ?? ts.num;
 
+  const noteSpacing = ticksPerBar / notesPerBar;
   const notes = [];
-  for (let i = 0; i < totalBars * ts.num; i++) {
-    notes.push({ tick: i * ticksPerBeat, dur: ticksPerBeat });
+  for (let bar = 0; bar < totalBars; bar++) {
+    for (let i = 0; i < notesPerBar; i++) {
+      notes.push({ tick: bar * ticksPerBar + i * noteSpacing, dur: ticksPerBeat });
+    }
   }
   const song = {
     ppq,
@@ -76,12 +80,17 @@ function simulateDynamicScheduling(totalBars) {
     }]
   };
 
-  const songEndTick = Math.max(
-    0,
-    ...song.tracks.flatMap(t =>
-      t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-    )
-  );
+  let songEndTick = 0;
+  song.tracks.forEach(t => {
+    t.clips.forEach(c => {
+      c.notes.forEach(n => {
+        const endTick = c.start + n.tick + n.dur;
+        if (endTick > songEndTick) {
+          songEndTick = endTick;
+        }
+      });
+    });
+  });
   const totalBarsCalc = Math.ceil(songEndTick / ticksPerBar) || 1;
   const scheduleAheadBars = Math.max(16, Math.ceil(totalBarsCalc * 0.25));
 
@@ -103,8 +112,8 @@ function simulateDynamicScheduling(totalBars) {
   }
 
   scheduleWindow(0);
-  for (let bar = 1; scheduledUntil < songEndTick; bar++) {
-    scheduleWindow(bar * ticksPerBar);
+  while (scheduledUntil < songEndTick) {
+    scheduleWindow(scheduledUntil);
   }
 
   const buffer = 192;
@@ -117,6 +126,15 @@ describe('Dynamic scheduling window', function() {
     const result = simulateDynamicScheduling(40);
     expect(result.scheduleAheadBars).to.be.at.least(16);
     expect(result.scheduledUntil).to.equal(result.songEndTick);
+    expect(result.scheduledNotes).to.equal(result.totalNotes);
+    expect(result.autoStopTick).to.be.above(result.songEndTick);
+  });
+
+  it('handles 1,048,576 bars with sparse notes and schedules all events', function() {
+    this.timeout(10000);
+    const bars = 1048576;
+    const result = simulateDynamicScheduling(bars, 1);
+    expect(result.totalNotes).to.equal(bars);
     expect(result.scheduledNotes).to.equal(result.totalNotes);
     expect(result.autoStopTick).to.be.above(result.songEndTick);
   });
