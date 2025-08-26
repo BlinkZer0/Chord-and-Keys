@@ -4371,6 +4371,44 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch(e) {
     console.error('Error during UI build:', e);
   }
+
+  // === TAB: Sequencer wiring (non-destructive) ===
+  btnModeChord.addEventListener('click', ()=>{
+    mode='Chord';
+    btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
+    btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    wrapChord.classList.remove('hidden');
+    wrapScale.classList.add('hidden');
+    listenChord.classList.remove('hidden');
+    listenScale.classList.add('hidden');
+    sequencerHost.classList.add('hidden');
+    updateAll();
+  });
+  btnModeScale.addEventListener('click', ()=>{
+    mode='Scale/Mode';
+    btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
+    btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    wrapScale.classList.remove('hidden');
+    wrapChord.classList.add('hidden');
+    listenScale.classList.remove('hidden');
+    listenChord.classList.add('hidden');
+    sequencerHost.classList.add('hidden');
+    updateAll();
+  });
+  btnModeSequencer.addEventListener('click', ()=>{
+    mode='Sequencer';
+    btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
+    btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+    wrapChord.classList.add('hidden');
+    wrapScale.classList.add('hidden');
+    listenChord.classList.add('hidden');
+    listenScale.classList.add('hidden');
+    sequencerHost.classList.remove('hidden');
+    updateAll();
+  });
 });
 
 // Initialize visualizer after Tone.js is ready
@@ -4715,44 +4753,6 @@ function generateDrumPattern(chords, style) {
   
   song.tracks[drumTrack].instrument = 'Drums';
 }
-// === TAB: Sequencer wiring (non-destructive) ===
-btnModeChord.addEventListener('click', ()=>{
-  mode='Chord';
-  btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
-  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  wrapChord.classList.remove('hidden');
-  wrapScale.classList.add('hidden');
-  listenChord.classList.remove('hidden');
-  listenScale.classList.add('hidden');
-  sequencerHost.classList.add('hidden');
-  updateAll();
-});
-btnModeScale.addEventListener('click', ()=>{
-  mode='Scale/Mode';
-  btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
-  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  wrapScale.classList.remove('hidden');
-  wrapChord.classList.add('hidden');
-  listenScale.classList.remove('hidden');
-  listenChord.classList.add('hidden');
-  sequencerHost.classList.add('hidden');
-  updateAll();
-});
-btnModeSequencer.addEventListener('click', ()=>{
-  mode='Sequencer';
-  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
-  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
-  wrapChord.classList.add('hidden');
-  wrapScale.classList.add('hidden');
-  listenChord.classList.add('hidden');
-  listenScale.classList.add('hidden');
-  sequencerHost.classList.remove('hidden');
-  updateAll();
-});
-
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
