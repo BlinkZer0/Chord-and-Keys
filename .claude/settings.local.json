@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebSearch",
+      "WebFetch(domain:www.svgrepo.com)",
+      "WebFetch(domain:freesvg.org)"
     ],
     "deny": [],
     "ask": []
