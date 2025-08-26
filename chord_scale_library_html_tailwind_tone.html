@@ -1170,6 +1170,41 @@ const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymb
 const PATTERN_PPQ = 192; // ticks per quarter note used in patterns
 // Preset note patterns for quick insertion
 
+function generatePatternLibrary() {
+  const roots = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const chordDur = PATTERN_PPQ/2;
+  const scaleDur = PATTERN_PPQ/4;
+  const vel = 0.8;
+  const chordPatterns = {};
+  const scalePatterns = {};
+  roots.forEach(root => {
+    Object.keys(CHORD_QUALITIES).forEach(quality => {
+      const notes = buildChord(root, quality);
+      chordPatterns[`${root} ${quality}`] = notes.map(n => ({
+        tick:0,
+        dur:chordDur,
+        midi:midiFrom(n,4),
+        vel:vel
+      }));
+    });
+    Object.keys(MODES).forEach(mode => {
+      const notes = buildScale(root, mode);
+      let tick = 0;
+      const pattern = [];
+      for(let oct=4; oct<6; oct++){
+        notes.forEach(n => {
+          pattern.push({tick, dur:scaleDur, midi:midiFrom(n,oct), vel:vel});
+          tick += scaleDur;
+        });
+      }
+      pattern.push({tick, dur:scaleDur*2, midi:midiFrom(root,6), vel:vel});
+      scalePatterns[`${root} ${mode}`] = pattern;
+    });
+  });
+  PATTERN_LIBRARY.Chords = chordPatterns;
+  PATTERN_LIBRARY.Scales = scalePatterns;
+}
+
 const patternCategoryHandler = {
   set(obj, key, val) {
     obj[key] = val;
@@ -1192,39 +1227,6 @@ function createPatternLibrary(library) {
 }
 
 const PATTERN_LIBRARY = createPatternLibrary({
-  chords: {
-    'Cmaj Triad': [
-      {tick:0, dur:96, midi:60, vel:0.8},
-      {tick:0, dur:96, midi:64, vel:0.8},
-      {tick:0, dur:96, midi:67, vel:0.8}
-    ],
-    'I-IV-V-I': [
-      {tick:0,   dur:96, midi:60, vel:0.8},
-      {tick:0,   dur:96, midi:64, vel:0.8},
-      {tick:0,   dur:96, midi:67, vel:0.8},
-      {tick:96,  dur:96, midi:65, vel:0.8},
-      {tick:96,  dur:96, midi:69, vel:0.8},
-      {tick:96,  dur:96, midi:72, vel:0.8},
-      {tick:192, dur:96, midi:67, vel:0.8},
-      {tick:192, dur:96, midi:71, vel:0.8},
-      {tick:192, dur:96, midi:74, vel:0.8},
-      {tick:288, dur:192, midi:60, vel:0.8},
-      {tick:288, dur:192, midi:64, vel:0.8},
-      {tick:288, dur:192, midi:67, vel:0.8}
-    ]
-  },
-  scales: {
-    'C Major Asc': [
-      {tick:0,   dur:48, midi:60, vel:0.8},
-      {tick:48,  dur:48, midi:62, vel:0.8},
-      {tick:96,  dur:48, midi:64, vel:0.8},
-      {tick:144, dur:48, midi:65, vel:0.8},
-      {tick:192, dur:48, midi:67, vel:0.8},
-      {tick:240, dur:48, midi:69, vel:0.8},
-      {tick:288, dur:48, midi:71, vel:0.8},
-      {tick:336, dur:96, midi:72, vel:0.8}
-    ]
-  },
   rhythms: {
     'Four On Floor': [
       {tick:0,   dur:48, midi:36, vel:0.9},
@@ -2573,7 +2575,7 @@ function updateAll(){
 }
 
 // Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); refreshPatternSelector();
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector();
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
