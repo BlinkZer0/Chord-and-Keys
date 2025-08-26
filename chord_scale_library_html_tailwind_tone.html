@@ -689,7 +689,17 @@ function createSeqInstrument(name){
   }
 }
 
-async function ensureTone(instr){ if(!_started){ try{ await Tone.start(); }catch{} _started=true; } if(!_synth){ _synth = new Tone.PolySynth(Tone.Synth).connect(masterLim); } const p=ENV[instr]||ENV.Piano; _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} }); }
+async function ensureTone(instr){
+  if(!_started){
+    await Tone.start();
+    _started=true;
+  }
+  if(!_synth){
+    _synth = new Tone.PolySynth(Tone.Synth).connect(masterLim);
+  }
+  const p=ENV[instr]||ENV.Piano;
+  _synth.set({ envelope:{attack:p.a, decay:p.d, sustain:p.s, release:p.r}, oscillator:{type:p.osc} });
+}
 function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
 // Convert (possibly fractional) MIDI note numbers to Hz
 function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
