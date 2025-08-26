@@ -1,50 +1,66 @@
 # Chord & Scale Library
 
-This repository contains a single HTML page providing a fully functional interactive chord and scale explorer. The page is built entirely with client-side code and relies on [Tailwind CSS](https://tailwindcss.com/) for styling and [Tone.js](https://tonejs.github.io/) for audio synthesis and scheduling.
+Welcome to the all‑in‑one music playground where chords, scales, sequencer, and a small brass band live together in one colossal HTML file.  It runs entirely in the browser using [Tailwind CSS](https://tailwindcss.com/) for style and [Tone.js](https://tonejs.github.io/) for sound – no binary assets, just pure procedural vibes.
 
-## Features
+## Bells, Whistles, and Other Instruments
 
-- **Mode and chord exploration** – switch between chord and scale modes, choose a key, and browse available musical systems.
-- **Western and Maqam systems** – select from Western modes or quarter-tone maqam modes with microtonal intervals.
-- **Instrument playback** – preview chords or scales using built-in synth sounds (piano, guitar, bass, flute) powered by Tone.js.
-- **Sequencer & pattern library** – sketch drum grooves or chord progressions with a step sequencer and load/save reusable patterns.
-- **Instrument visualizations** – see highlighted notes on a piano keyboard, guitar/bass/violin fretboards, or koto strings.
-- **MIDI export** – generate and copy simple MIDI data for further use in a DAW.
+* **Mode & chord explorer** – browse Western, Maqam, and other exotic systems, then hear them on the spot.
+* **Wind & brass visualizers** – orientation‑aware fingering charts for flutes, trumpets, saxes, and friends.
+* **Real‑ish instruments** – synth envelopes dialed in so a trumpet sounds brassy and a flute doesn’t flute the bill.
+* **Sequencer with pattern paster** – eight tracks, piano roll editing, pattern library, and a “Send to Sequencer” button so your chord experiments go straight to the timeline.
+* **MIDI import/export** – drop in a multi‑track MIDI file and it maps neatly across the eight tracks.  Export your masterpiece back out when you’re done.
+* **Skins** – eleven seasonal and nature‑themed gradients.  Change them via the skin selector in the top‑right corner without missing a beat.
 
-## Sequencer
+## Using the Sequencer
 
-The built-in sequencer provides a piano-roll editor for arranging tracks. Each track can host a synth or drum instrument. Patterns from the library can be inserted and edited, while transport controls support looping, quantization, and rendering to WAV/MP3 via Tone.js.
+1. **Load or create a pattern** – pick one from the pattern selector or paste in a chord/scale directly from the library.
+2. **Edit** – click and drag notes, or Shift‑click to add multiple selections.  Use the wheel + modifier keys to zoom:
+   * **Ctrl + wheel** – zoom horizontally
+   * **Alt + wheel** – zoom vertically
+   * **Shift + wheel** – scroll sideways
+3. **Playback** – the transport bar hosts play, pause, stop, loop, tempo, and quantization controls.
+4. **Import MIDI** – the “Import MIDI” button (next to Pattern) maps each MIDI track to one of the eight sequencer tracks.
+5. **Export or record** – bounce your track to WAV/MP3 or export MIDI for a DAW.
 
 ### Pattern Library
 
-Drum and chord patterns are defined as arrays of note events (`tick`, `dur`, `midi`, `vel`). Users can extend the library and save custom patterns in `localStorage` for later sessions.
+Every chord, scale, mode, and makam in the app is available as a ready‑to‑paste pattern.  Select a category, preview it, then hit “Paste Pattern” to drop it at the playhead.
 
-## Keyboard Shortcuts
+## Hotkeys
 
-- Press **Spacebar** to play or pause the sequencer.
-- See the in-app shortcuts modal for the full list of available shortcuts.
+| Shortcut | Action |
+|---------|--------|
+| Space | Play/Pause |
+| Esc | Stop |
+| Delete/Backspace | Remove selected notes |
+| Ctrl+A | Select all notes in the active track |
+| Ctrl+C / Ctrl+X / Ctrl+V | Copy / Cut / Paste notes |
+| Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y | Undo / Redo |
+| Ctrl+Q | Quantize selected notes |
+| Shift+Click | Add/remove notes or piano keys from selection |
 
 ## Instrument Visualizations
 
-Interactive views highlight playable notes for the selected chord or scale:
+Piano, guitar, bass, violin, koto, and a growing lineup of wind and brass charts show the exact fingering for the current harmony.  Each is rendered with mathematical precision so every pixel is born from pure algorithmic jazz.
 
-- **Piano** – on-screen keyboard with root and chord tones color‑coded.
-- **Fretboards** – 12‑fret guitar, bass, and violin layouts show finger positions.
-- **Koto** – string board representation useful for modal exploration.
+## Architecture & Philosophy
 
-## Architecture
+Everything – **everything** – lives in `chord_scale_library_html_tailwind_tone.html`.  Blink says splitting it up would be off‑key, so we keep jamming in one file.  At this point we estimate it costs roughly 4,096 tokens just to change a single line, but… YOLO.
 
-All functionality lives in a single HTML file using vanilla JavaScript. Tone.js supplies the audio engine, synth voices, and timing grid. UI components rely on Tailwind utility classes, and instrument widgets are drawn procedurally with the Canvas API, avoiding binary assets.
+## About the Band
 
-## How it works
+This project is orchestrated by a trio of AIs:
 
-Key musical concepts are captured in simple data structures:
+* **ChatGPT Codex** – me, your friendly conductor.
+* **Blink** – steadfast guardian of the One True HTML File.
+* **ClaudeAI** – keeps us in harmony and occasionally reminds us not to go flat.
 
-- `KEYS` – array of note names used to populate key selectors.
-- `MODES` – mapping of mode names to interval patterns for scale generation.
-- `CHORD_QUALITIES` – intervals that define chord formulas.
-- `PATTERN_LIBRARY` – default sequencer patterns expressed as MIDI events.
+Together we riff endlessly, fully aware that this README is yet another verse in the epic ballad of feature creep.
 
-## Usage and Contribution
+> Why did the musician break up with the metronome?  It just kept saying "It's not you, it's *timing*."
 
-Open the `chord_scale_library_html_tailwind_tone.html` file in a modern browser to experiment with chords, scales, and microtonal modes. This framework is released for anyone to use, modify, and expand without restriction. Contributions and new ideas are welcome.
+## Contributing
+
+Open `chord_scale_library_html_tailwind_tone.html` in a modern browser and start exploring.  Pull requests, new modes, and tasteful puns are welcome.  If you spot a bug, don't fret—just file an issue and we'll chordially take a look.
+
+Happy composing!  Remember: if you're going to change a line, make sure it's a good one.
