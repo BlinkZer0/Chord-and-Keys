@@ -450,7 +450,8 @@ let _synth=null; let _started=false; const ENV={
 const masterLim = new Tone.Limiter(-1).toDestination();
 // === SEQUENCER: Audio Engine (melodic & drum registries) ===
 function makePoly(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
-  let destination = masterLim;
+  const panner = new Tone.Panner(0).connect(masterLim);
+  let destination = panner;
   let vib=null, trem=null, filter=null;
   
   // Add filter if specified in env
@@ -500,15 +501,17 @@ function makePoly(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=fals
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
     setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
-    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); if(filter) filter.dispose(); }
+    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); if(filter) filter.dispose(); panner.dispose(); }
   };
 }
 
 // [fix] poly pluck - improved for guitar, koto, and oud
 function makePluck(){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const reverb = new Tone.Reverb({decay: 0.3, wet: 0.2}).connect(gain);
   const synth = new Tone.PolySynth(Tone.PluckSynth, {
     attackNoise:0.5,
@@ -529,12 +532,14 @@ function makePluck(){
       // PluckSynth doesn't need explicit release
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 
 function makeMono(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
-  let destination = masterLim;
+  const panner = new Tone.Panner(0).connect(masterLim);
+  let destination = panner;
   let vib=null, trem=null;
   if(vibrato){
     vib = new Tone.Vibrato(vibratoRate, vibratoDepth).connect(destination);
@@ -567,14 +572,16 @@ function makeMono(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=fals
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
     setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
-    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); }
+    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); panner.dispose(); }
   };
 }
 
 function makeDuo(env){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const vibrato = new Tone.Vibrato(4,0.1).connect(gain);
   const synth = new Tone.DuoSynth({
     voice0:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
@@ -601,12 +608,14 @@ function makeDuo(env){
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 
 function makeAM(env){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const reverb = new Tone.Reverb({decay: 1.2, wet: 0.3}).connect(gain);
   const synth = new Tone.AMSynth({
     oscillator:{type:env.osc},
@@ -633,7 +642,8 @@ function makeAM(env){
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 
@@ -1065,7 +1075,8 @@ function jumpToEnd() {
 
 // Simple Tone.js drum recipes
 function makeMembrane(pitch, opts){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const synth = new Tone.MembraneSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
@@ -1077,11 +1088,13 @@ function makeMembrane(pitch, opts){
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 function makeNoise(filterOpts, envOpts){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const filter = new Tone.Filter(filterOpts).connect(gain);
   const synth = new Tone.NoiseSynth({envelope: envOpts}).connect(filter);
   return {
@@ -1094,22 +1107,26 @@ function makeNoise(filterOpts, envOpts){
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 function makeMetal(opts){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const synth = new Tone.MetalSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(duration, time, velocity);
     },
     setVolume(v){ gain.gain.value = v; },
-    dispose(){ synth.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 function makeClap({filterFreq, bursts, decay}){
-  const gain = new Tone.Gain(1).connect(masterLim);
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
   const filter = new Tone.Filter({type:'bandpass', frequency:filterFreq, Q:1}).connect(gain);
   const noise = new Tone.NoiseSynth({envelope:{attack:0.001, decay:decay, sustain:0}}).connect(filter);
   return {
@@ -1119,7 +1136,8 @@ function makeClap({filterFreq, bursts, decay}){
       }
     },
     setVolume(v){ gain.gain.value = v; },
-    dispose(){ noise.dispose(); filter.dispose(); gain.dispose(); }
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ noise.dispose(); filter.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 const DRUMS = {
@@ -1370,6 +1388,7 @@ const song = {
     mute:false,
     solo:false,
     volume:0.8,
+    pan:0,
     color:'',
     player:null,
     part:null
@@ -1471,10 +1490,12 @@ function scheduleSong(){
         const drumFactory = DRUMS[track.instrument];
         track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
         track.player?.setVolume?.(track.volume ?? 0.8);
+        track.player?.setPan?.(track.pan ?? 0);
       } catch(err){
         console.error(`Failed to create player for ${track.instrument}:`, err);
         track.player = createSeqInstrument('Piano');
         track.player?.setVolume?.(track.volume ?? 0.8);
+        track.player?.setPan?.(track.pan ?? 0);
       }
     }
   });
@@ -2114,6 +2135,7 @@ function initSequencer(){
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
+      `<input type="range" min="-1" max="1" step="0.01" value="${track.pan}" class="w-24" />`+
       `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
       instrOpts+
       `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
@@ -2123,7 +2145,7 @@ function initSequencer(){
     seqTracks.appendChild(row);
     const muteBtn = row.querySelector('[data-mute]');
     const soloBtn = row.querySelector('[data-solo]');
-    const volSlider = row.querySelector('input[type="range"]');
+    const [volSlider, panSlider] = row.querySelectorAll('input[type="range"]');
     const sel = row.querySelector('select');
     const clrInput = row.querySelector(`#trk-${idx}-color`);
     const clrReset = row.querySelector(`#trk-${idx}-clrReset`);
@@ -2140,6 +2162,10 @@ function initSequencer(){
     volSlider.addEventListener('input', e=>{
       track.volume = Number(e.target.value);
       if(track.player && track.player.setVolume) track.player.setVolume(track.volume);
+    });
+    panSlider.addEventListener('input', e=>{
+      track.pan = Number(e.target.value);
+      if(track.player && track.player.setPan) track.player.setPan(track.pan);
     });
     sel.addEventListener('change', e=>{
       track.instrument = e.target.value;
