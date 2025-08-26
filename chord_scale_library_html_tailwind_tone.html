@@ -191,7 +191,11 @@
           <button id="seqExportMp3" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MP3</button>
         </div>
         <div id="seqStatus" class="text-xs text-slate-300"></div>
-        <div id="seqHotkeys" class="text-xs text-slate-400">Shift+Click: delete • Ctrl+Wheel: zoom X • Alt+Wheel: zoom Y • Shift+Wheel: scroll X</div>
+        <div id="seqHotkeys" class="text-xs text-slate-400 space-y-1">
+          <div><strong>Selection:</strong> Click note • Shift+Click: toggle • Ctrl+A: select all • Delete: delete selected</div>
+          <div><strong>Edit:</strong> Ctrl+C/X/V: copy/cut/paste • Ctrl+Z/Y: undo/redo • Ctrl+Q: quantize • Space: play/pause</div>
+          <div><strong>View:</strong> Ctrl+Wheel: zoom X • Alt+Wheel: zoom Y • Shift+Wheel: scroll X</div>
+        </div>
       </div>
     </section>
 
@@ -1298,6 +1302,19 @@ function drawPianoRoll(){
     ctx.fillStyle='rgba(236,72,153,0.6)';
     const x=dragNote.tick/SIXTEENTH*cellW; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; ctx.fillRect(x,y,w,cellH);
   }
+  
+  // Selection rectangle
+  if(ui.selecting) {
+    ctx.strokeStyle = '#ff6b9d';
+    ctx.fillStyle = 'rgba(255, 107, 157, 0.1)';
+    ctx.lineWidth = 2;
+    const rectX = Math.min(ui.selectStart.x, ui.selectEnd.x);
+    const rectY = Math.min(ui.selectStart.y, ui.selectEnd.y);
+    const rectW = Math.abs(ui.selectEnd.x - ui.selectStart.x);
+    const rectH = Math.abs(ui.selectEnd.y - ui.selectStart.y);
+    ctx.fillRect(rectX, rectY, rectW, rectH);
+    ctx.strokeRect(rectX, rectY, rectW, rectH);
+  }
   // gutter
   const gctx = pianoRollGutter.getContext('2d');
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
@@ -1325,6 +1342,46 @@ function startTrackSwitchTimer(idx){
   pianoRoll.addEventListener('pointerleave', cancelTrackSwitch);
   pianoRoll.addEventListener('pointercancel', cancelTrackSwitch);
 }
+
+pianoRoll.addEventListener('contextmenu', ev => {
+  ev.preventDefault(); // Prevent browser context menu
+  
+  const dpr = window.devicePixelRatio||1;
+  const rect = pianoRoll.getBoundingClientRect();
+  const xCss = ev.clientX - rect.left;
+  const yCss = ev.clientY - rect.top;
+  const x = (xCss + pianoRollScroll.scrollLeft);
+  const y = (yCss + pianoRollScroll.scrollTop);
+  const cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  const midi = MAX_MIDI - 1 - Math.floor(y / cellH);
+  
+  const clip = song.tracks[activeTrack].clips[0];
+  
+  // Find if we right-clicked on a note
+  let foundNote = null;
+  for(let i = clip.notes.length - 1; i >= 0; i--) {
+    const n = clip.notes[i];
+    const noteX = n.tick / SIXTEENTH * cellW;
+    const noteW = n.dur / SIXTEENTH * cellW;
+    if(n.midi === midi && x >= noteX && x < noteX + noteW) {
+      foundNote = n;
+      break;
+    }
+  }
+  
+  if(foundNote) {
+    // Select the note if it's not already selected
+    if(!selectedNotes.has(foundNote)) {
+      selectedNotes.clear();
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+    }
+    
+    // Show context menu at mouse position
+    showContextMenu(ev.clientX, ev.clientY, foundNote);
+  }
+});
 
 pianoRoll.addEventListener('pointerdown', ev => {
   cancelTrackSwitch();
@@ -1405,21 +1462,43 @@ pianoRoll.addEventListener('pointerdown', ev => {
     }
   } else {
     // Clicked on empty space
-    if(!ev.shiftKey && !ev.ctrlKey && !ev.metaKey) {
+    if(ev.shiftKey) {
+      // Start selection rectangle
+      ui.selecting = true;
+      ui.selectStart = {x, y};
+      ui.selectEnd = {x, y};
+      pianoRoll.setPointerCapture(ev.pointerId);
+      drawPianoRoll();
+      return;
+    } else if(!ev.ctrlKey && !ev.metaKey) {
       selectedNotes.clear();
       drawPianoRoll();
     }
   }
-  // otherwise create new note
-  const snappedTick = quantizeSnap > 0 ? Math.round(tick / quantizeSnap) * quantizeSnap : tick;
-  dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
-  pianoRoll.setPointerCapture(ev.pointerId);
-  drawPianoRoll();
+  
+  // Don't create new note if we're starting a selection
+  if(!ui.selecting) {
+    // otherwise create new note
+    const snappedTick = quantizeSnap > 0 ? Math.round(tick / quantizeSnap) * quantizeSnap : tick;
+    dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
+    pianoRoll.setPointerCapture(ev.pointerId);
+    drawPianoRoll();
+  }
 });
 pianoRoll.addEventListener('pointermove', ev=>{
-  if(!dragNote) return; const rect=pianoRoll.getBoundingClientRect();
+  const rect=pianoRoll.getBoundingClientRect();
   const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
   const x=(xCss+pianoRollScroll.scrollLeft); const y=(yCss+pianoRollScroll.scrollTop);
+  
+  if(ui.selecting) {
+    // Update selection rectangle
+    ui.selectEnd = {x, y};
+    drawPianoRoll();
+    return;
+  }
+  
+  if(!dragNote) return;
+  // (x and y already calculated above)
   const cellW=20*ui.zoomX; const cellH=20*ui.zoomY;
   const tick=Math.floor(x/cellW)*SIXTEENTH; const midi=MAX_MIDI-1-Math.floor(y/cellH);
   if(dragNote.mode==='new'){
@@ -1456,6 +1535,36 @@ pianoRoll.addEventListener('pointermove', ev=>{
   drawPianoRoll();
 });
 pianoRoll.addEventListener('pointerup', ev=>{
+  const rect=pianoRoll.getBoundingClientRect();
+  const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
+  const x=(xCss+pianoRollScroll.scrollLeft); const y=(yCss+pianoRollScroll.scrollTop);
+  
+  if(ui.selecting) {
+    // Complete selection rectangle
+    const cellW = 20 * ui.zoomX;
+    const cellH = 20 * ui.zoomY;
+    
+    const startTick = Math.min(ui.selectStart.x, x) / cellW * SIXTEENTH;
+    const endTick = Math.max(ui.selectStart.x, x) / cellW * SIXTEENTH;
+    const startMidi = MAX_MIDI - 1 - Math.max(ui.selectStart.y, y) / cellH;
+    const endMidi = MAX_MIDI - 1 - Math.min(ui.selectStart.y, y) / cellH;
+    
+    const track = song.tracks[activeTrack];
+    const wasEmpty = selectedNotes.size === 0;
+    
+    track.clips[0].notes.forEach(note => {
+      if(note.tick >= startTick && note.tick < endTick && 
+         note.midi >= startMidi && note.midi <= endMidi) {
+        selectedNotes.add(note);
+      }
+    });
+    
+    ui.selecting = false;
+    drawPianoRoll();
+    pianoRoll.releasePointerCapture(ev.pointerId);
+    return;
+  }
+  
   if(!dragNote) return; const track=song.tracks[activeTrack];
   if(dragNote.mode==='new') {
     saveState('Add note');
@@ -2186,6 +2295,47 @@ setInterval(() => {
     updatePositionDisplay();
   }
 }, 100);
+
+// Context menu handling
+const noteContextMenu = document.getElementById('noteContextMenu');
+let contextMenuNote = null;
+
+function showContextMenu(x, y, note) {
+  contextMenuNote = note;
+  noteContextMenu.style.left = x + 'px';
+  noteContextMenu.style.top = y + 'px';
+  noteContextMenu.classList.remove('hidden');
+}
+
+function hideContextMenu() {
+  noteContextMenu.classList.add('hidden');
+  contextMenuNote = null;
+}
+
+// Hide context menu on click elsewhere
+document.addEventListener('click', (e) => {
+  if(!noteContextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+// Velocity editor
+function showVelocityEditor() {
+  if(selectedNotes.size === 0) return;
+  
+  const currentVel = Array.from(selectedNotes)[0].vel || 0.8;
+  const newVel = parseFloat(prompt(`Enter velocity (0.1 - 1.0):`, currentVel.toFixed(2)));
+  
+  if(newVel >= 0.1 && newVel <= 1.0) {
+    saveState('Change velocity');
+    selectedNotes.forEach(note => {
+      note.vel = newVel;
+    });
+    drawPianoRoll();
+  }
+  
+  hideContextMenu();
+}
 seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
 seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
 seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
@@ -2402,5 +2552,16 @@ async function handleExportMp3(){
   }catch(err){ seqStatus.textContent+=' ❌ MP3 export failed'; console.error(err); }
 }
 </script>
+
+<!-- Context Menu -->
+<div id="noteContextMenu" class="fixed hidden bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-2 z-50 min-w-[160px]">
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="copySelected()">Copy</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="cutSelected()">Cut</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="deleteSelected()">Delete</button>
+  <hr class="border-slate-600 my-1">
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()">Quantize</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()">Edit Velocity...</button>
+</div>
+
 </body>
 </html>
