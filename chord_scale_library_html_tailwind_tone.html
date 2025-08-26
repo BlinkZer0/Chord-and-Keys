@@ -23,6 +23,8 @@
     body.skin-mountain { --bg-body: linear-gradient(180deg, #bdc3c7 0%, #2c3e50 100%); --text-body: #1f2937; }
     body.skin-sunrise { --bg-body: radial-gradient(circle at center, #ff5f6d 0%, #ffc371 100%); --text-body: #7c2d12; }
     body.skin-sunset { --bg-body: linear-gradient(180deg, #0b486b 0%, #f56217 100%); --text-body: #fef3c7; }
+    #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
+    #devTests[open] .chevron { transform: rotate(0deg); }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -254,10 +256,14 @@
     </section>
 
     <!-- ============ Tests ============ -->
-    <section class="mb-6">
-      <h2 class="text-lg font-semibold text-slate-100 mb-2">Automated Self‑Tests (dev)</h2>
-      <div id="tests" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm"></div>
-    </section>
+    <details id="devTests">
+      <summary class="flex items-center gap-1 cursor-pointer" title="Toggle automated self-tests" aria-expanded="false">
+        <span class="chevron">▼</span> Automated Self‑Tests (dev)
+      </summary>
+      <section class="mb-6">
+        <div id="tests" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm"></div>
+      </section>
+    </details>
 
       <footer class="mt-10 text-center text-xs text-slate-500">© 2025 — Interactive Chord & Scale Library</footer>
   </div>
@@ -2917,6 +2923,11 @@ async function handleExportMp3(){
     const a=document.createElement('a'); a.href=url; a.download='sequencer.mp3'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500);
     seqStatus.textContent+=' ✅ MP3 exported';
   }catch(err){ seqStatus.textContent+=' ❌ MP3 export failed'; console.error(err); }
+}
+const devTests=document.getElementById('devTests');
+if(devTests){
+  const summary=devTests.querySelector('summary');
+  devTests.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',devTests.open));
 }
 </script>
 
