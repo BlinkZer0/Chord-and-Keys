@@ -174,22 +174,6 @@
             <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
           </div>
           
-          <!-- Pattern Library -->
-          <details class="border border-slate-700 rounded-lg">
-            <summary class="bg-slate-800/60 px-4 py-2 cursor-pointer hover:bg-slate-700/60 rounded-t-lg font-medium">Pattern Library</summary>
-            <div class="p-4 space-y-2">
-              <div class="flex gap-2 flex-wrap">
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-emerald-700 hover:bg-emerald-600" data-pattern="kick-basic">Basic Kick</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-rose-700 hover:bg-rose-600" data-pattern="snare-basic">Basic Snare</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-blue-700 hover:bg-blue-600" data-pattern="hihat-basic">Basic Hi-hat</button>
-                <button class="pattern-btn px-3 py-1 text-sm rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-basic">Basic Chord</button>
-              </div>
-              <div class="flex gap-2">
-                <button id="savePatternBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Save Pattern</button>
-                <button id="exportSelectedBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Export Selected</button>
-              </div>
-            </div>
-          </details>
         </div>
       </div>
     </section>
@@ -307,6 +291,23 @@
             </select>
           </label>
         </div>
+
+        <!-- Pattern Library -->
+        <details class="border border-slate-700 rounded-lg">
+          <summary class="bg-slate-800/60 px-4 py-2 cursor-pointer hover:bg-slate-700/60 rounded-t-lg font-medium">Pattern Library</summary>
+          <div class="p-4 space-y-2">
+            <div class="flex gap-2 flex-wrap">
+              <button class="pattern-btn px-3 py-1 text-sm rounded bg-emerald-700 hover:bg-emerald-600" data-pattern="kick-basic">Basic Kick</button>
+              <button class="pattern-btn px-3 py-1 text-sm rounded bg-rose-700 hover:bg-rose-600" data-pattern="snare-basic">Basic Snare</button>
+              <button class="pattern-btn px-3 py-1 text-sm rounded bg-blue-700 hover:bg-blue-600" data-pattern="hihat-basic">Basic Hi-hat</button>
+              <button class="pattern-btn px-3 py-1 text-sm rounded bg-purple-700 hover:bg-purple-600" data-pattern="chord-basic">Basic Chord</button>
+            </div>
+            <div class="flex gap-2">
+              <button id="savePatternBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Save Pattern</button>
+              <button id="exportSelectedBtn" class="px-3 py-1 text-sm rounded bg-slate-700 hover:bg-slate-600">Export Selected</button>
+            </div>
+          </div>
+        </details>
 
         <div id="seqTracks" class="space-y-2"></div>
 
