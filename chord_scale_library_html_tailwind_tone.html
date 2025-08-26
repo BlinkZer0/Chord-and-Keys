@@ -4950,8 +4950,8 @@ PC Keyboard Layout:
   alert(layout);
 }
 
-// Wait for DOM to be fully loaded before initializing
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize the application once the DOM is ready
+function initApp() {
   console.log('DOM fully loaded, initializing application...');
   
   // Initialize DOM element references
@@ -6454,7 +6454,14 @@ if(devTests){
 
 }
 
-}); // End of DOMContentLoaded callback
+} // End of initApp
+
+// Run initialization now if the DOM is already loaded, otherwise wait
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 </script>
 
 <!-- Context Menu -->
