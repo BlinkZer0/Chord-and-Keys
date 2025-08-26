@@ -19,6 +19,11 @@ The built-in sequencer provides a piano-roll editor for arranging tracks. Each t
 
 Drum and chord patterns are defined as arrays of note events (`tick`, `dur`, `midi`, `vel`). Users can extend the library and save custom patterns in `localStorage` for later sessions.
 
+## Keyboard Shortcuts
+
+- Press **Spacebar** to play or pause the sequencer.
+- See the in-app shortcuts modal for the full list of available shortcuts.
+
 ## Instrument Visualizations
 
 Interactive views highlight playable notes for the selected chord or scale:
