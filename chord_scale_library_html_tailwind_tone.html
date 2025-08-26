@@ -2372,7 +2372,18 @@ function _triggerLick(){
 
 // ========================= PIANO =========================
 // === HELD-SUSTAIN: Piano pointer handlers ===
-function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
+function buildPiano(){ 
+  console.log('buildPiano called, pianoHost:', pianoHost);
+  if (!pianoHost) {
+    console.error('pianoHost element not found!');
+    return;
+  }
+  pianoHost.innerHTML=''; 
+  const container=document.createElement('div'); 
+  container.className='relative mx-auto select-none'; 
+  const shell=document.createElement('div'); 
+  shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; 
+  container.appendChild(shell);
   // White keys row
   const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
@@ -4318,8 +4329,55 @@ function stopVisualizer() {
   }
 }
 
-// Build UI
-buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector();
+// Build UI - Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, starting UI build...');
+  try {
+    console.log('Building piano...');
+    buildPiano(); 
+    console.log('Piano built successfully');
+    
+    console.log('Refreshing instruments...');
+    refreshInstruments(); 
+    
+    console.log('Updating all...');
+    updateAll(); 
+    
+    console.log('Running tests...');
+    runTests(); 
+    
+    console.log('Initializing sequencer...');
+    initSequencer(); 
+    
+    console.log('Generating pattern library...');
+    generatePatternLibrary(); 
+    
+    console.log('Refreshing pattern selector...');
+    refreshPatternSelector();
+    
+    console.log('UI build complete!');
+  } catch(e) {
+    console.error('Error during UI build:', e);
+  }
+});
+
+// Fallback - Also try after a brief delay
+setTimeout(() => {
+  if (!pianoHost || !pianoHost.children.length) {
+    console.log('Fallback initialization...');
+    try {
+      buildPiano(); 
+      refreshInstruments(); 
+      updateAll(); 
+      runTests(); 
+      initSequencer(); 
+      generatePatternLibrary(); 
+      refreshPatternSelector();
+    } catch(e) {
+      console.error('Error in fallback init:', e);
+    }
+  }
+}, 500);
 
 // Initialize visualizer after Tone.js is ready
 setTimeout(() => {
