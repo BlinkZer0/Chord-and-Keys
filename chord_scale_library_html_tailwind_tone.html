@@ -705,6 +705,8 @@ const MIN_MIDI = midiFrom('C',2);
 const MAX_MIDI = MIN_MIDI + 4*12;
 let activeTrack = 0;
 let dragNote = null;
+let trackSwitchTimeout = null;
+const TRACK_SWITCH_DELAY = 500;
 const ui = {zoomX:1, zoomY:1, scrollX:0, scrollY:0, scheme:'Classic'};
 
 // [fix] active track highlight
@@ -849,7 +851,29 @@ function drawPianoRoll(){
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
 }
 
+function cancelTrackSwitch(){
+  if(trackSwitchTimeout){ clearTimeout(trackSwitchTimeout); trackSwitchTimeout=null; }
+  pianoRoll.removeEventListener('pointerup', cancelTrackSwitch);
+  pianoRoll.removeEventListener('pointerleave', cancelTrackSwitch);
+  pianoRoll.removeEventListener('pointercancel', cancelTrackSwitch);
+}
+
+function startTrackSwitchTimer(idx){
+  cancelTrackSwitch();
+  trackSwitchTimeout = setTimeout(()=>{
+    activeTrack = idx;
+    refreshActiveTrackHighlight();
+    seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+    drawPianoRoll();
+    cancelTrackSwitch();
+  }, TRACK_SWITCH_DELAY);
+  pianoRoll.addEventListener('pointerup', cancelTrackSwitch);
+  pianoRoll.addEventListener('pointerleave', cancelTrackSwitch);
+  pianoRoll.addEventListener('pointercancel', cancelTrackSwitch);
+}
+
 pianoRoll.addEventListener('pointerdown', ev => {
+  cancelTrackSwitch();
   const dpr = window.devicePixelRatio||1; const rect=pianoRoll.getBoundingClientRect();
   const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
   const x = (xCss + pianoRollScroll.scrollLeft);
@@ -857,6 +881,20 @@ pianoRoll.addEventListener('pointerdown', ev => {
   const cellW = 20*ui.zoomX; const cellH = 20*ui.zoomY;
   const tick = Math.floor(x/cellW)*SIXTEENTH;
   const midi = MAX_MIDI-1-Math.floor(y/cellH);
+  // check notes from non-active tracks for potential track switch
+  for(let t=0;t<song.tracks.length;t++){
+    if(t===activeTrack) continue;
+    const oClip = song.tracks[t].clips[0];
+    for(let i=oClip.notes.length-1;i>=0;i--){
+      const n=oClip.notes[i];
+      const noteX=n.tick/SIXTEENTH*cellW;
+      const noteW=n.dur/SIXTEENTH*cellW;
+      if(n.midi===midi && x>=noteX && x<noteX+noteW){
+        startTrackSwitchTimer(t);
+        return;
+      }
+    }
+  }
   const clip=song.tracks[activeTrack].clips[0];
   // check existing notes first
   for(let i=clip.notes.length-1;i>=0;i--){
