@@ -1,14 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 100">
-  <g id="instrument">
-    <path id="body" d="M20 35h300a15 15 0 0 1 0 30H20a15 15 0 0 1 0-30z"/>
-    <circle id="hole0" cx="85" cy="50" r="6"/>
-    <circle id="hole1" cx="100" cy="50" r="6"/>
-    <circle id="hole2" cx="115" cy="50" r="6"/>
-    <circle id="hole3" cx="130" cy="50" r="6"/>
-    <circle id="hole4" cx="150" cy="50" r="6"/>
-    <circle id="hole5" cx="170" cy="50" r="6"/>
-    <circle id="hole6" cx="190" cy="50" r="6"/>
-    <circle id="hole7" cx="210" cy="50" r="6"/>
-    <ellipse id="thumb" cx="95" cy="32" rx="3" ry="2"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 120">
+  <rect x="7" y="5" width="6" height="110" rx="3" fill="#d8b385" stroke="#774e2c"/>
+  <circle cx="10" cy="30" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="45" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="60" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="75" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="90" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="105" r="3" fill="#774e2c"/>
+  <circle cx="10" cy="20" r="2" fill="#774e2c"/>
 </svg>
