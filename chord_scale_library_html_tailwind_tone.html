@@ -87,6 +87,7 @@
           <div class="flex items-center gap-2 ml-auto">
             <label class="text-sm text-slate-300">Instrument</label>
             <select id="selInstr" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <img id="instrIcon" alt="" class="w-6 h-6 hidden" />
             <label class="text-sm text-slate-300">Tempo</label>
             <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
           </div>
@@ -299,6 +300,14 @@ const INSTRUMENTS = [
   "Ney",
   "Hammond Organ"
 ];
+const INSTRUMENT_ICONS = {
+  Flute: 'assets/instruments/flute.svg',
+  Recorder: 'assets/instruments/recorder.svg',
+  Ney: 'assets/instruments/ney.svg',
+  Saxophone: 'assets/instruments/saxophone.svg',
+  Trumpet: 'assets/instruments/trumpet.svg',
+  Koto: 'assets/instruments/koto.svg',
+};
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 const MODES = {
   Ionian: [0,2,4,5,7,9,11],
@@ -1169,7 +1178,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
-const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const saxophoneHost = $('#saxophoneHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost');
+const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const saxophoneHost = $('#saxophoneHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost'); const instrIcon = $('#instrIcon');
 const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem'); const skinSelector = $('#skinSelector');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
@@ -2170,7 +2179,7 @@ function updateSelButtons(){
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
-fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument;
+fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
 fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
 fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
 function populateModeOptions(){
@@ -3973,7 +3982,18 @@ function runTests(){
 }
 
 // ========================= WIRING =========================
+function updateInstrumentIcon(){
+  const iconPath = INSTRUMENT_ICONS[selInstr.value];
+  if(iconPath){
+    instrIcon.src = iconPath;
+    instrIcon.classList.remove('hidden');
+  } else {
+    instrIcon.classList.add('hidden');
+    instrIcon.removeAttribute('src');
+  }
+}
 function refreshInstruments(){
+  updateInstrumentIcon();
   const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
   const isBass = selInstr.value.startsWith('Bass');
   const isViolin = selInstr.value.startsWith('Violin');
@@ -4067,7 +4087,7 @@ btnModeSequencer.addEventListener('click', ()=>{
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
-selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
+selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
 const skinClasses = {
   default: 'skin-default',
