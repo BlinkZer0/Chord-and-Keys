@@ -11,10 +11,10 @@
 </head>
 <body class="min-h-screen w-full bg-slate-950 text-slate-100">
   <div class="max-w-6xl mx-auto p-6">
-    <header class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
-      <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
-    </header>
+      <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
+        <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
+        <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
+      </header>
 
     <!-- ============ 1) Choose What To Explore ============ -->
     <section class="mb-6">
@@ -22,9 +22,9 @@
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
         <div class="flex flex-wrap gap-3 items-center">
           <div class="inline-flex rounded-xl overflow-hidden border border-slate-700">
-            <button id="btnModeChord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
-            <button id="btnModeScale" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
-            <button id="btnModeSequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
+              <button id="btnModeChord" aria-label="Chord" title="Chord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
+              <button id="btnModeScale" aria-label="Scale/Mode" title="Scale/Mode" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
+              <button id="btnModeSequencer" aria-label="Sequencer" title="Sequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
           </div>
 
           <div class="flex items-center gap-2">
@@ -78,7 +78,7 @@
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
           <span id="badgeSelNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Notes: —</span>
-          <button id="btnClearSel" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Clear Selection</button>
+            <button id="btnClearSel" aria-label="Clear Selection" title="Clear Selection" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Clear Selection</button>
           <span class="text-xs text-slate-400">Tip: hold keys to play • <span class="font-semibold">Shift+click</span> toggles selection</span>
         </div>
       </div>
@@ -89,18 +89,18 @@
       <h2 class="text-lg font-semibold text-slate-100 mb-2">3) Listen</h2>
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
         <div id="listenChord" class="flex flex-wrap gap-3 items-center">
-          <button id="btnPlayBlock" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Chord (block)</button>
-          <button id="btnPlayArp" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Arpeggiate</button>
-          <button id="btnPlayStrum" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold hidden">Strum (low→high)</button>
+            <button id="btnPlayBlock" aria-label="Play Chord (block)" title="Play Chord (block)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Chord (block)</button>
+            <button id="btnPlayArp" aria-label="Arpeggiate" title="Arpeggiate" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Arpeggiate</button>
+            <button id="btnPlayStrum" aria-label="Strum (low→high)" title="Strum (low→high)" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold hidden">Strum (low→high)</button>
           <div class="text-sm text-slate-400">First click activates audio.</div>
         </div>
         <div id="listenScale" class="hidden items-center gap-3">
-          <button id="btnPlayScale" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Scale (asc.)</button>
+            <button id="btnPlayScale" aria-label="Play Scale (asc.)" title="Play Scale (asc.)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Scale (asc.)</button>
           <div class="text-sm text-slate-400">Plays two octaves from the tonic.</div>
         </div>
         <div id="listenSel" class="mt-4 flex flex-wrap gap-3 items-center">
-          <button id="btnPlaySelChord" disabled class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (chord)</button>
-          <button id="btnPlaySelArp" disabled class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (arp)</button>
+            <button id="btnPlaySelChord" aria-label="Play Selection (chord)" title="Play Selection (chord)" disabled class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (chord)</button>
+            <button id="btnPlaySelArp" aria-label="Play Selection (arp)" title="Play Selection (arp)" disabled class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (arp)</button>
         </div>
         <div class="mt-4 flex items-center gap-2">
           <input id="heldSustainSnap" type="checkbox" class="h-4 w-4" checked>
@@ -114,13 +114,13 @@
       <h2 class="text-lg font-semibold text-slate-100 mb-2">Sequencer</h2>
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
         <div class="flex flex-wrap gap-3 items-center">
-          <button id="seqPlay" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
-          <button id="seqPause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
-          <button id="seqStop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
+          <button id="seqPlay" aria-label="Play" title="Play" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
+          <button id="seqPause" aria-label="Pause" title="Pause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
+          <button id="seqStop" aria-label="Stop" title="Stop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
           <div class="flex items-center gap-2">
             <span id="seqPosition" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 font-mono text-sm text-slate-300 min-w-[100px] text-center">0:0:0</span>
-            <button id="seqToStart" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">|&lt;</button>
-            <button id="seqToEnd" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">&gt;|</button>
+            <button id="seqToStart" aria-label="To start" title="To start" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">|&lt;</button>
+            <button id="seqToEnd" aria-label="To end" title="To end" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">&gt;|</button>
           </div>
           <label class="text-sm text-slate-300 flex items-center gap-2">BPM
             <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
@@ -144,7 +144,7 @@
               <option value="6">1/32</option>
             </select>
           </label>
-          <button id="seqQuantizeBtn" class="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium">Quantize</button>
+            <button id="seqQuantizeBtn" aria-label="Quantize" title="Quantize" class="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium">Quantize</button>
           <label class="flex items-center gap-2 text-sm text-slate-300">
             TS
             <input id="seqTSNum" type="number" min="1" max="16" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
@@ -163,14 +163,14 @@
           </label>
         </div>
 
-        <div id="patternLibraryPanel" class="flex flex-wrap gap-3 items-center">
-          <label class="text-sm text-slate-300">Type</label>
-          <select id="patternCategory" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm"></select>
-          <label class="text-sm text-slate-300">Pattern</label>
-          <select id="patternKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm"></select>
-          <button id="btnPastePattern" class="px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm">Paste Pattern</button>
-          <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900"></canvas>
-        </div>
+          <div id="patternLibraryPanel" class="flex flex-col sm:flex-row flex-wrap gap-3 items-center">
+            <label class="text-sm text-slate-300">Type</label>
+            <select id="patternCategory" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
+            <label class="text-sm text-slate-300">Pattern</label>
+            <select id="patternKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
+            <button id="btnPastePattern" aria-label="Paste Pattern" title="Paste Pattern" class="w-full sm:w-auto px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm">Paste Pattern</button>
+            <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900 w-full sm:w-auto"></canvas>
+          </div>
 
         <div id="seqTracks" class="space-y-2"></div>
 
@@ -188,16 +188,16 @@
           <label class="text-sm text-slate-300">Zoom Y
             <input id="seqZoomY" type="range" min="0.5" max="2" step="0.1" value="1" class="w-32" />
           </label>
-          <button id="seqClearAll" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Clear All</button>
+            <button id="seqClearAll" aria-label="Clear All" title="Clear All" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Clear All</button>
         </div>
 
         <div class="flex flex-wrap gap-3 items-center">
-          <button id="seqExportJson" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export JSON</button>
-          <button id="seqImportJson" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Import JSON</button>
+            <button id="seqExportJson" aria-label="Export JSON" title="Export JSON" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export JSON</button>
+            <button id="seqImportJson" aria-label="Import JSON" title="Import JSON" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Import JSON</button>
           <input id="seqImportFile" type="file" accept="application/json" class="hidden" />
-          <button id="seqExportMid" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MIDI</button>
-          <button id="seqExportWav" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export WAV</button>
-          <button id="seqExportMp3" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MP3</button>
+            <button id="seqExportMid" aria-label="Export MIDI" title="Export MIDI" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MIDI</button>
+            <button id="seqExportWav" aria-label="Export WAV" title="Export WAV" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export WAV</button>
+            <button id="seqExportMp3" aria-label="Export MP3" title="Export MP3" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MP3</button>
         </div>
         <div id="seqStatus" class="text-xs text-slate-300"></div>
         <div id="seqHotkeys" class="text-xs text-slate-400 space-y-1">
@@ -213,9 +213,9 @@
       <h2 class="text-lg font-semibold text-slate-100 mb-2">4) Export (FL Studio)</h2>
       <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
         <div class="flex flex-wrap gap-3 items-start">
-          <button id="btnCopyFL" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
-          <button id="btnCopyCSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
-          <button id="btnMid" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
+            <button id="btnCopyFL" aria-label="Copy for FL Paste (Score)" title="Copy for FL Paste (Score)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
+            <button id="btnCopyCSV" aria-label="Copy CSV" title="Copy CSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
+            <button id="btnMid" aria-label="Download .MID" title="Download .MID" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
           <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL’s Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
         </div>
         <div id="copyStatus" class="text-xs text-slate-300 mt-2"></div>
@@ -1826,15 +1826,15 @@ function initSequencer(){
     const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
     row.innerHTML=
       `<span class="w-32">${track.instrument}</span>`+
-      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute>M</button>`+
-      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo>S</button>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
       `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
       instrOpts+
       `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
       `</select>`+
       `<input type="color" id="trk-${idx}-color" class="w-8 h-8 rounded" value="${track.color||'#ffffff'}">`+
-      `<button id="trk-${idx}-clrReset" class="px-2 py-1 text-xs rounded bg-slate-700">Reset</button>`;
+      `<button id="trk-${idx}-clrReset" class="px-2 py-1 text-xs rounded bg-slate-700" aria-label="Reset track color" title="Reset track color">Reset</button>`;
     seqTracks.appendChild(row);
     const muteBtn = row.querySelector('[data-mute]');
     const soloBtn = row.querySelector('[data-solo]');
@@ -2777,12 +2777,12 @@ async function handleExportMp3(){
 
 <!-- Context Menu -->
 <div id="noteContextMenu" class="fixed hidden bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-2 z-50 min-w-[160px]">
-  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="copySelected()">Copy</button>
-  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="cutSelected()">Cut</button>
-  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="deleteSelected()">Delete</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="copySelected()" aria-label="Copy" title="Copy">Copy</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="cutSelected()" aria-label="Cut" title="Cut">Cut</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="deleteSelected()" aria-label="Delete" title="Delete">Delete</button>
   <hr class="border-slate-600 my-1">
-  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()">Quantize</button>
-  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()">Edit Velocity...</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()" aria-label="Quantize" title="Quantize">Quantize</button>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()" aria-label="Edit Velocity" title="Edit Velocity">Edit Velocity...</button>
 </div>
 
 </body>
