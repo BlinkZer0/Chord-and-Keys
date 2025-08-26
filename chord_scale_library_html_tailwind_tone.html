@@ -2325,27 +2325,41 @@ function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visua
 
 // ========================= FRETBOARDS =========================
 const GUITAR_STD=[40,45,50,55,59,64]; const BASS_STD=[28,33,38,43]; const VIOLIN_TUNING=[55,62,69,76]; const KOTO_TUNING=[60,62,64,67,69,72,74,76,79,81,84,86,88];
+const KOTO_FINGERINGS={
+  C:[1,0,0,0,0,1,0,0,0,0,1,0,0],
+  'C#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  D:[0,1,0,0,0,0,1,0,0,0,0,1,0],
+  'D#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  E:[0,0,1,0,0,0,0,1,0,0,0,0,1],
+  F:[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  'F#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  G:[0,0,0,1,0,0,0,0,1,0,0,0,0],
+  'G#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  A:[0,0,0,0,1,0,0,0,0,1,0,0,0],
+  'A#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  B:[0,0,0,0,0,0,0,0,0,0,0,0,0]
+};
 function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent = `${title} • Tuning: ` + tuning.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const box=document.createElement('div'); box.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const grid=document.createElement('div'); grid.className='grid'; const frets=13; grid.style.gridTemplateColumns = `repeat(${frets+1}, minmax(0,1fr))`; box.appendChild(grid); // header row
   grid.appendChild(document.createElement('div')); for(let f=0; f<frets; f++){ const d=document.createElement('div'); d.className='text-center text-[10px] text-slate-400'; d.textContent=String(f); grid.appendChild(d); }
   const {pcset, rootPc} = computeSelected(); const strings=tuning.length; for(let s=0; s<strings; s++){ const stringIndex=strings-1-s; const openMidi=tuning[stringIndex]; const lab=document.createElement('div'); lab.className='text-right pr-2 text-[11px] text-slate-400'; lab.textContent=pcName(mod(openMidi,OCTAVE)); grid.appendChild(lab); for(let f=0; f<frets; f++){ const midi=openMidi+f; const pc=mod(midi,OCTAVE); const cell=document.createElement('div'); cell.className='relative h-10 border border-slate-700/70'; if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className = 'absolute inset-1 rounded-full flex items-center justify-center text-[10px] font-semibold '+ (rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.title = `${pcName(pc)} @ string ${stringIndex+1}, fret ${f}`; dot.textContent = (rootPc===pc? 'R': pcName(pc)); cell.appendChild(dot); } grid.appendChild(cell); } }
   outer.appendChild(box); const note=document.createElement('div'); note.className='mt-2 text-center text-xs text-slate-400'; note.textContent='Colored dots = playable notes on that string/fret. Red = root.'; outer.appendChild(note); host.appendChild(outer); }
 
-function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent='Koto • Tuning: '+KOTO_TUNING.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const board=document.createElement('div'); board.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const {pcset, rootPc} = computeSelected(); KOTO_TUNING.forEach((m)=>{ const pc=mod(m,OCTAVE); const row=document.createElement('div'); row.className='relative h-5 my-1 flex items-center'; const line=document.createElement('div'); line.className='w-full h-0.5'; line.style.backgroundColor = pcset.has(pc)? (rootPc===pc? '#f43f5e':'#4ade80') : '#cbd5e1'; row.appendChild(line); const lab=document.createElement('div'); lab.className='absolute -left-2 -translate-x-full text-xs text-slate-400'; lab.textContent=pcName(pc)+(Math.floor(m/OCTAVE)-1); row.appendChild(lab); if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className='absolute right-0 top-1/2 -translate-y-1/2 px-1 text-[10px] font-semibold rounded '+(rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.textContent = rootPc===pc? 'R': pcName(pc); row.appendChild(dot); } board.appendChild(row); }); outer.appendChild(board); kotoHost.appendChild(outer); }
+function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent='Koto • Tuning: '+KOTO_TUNING.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const board=document.createElement('div'); board.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const {pcset, rootPc} = computeSelected(); const note=pcName(rootPc); const sharp=ENHARMONIC_MAP[note] || note; const fing=KOTO_FINGERINGS[sharp] || Array(KOTO_TUNING.length).fill(0); KOTO_TUNING.forEach((m,i)=>{ const pc=mod(m,OCTAVE); const pressed=fing[i]; const row=document.createElement('div'); row.className='relative h-5 my-1 flex items-center'; const line=document.createElement('div'); line.className='w-full h-0.5'; line.style.backgroundColor = pressed? '#374151' : (pcset.has(pc)? (rootPc===pc? '#f43f5e':'#4ade80') : '#cbd5e1'); row.appendChild(line); const lab=document.createElement('div'); lab.className='absolute -left-2 -translate-x-full text-xs text-slate-400'; lab.textContent=pcName(pc)+(Math.floor(m/OCTAVE)-1); row.appendChild(lab); if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className='absolute right-0 top-1/2 -translate-y-1/2 px-1 text-[10px] font-semibold rounded '+(rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.textContent = rootPc===pc? 'R': pcName(pc); row.appendChild(dot); } board.appendChild(row); }); outer.appendChild(board); kotoHost.appendChild(outer); }
 
 // ========================= FLUTE CHART =========================
 const FLUTE_FINGERINGS = {
   C:[1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1],
-  D:[0,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1],
-  E:[0,0,1,1,1,1],
-  F:[0,0,0,1,1,1],
-  'F#':[0,0,0,0,1,1],
-  G:[0,0,0,0,1,1],
-  'G#':[0,0,0,0,0,1],
-  A:[0,0,0,0,0,1],
-  'A#':[0,0,0,0,0,0],
-  B:[0,0,0,0,0,0]
+  D:[0,0,1,1,1,1],
+  'D#':[0,0,0,1,1,1],
+  E:[0,0,0,0,1,1],
+  F:[0,0,0,0,0,1],
+  'F#':[0,0,0,0,0,0],
+  G:[1,0,0,0,0,0],
+  'G#':[1,1,0,0,0,0],
+  A:[1,1,1,0,0,0],
+  'A#':[1,1,1,1,0,0],
+  B:[1,1,1,1,1,0]
 };
 /*
   Flute chart layout
@@ -2616,17 +2630,17 @@ function buildFluteChart(){
 // ========================= RECORDER CHART =========================
 const RECORDER_FINGERINGS = {
   C:[1,1,1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1,1,1],
-  D:[0,1,1,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1,1,1],
-  E:[0,0,1,1,1,1,1,1],
-  F:[0,0,0,1,1,1,1,1],
-  'F#':[0,0,0,0,1,1,1,1],
-  G:[0,0,0,0,1,1,1,1],
-  'G#':[0,0,0,0,0,1,1,1],
-  A:[0,0,0,0,0,1,1,1],
+  'C#':[1,1,1,1,1,1,1,0],
+  D:[1,1,1,1,1,1,0,0],
+  'D#':[1,1,1,1,1,0,0,0],
+  E:[1,1,1,1,0,0,0,0],
+  F:[1,1,1,0,0,0,0,0],
+  'F#':[1,1,0,0,0,0,0,0],
+  G:[1,0,0,0,0,0,0,0],
+  'G#':[0,0,0,0,0,0,0,0],
+  A:[0,0,0,0,0,0,0,1],
   'A#':[0,0,0,0,0,0,1,1],
-  B:[0,0,0,0,0,0,1,1]
+  B:[0,0,0,0,0,1,1,1]
 };
 /*
   Recorder chart layout
@@ -3278,16 +3292,16 @@ function buildTrumpetChart(){
 const SAX_FINGERINGS = {
   C:[1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1],
-  D:[0,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1],
-  E:[0,0,1,1,1,1],
-  F:[0,0,0,1,1,1],
-  'F#':[0,0,0,0,1,1],
-  G:[0,0,0,0,1,1],
-  'G#':[0,0,0,0,0,1],
-  A:[0,0,0,0,0,1],
-  'A#':[0,0,0,0,0,0],
-  B:[0,0,0,0,0,0]
+  D:[0,0,1,1,1,1],
+  'D#':[0,0,0,1,1,1],
+  E:[0,0,0,0,1,1],
+  F:[0,0,0,0,0,1],
+  'F#':[0,0,0,0,0,0],
+  G:[1,0,0,0,0,0],
+  'G#':[1,1,0,0,0,0],
+  A:[1,1,1,0,0,0],
+  'A#':[1,1,1,1,0,0],
+  B:[1,1,1,1,1,0]
 };
 /*
   Saxophone chart layout
@@ -3620,16 +3634,16 @@ function buildSaxophoneChart(){
 const NEY_FINGERINGS = {
   C:[1,1,1,1,1,1,1],
   'C#':[0,1,1,1,1,1,1],
-  D:[0,1,1,1,1,1,1],
-  'D#':[0,0,1,1,1,1,1],
-  E:[0,0,1,1,1,1,1],
-  F:[0,0,0,1,1,1,1],
-  'F#':[0,0,0,0,1,1,1],
-  G:[0,0,0,0,1,1,1],
-  'G#':[0,0,0,0,0,1,1],
-  A:[0,0,0,0,0,1,1],
-  'A#':[0,0,0,0,0,0,1],
-  B:[0,0,0,0,0,0,0]
+  D:[0,0,1,1,1,1,1],
+  'D#':[0,0,0,1,1,1,1],
+  E:[0,0,0,0,1,1,1],
+  F:[0,0,0,0,0,1,1],
+  'F#':[0,0,0,0,0,0,1],
+  G:[0,0,0,0,0,0,0],
+  'G#':[1,0,0,0,0,0,0],
+  A:[1,1,0,0,0,0,0],
+  'A#':[1,1,1,0,0,0,0],
+  B:[1,1,1,1,0,0,0]
 };
 /*
   Ney chart layout
