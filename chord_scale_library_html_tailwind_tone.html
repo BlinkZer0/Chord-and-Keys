@@ -113,6 +113,7 @@
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
           <span id="badgeSelNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Notes: —</span>
             <button id="btnClearSel" aria-label="Clear Selection" title="Clear Selection" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Clear Selection</button>
+            <button id="btnSendToSeq" aria-label="Send to Sequencer" title="Send to Sequencer" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Send to Sequencer</button>
           <span class="text-xs text-slate-400">Tip: hold keys to play • <span class="font-semibold">Shift+click</span> toggles selection</span>
         </div>
       </div>
@@ -887,6 +888,26 @@ function cutSelected() {
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
+  function sendToSequencer() {
+    const track = song.tracks[activeTrack];
+    const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+    selectedNotes.clear();
+    let events = [];
+    if(selection.size > 0) {
+      events = [...selection].sort((a,b)=>a-b).map(m=>({tick: playheadTick, dur: quantizeSnap, midi: m, vel: 100}));
+    } else {
+      events = buildNoteEvents().map(ev => {
+        const tick = playheadTick + Math.round(ev.start * song.ppq / quantizeSnap) * quantizeSnap;
+        const dur = Math.max(quantizeSnap, Math.round(ev.dur * song.ppq / quantizeSnap) * quantizeSnap);
+        return { tick, dur, midi: ev.midi, vel: ev.vel };
+      });
+    }
+    events.forEach(n=>{ track.clips[0].notes.push(n); selectedNotes.add(n); });
+    track.clips[0].notes.sort((a,b)=>a.tick - b.tick);
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
+
   function drawPatternPreview() {
     const ctx = patternPreview.getContext('2d');
     ctx.clearRect(0,0,patternPreview.width, patternPreview.height);
@@ -1108,7 +1129,7 @@ const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
 const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale'); const btnModeSequencer = $('#btnModeSequencer');
 const wrapChord = $('#wrapChord'); const wrapScale = $('#wrapScale');
 const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); const btnPlayStrum = $('#btnPlayStrum');
-const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp');
+const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
@@ -2035,6 +2056,7 @@ function updateBadges(){
   badgeId.textContent = 'Selection: '+id.name+(id.detail?(' '+id.detail):'');
   badgeSelNotes.textContent = 'Notes: ' + (arr.length? arr.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '): '—');
   updateSelButtons();
+  btnSendToSeq.disabled = selection.size === 0 && selected.notes.length === 0;
 }
 
 function computeSelected(){ if(mode==='Chord'){ const notes=buildChord(keyRoot, chordQuality); return {type:'chord', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } else { const notes=buildScale(keyRoot, scaleMode); return {type:'scale', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } }
@@ -2803,6 +2825,7 @@ seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on activ
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
+$('#btnSendToSeq').addEventListener('click', sendToSequencer);
 patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
 btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
