@@ -201,6 +201,7 @@
           </label>
         </div>
 
+
           <div id="patternLibraryPanel" class="flex flex-col sm:flex-row flex-wrap gap-3 items-center">
             <label class="text-sm text-slate-300">Type</label>
             <select id="patternCategory" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
@@ -212,6 +213,7 @@
             <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900 w-full sm:w-auto"></canvas>
           </div>
 
+
         <div id="seqTracks" class="space-y-2"></div>
 
         <div id="pianoRollWrap" class="flex">
@@ -219,6 +221,7 @@
           <div id="pianoRollScroll" class="overflow-auto relative">
             <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
             <div id="pianoRollSpacer"></div>
+
           </div>
         </div>
 
@@ -377,12 +380,13 @@ const INSTRUMENTS = [
 ];
 const INSTRUMENT_ICONS = {
   Flute: 'assets/instruments/flute_openmoji.svg',
-  Recorder: 'assets/instruments/recorder_openmoji.svg',
+    Recorder: 'assets/instruments/recorder_openmoji.svg',
   Ney: 'assets/instruments/ney_openmoji.svg',
   Saxophone: 'assets/instruments/saxophone_openmoji.svg',
   Trumpet: 'assets/instruments/trumpet_openmoji.svg',
   Koto: 'assets/instruments/koto_openmoji.svg',
 };
+
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 const MODES = {
   Ionian: [0,2,4,5,7,9,11],
@@ -513,212 +517,96 @@ let _synth=null; let _started=false; const ENV={
   Guitar:{a:.005,d:.25,s:0,r:1.5,osc:'sawtooth',filter:{frequency:3000,Q:0.8},vibrato:{rate:6,depth:0.02}},
   Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2}},
   Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2}},
-  Flute:{a:.1,d:.2,s:.9,r:.6,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5}},
-  Recorder:{a:.08,d:.15,s:.8,r:.5,osc:'sine',filter:{frequency:3500,Q:0.7}},
+  Flute:{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5}},
+  Recorder:{a:.06,d:.12,s:.85,r:.4,osc:'sine',filter:{frequency:3500,Q:0.7}},
   Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03}},
   Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1}},
   Koto:{a:.002,d:.3,s:0,r:1.6,osc:'triangle',filter:{frequency:4500,Q:0.8}},
   Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle',filter:{frequency:3800,Q:0.9}},
   Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6}},
-  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3}}
+  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3}},
 };
+
 const masterLim = new Tone.Limiter(-1).toDestination();
 // === SEQUENCER: Audio Engine (melodic & drum registries) ===
-function makePoly(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
+function makeSynth(type, env, options = {}) {
   const panner = new Tone.Panner(0).connect(masterLim);
   let destination = panner;
   let vib=null, trem=null, filter=null;
-  
+
   // Add filter if specified in env
   if(env.filter){
-    filter = new Tone.Filter({
-      frequency: env.filter.frequency,
-      Q: env.filter.Q,
-      type: 'lowpass'
-    }).connect(destination);
+    filter = new Tone.Filter(env.filter.frequency, env.filter.type || 'lowpass', env.filter.rolloff || -12).connect(destination);
+    filter.Q.value = env.filter.Q;
     destination = filter;
   }
-  
+
   // Use env settings for vibrato/tremolo if available
-  if(env.vibrato || vibrato){
-    const vRate = env.vibrato?.rate || vibratoRate;
-    const vDepth = env.vibrato?.depth || vibratoDepth;
+  if(env.vibrato || options.vibrato){
+    const vRate = env.vibrato?.rate || options.vibratoRate || 5;
+    const vDepth = env.vibrato?.depth || options.vibratoDepth || 0.1;
     vib = new Tone.Vibrato(vRate, vDepth).connect(destination);
     destination = vib;
   }
-  if(env.tremolo || tremolo){
-    const tRate = env.tremolo?.rate || tremoloRate;
-    const tDepth = env.tremolo?.depth || tremoloDepth;
+  if(env.tremolo || options.tremolo){
+    const tRate = env.tremolo?.rate || options.tremoloRate || 5;
+    const tDepth = env.tremolo?.depth || options.tremoloDepth || 0.5;
     trem = new Tone.Tremolo(tRate, tDepth).start().connect(destination);
     destination = trem;
   }
-  
+
   const gain = new Tone.Gain(1).connect(destination);
-  const synth = new Tone.PolySynth(Tone.Synth,{
-    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
-    oscillator:{type:env.osc}
-  }).connect(gain);
+  let synth;
+
+  const synthOptions = {
+      envelope: { attack: env.a, decay: env.d, sustain: env.s, release: env.r },
+      oscillator: { type: env.osc }
+  };
+
+  switch(type) {
+    case 'PolySynth':
+      synth = new Tone.PolySynth(Tone.Synth, synthOptions).connect(gain);
+      break;
+    case 'MonoSynth':
+      synth = new Tone.MonoSynth(synthOptions).connect(gain);
+      break;
+    case 'DuoSynth':
+      synth = new Tone.DuoSynth({ ...synthOptions, ...options.duoOptions }).connect(gain);
+      break;
+    case 'AMSynth':
+      synth = new Tone.AMSynth({ ...synthOptions, ...options.amOptions }).connect(gain);
+      break;
+    case 'PluckSynth':
+      synth = new Tone.PluckSynth(options.pluckOptions).connect(gain);
+      break;
+    default:
+      console.warn(`Unknown synth type: ${type}. Defaulting to PolySynth.`);
+      synth = new Tone.PolySynth(Tone.Synth, synthOptions).connect(gain);
+  }
+
   return {
     trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
       try {
         const freq = midiToFreq(midi);
         const vel = Math.max(0.1, Math.min(1, velocity));
-        synth.triggerAttackRelease(freq, dur, time, vel);
+        if (type !== 'PluckSynth') {
+            synth.triggerAttackRelease(freq, dur, time, vel);
+        } else {
+            synth.triggerAttack(freq, time, vel);
+        }
       } catch(e) {
-        console.warn('PolySynth trigger error:', e);
+        console.warn(`${type} trigger error:`, e);
       }
     },
     release(midi,time=Tone.now()){
-      try {
-        synth.triggerRelease(midiToFreq(midi), time);
-      } catch(e) {
-        // Ignore release errors
-      }
+      // PluckSynth doesn't need explicit release, others do.
+      if (type !== 'PluckSynth') synth.triggerRelease(midiToFreq(midi), time);
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
     setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
     dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); if(filter) filter.dispose(); panner.dispose(); }
-  };
-}
-
-// [fix] poly pluck - improved for guitar, koto, and oud
-function makePluck(){
-  const panner = new Tone.Panner(0).connect(masterLim);
-  const gain = new Tone.Gain(1).connect(panner);
-  const reverb = new Tone.Reverb({decay: 0.3, wet: 0.2}).connect(gain);
-  const synth = new Tone.PolySynth(Tone.PluckSynth, {
-    attackNoise:0.5,
-    dampening:1800,
-    resonance:0.8
-  }).connect(reverb);
-  return {
-    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      try {
-        const freq = midiToFreq(midi);
-        const vel = Math.max(0.1, Math.min(1, velocity));
-        synth.triggerAttackRelease(freq, dur, time, vel);
-      } catch(e) {
-        console.warn('PluckSynth trigger error:', e);
-      }
-    },
-    release(midi,time=Tone.now()){
-      // PluckSynth doesn't need explicit release
-    },
-    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); panner.dispose(); }
-  };
-}
-
-function makeMono(env,{vibrato=false,vibratoRate=5,vibratoDepth=0.1,tremolo=false,tremoloRate=5,tremoloDepth=0.5}={}){
-  const panner = new Tone.Panner(0).connect(masterLim);
-  let destination = panner;
-  let vib=null, trem=null;
-  if(vibrato){
-    vib = new Tone.Vibrato(vibratoRate, vibratoDepth).connect(destination);
-    destination = vib;
-  }
-  if(tremolo){
-    trem = new Tone.Tremolo(tremoloRate, tremoloDepth).start().connect(destination);
-    destination = trem;
-  }
-  const gain = new Tone.Gain(1).connect(destination);
-  const synth = new Tone.MonoSynth({
-    oscillator:{type:env.osc},
-    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}
-  }).connect(gain);
-  return {
-    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      try {
-        const freq = midiToFreq(midi);
-        const vel = Math.max(0.1, Math.min(1, velocity));
-        synth.triggerAttackRelease(freq, dur, time, vel);
-      } catch(e) {
-        console.warn('MonoSynth trigger error:', e);
-      }
-    },
-    release(midi,time=Tone.now()){
-      try {
-        synth.triggerRelease(midiToFreq(midi), time);
-      } catch(e) {
-        // Ignore release errors
-      }
-    },
-    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
-    setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
-    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); panner.dispose(); }
-  };
-}
-
-function makeDuo(env){
-  const panner = new Tone.Panner(0).connect(masterLim);
-  const gain = new Tone.Gain(1).connect(panner);
-  const vibrato = new Tone.Vibrato(4,0.1).connect(gain);
-  const synth = new Tone.DuoSynth({
-    voice0:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
-    voice1:{oscillator:{type:env.osc}, envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r}},
-    harmonicity:1.01,
-    vibratoAmount:0.1,
-    vibratoRate:5
-  }).connect(vibrato);
-  return {
-    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      try {
-        const freq = midiToFreq(midi);
-        const vel = Math.max(0.1, Math.min(1, velocity));
-        synth.triggerAttackRelease(freq, dur, time, vel);
-      } catch(e) {
-        console.warn('DuoSynth trigger error:', e);
-      }
-    },
-    release(midi,time=Tone.now()){
-      try {
-        synth.triggerRelease(midiToFreq(midi), time);
-      } catch(e) {
-        // Ignore release errors
-      }
-    },
-    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    dispose(){ synth.dispose(); vibrato.dispose(); gain.dispose(); panner.dispose(); }
-  };
-}
-
-function makeAM(env){
-  const panner = new Tone.Panner(0).connect(masterLim);
-  const gain = new Tone.Gain(1).connect(panner);
-  const reverb = new Tone.Reverb({decay: 1.2, wet: 0.3}).connect(gain);
-  const synth = new Tone.AMSynth({
-    oscillator:{type:env.osc},
-    envelope:{attack:env.a,decay:env.d,sustain:env.s,release:env.r},
-    modulationEnvelope:{attack:env.a*0.5,decay:env.d*2,sustain:env.s*0.7,release:env.r},
-    modulation:{type:'sine'},
-    modulationFrequency:3.5
-  }).connect(reverb);
-  return {
-    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
-      try {
-        const freq = midiToFreq(midi);
-        const vel = Math.max(0.1, Math.min(1, velocity));
-        synth.triggerAttackRelease(freq, dur, time, vel);
-      } catch(e) {
-        console.warn('AMSynth trigger error:', e);
-      }
-    },
-    release(midi,time=Tone.now()){
-      try {
-        synth.triggerRelease(midiToFreq(midi), time);
-      } catch(e) {
-        // Ignore release errors
-      }
-    },
-    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
-    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    dispose(){ synth.dispose(); reverb.dispose(); gain.dispose(); panner.dispose(); }
   };
 }
 
@@ -785,18 +673,18 @@ async function initSampleLibrary() {
 }
 
 const SEQ_INSTR = {
-  Piano: () => makeSampler('piano') || makePoly(ENV.Piano, {vibrato: false}),
-  Guitar: () => makeSampler('guitar') || makePluck(),
-  Bass: () => makeMono(ENV.Bass),
-  Violin: () => makeSampler('violin') || makePoly(ENV.Violin, {vibrato: true}),
-  Flute: () => makeSampler('flute') || makePoly(ENV.Flute, {vibrato: true}),
-  Recorder: () => makePoly(ENV.Recorder, {vibrato: false}),
-  Trumpet: () => makeSampler('trumpet') || makePoly(ENV.Trumpet, {vibrato: true}),
-  Saxophone: () => makeSampler('saxophone') || makePoly(ENV.Saxophone, {vibrato: true}),
-  Koto: () => makePluck(),
-  Oud: () => makePluck(),
-  Ney: () => makePoly(ENV.Ney, {vibrato: true}),
-  'Hammond Organ': () => makePoly(ENV['Hammond Organ'], {tremolo: true})
+  Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  Guitar: () => makeSampler('guitar') || makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
+  Bass: () => makeSynth('MonoSynth', ENV.Bass),
+  Violin: () => makeSampler('violin') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  Flute: () => makeSampler('flute') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  Recorder: () => makeSynth('PolySynth', ENV.Recorder),
+  Trumpet: () => makeSampler('trumpet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  Saxophone: () => makeSampler('saxophone') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  Koto: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
+  Oud: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
+  Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
+  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
 };
 
 function createSeqInstrument(name){
@@ -808,11 +696,11 @@ function createSeqInstrument(name){
     
     // Fallback to makePoly with appropriate envelope
     const env = ENV[name] || ENV.Piano;
-    return makePoly(env);
+    return makeSynth('PolySynth', env);
   } catch(error) {
     console.error(`Failed to create instrument ${name}:`, error);
     // Ultimate fallback
-    return makePoly(ENV.Piano);
+    return makeSynth('PolySynth', ENV.Piano);
   }
 }
 
@@ -4388,6 +4276,7 @@ function setupAutoSave() {
         const indicator = document.createElement('div');
         indicator.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-2 py-1 rounded text-xs opacity-75 z-50';
         indicator.textContent = 'Session saved';
+
         document.body.appendChild(indicator);
         setTimeout(() => indicator.remove(), 2000);
       }
@@ -4601,6 +4490,7 @@ seqPlay.addEventListener('click', async ()=>{
   }
 });
 
+
 seqPause.addEventListener('click', ()=>{
   if(sequencerState === 'playing') {
     Tone.Transport.pause();
@@ -4781,6 +4671,7 @@ const devTests=document.getElementById('devTests');
 if(devTests){
   const summary=devTests.querySelector('summary');
   devTests.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',devTests.open));
+
 }
 </script>
 
@@ -4793,6 +4684,7 @@ if(devTests){
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()" aria-label="Quantize" title="Quantize">Quantize</button>
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()" aria-label="Edit Velocity" title="Edit Velocity">Edit Velocity...</button>
 </div>
+
 
 </body>
 </html>
