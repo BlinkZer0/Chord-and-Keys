@@ -1351,10 +1351,11 @@ function updateLoop(){
   } else {
     // For one-shot playback, disable looping
     Tone.Transport.loop = false;
-    // Calculate song length based on actual notes
-    const maxNoteTick = Math.max(192*16, ...song.tracks.flatMap(t => 
-      t.clips[0].notes.map(n => t.clips[0].start + n.tick + n.dur)
-    ));
+    // Compute last note end across all tracks; fallback to at least 16 bars
+    const ends = song.tracks.flatMap(t =>
+      t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+    );
+    const maxNoteTick = ends.length ? Math.max(...ends) : 192 * 16;
     // Schedule a stop event at the end of the song
     autoStopId = Tone.Transport.scheduleOnce(() => {
       if(sequencerState === 'playing') {
@@ -1421,20 +1422,19 @@ function scheduleSong(changedIdx){
     // Create part only if there are events
     if(events.length > 0){
       try {
-        const part = new Tone.Part((time, n) => {
+        track.part = new Tone.Part((time, n) => {
           if(track.player && track.player.trigger) {
             track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
           }
         }, events);
         if(seqLoop.checked && song.loop.enabled) {
-          part.loopStart = `${song.loop.start}i`;
-          part.loopEnd = `${song.loop.end}i`;
-          part.loop = true;
+          track.part.loopStart = `${song.loop.start}i`;
+          track.part.loopEnd = `${song.loop.end}i`;
+          track.part.loop = true;
         } else {
-          part.loop = false;
+          track.part.loop = false;
         }
-        part.start(0);
-        track.part = part;
+        track.part.start(0);
       } catch(error) {
         console.error(`Failed to create part for track ${idx}:`, error);
         track.part = null;
