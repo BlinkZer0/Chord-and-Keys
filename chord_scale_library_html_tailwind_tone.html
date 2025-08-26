@@ -1990,6 +1990,22 @@ function buildFluteChart(){
   const isHoriz = fluteOrientation === 'horizontal';
   svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
   svg.setAttribute('class','mx-auto');
+  // Instrument outline
+  const body=document.createElementNS(svgNS,'polygon');
+  const mouth=document.createElementNS(svgNS,'polygon');
+  if(isHoriz){
+    body.setAttribute('points','20,20 140,20 140,40 20,40');
+    mouth.setAttribute('points', fluteLeftToRight ? '0,20 20,20 20,40 0,40' : '140,20 160,20 160,40 140,40');
+  } else {
+    body.setAttribute('points','20,20 40,20 40,140 20,140');
+    mouth.setAttribute('points', fluteLeftToRight ? '20,0 40,0 40,20 20,20' : '20,140 40,140 40,160 20,160');
+  }
+  [body,mouth].forEach(el=>{
+    el.setAttribute('stroke','#94a3b8');
+    el.setAttribute('stroke-width','2');
+    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
+    svg.appendChild(el);
+  });
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
@@ -2066,6 +2082,21 @@ function buildRecorderChart(){
   const isHoriz = recorderOrientation === 'horizontal';
   svg.setAttribute('viewBox', isHoriz ? '0 0 180 60' : '0 0 60 180');
   svg.setAttribute('class','mx-auto');
+  const body=document.createElementNS(svgNS,'polygon');
+  const mouth=document.createElementNS(svgNS,'polygon');
+  if(isHoriz){
+    body.setAttribute('points','20,20 160,20 160,40 20,40');
+    mouth.setAttribute('points', recorderLeftToRight ? '0,20 20,20 20,40 0,40' : '160,20 180,20 180,40 160,40');
+  } else {
+    body.setAttribute('points','20,20 40,20 40,160 20,160');
+    mouth.setAttribute('points', recorderLeftToRight ? '20,0 40,0 40,20 20,20' : '20,160 40,160 40,180 20,180');
+  }
+  [body,mouth].forEach(el=>{
+    el.setAttribute('stroke','#94a3b8');
+    el.setAttribute('stroke-width','2');
+    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
+    svg.appendChild(el);
+  });
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
@@ -2142,6 +2173,34 @@ function buildTrumpetChart(){
   const isHoriz = trumpetOrientation === 'horizontal';
   svg.setAttribute('viewBox', isHoriz ? '0 0 120 60' : '0 0 60 120');
   svg.setAttribute('class','mx-auto');
+  const body=document.createElementNS(svgNS,'polygon');
+  const mouth=document.createElementNS(svgNS,'polygon');
+  const bell=document.createElementNS(svgNS,'polygon');
+  if(isHoriz){
+    body.setAttribute('points','20,20 100,20 100,40 20,40');
+    if(trumpetLeftToRight){
+      mouth.setAttribute('points','0,25 20,20 20,40 0,35');
+      bell.setAttribute('points','100,20 120,30 100,40');
+    } else {
+      mouth.setAttribute('points','100,20 120,25 120,35 100,40');
+      bell.setAttribute('points','20,20 0,30 20,40');
+    }
+  } else {
+    body.setAttribute('points','20,20 40,20 40,100 20,100');
+    if(trumpetLeftToRight){
+      mouth.setAttribute('points','25,0 20,20 40,20 35,0');
+      bell.setAttribute('points','20,100 30,120 40,100');
+    } else {
+      mouth.setAttribute('points','20,100 40,100 35,120 25,120');
+      bell.setAttribute('points','20,20 30,0 40,20');
+    }
+  }
+  [body,mouth,bell].forEach(el=>{
+    el.setAttribute('stroke','#94a3b8');
+    el.setAttribute('stroke-width','2');
+    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
+    svg.appendChild(el);
+  });
   fing.forEach((down,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
@@ -2218,6 +2277,34 @@ function buildSaxophoneChart(){
   const isHoriz = saxophoneOrientation === 'horizontal';
   svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
   svg.setAttribute('class','mx-auto');
+  const body=document.createElementNS(svgNS,'polygon');
+  const mouth=document.createElementNS(svgNS,'polygon');
+  const bell=document.createElementNS(svgNS,'polygon');
+  if(isHoriz){
+    body.setAttribute('points','20,20 140,20 140,40 20,40');
+    if(saxophoneLeftToRight){
+      mouth.setAttribute('points','0,25 20,20 20,40 0,35');
+      bell.setAttribute('points','140,20 160,30 140,40');
+    } else {
+      mouth.setAttribute('points','140,20 160,25 160,35 140,40');
+      bell.setAttribute('points','20,20 0,30 20,40');
+    }
+  } else {
+    body.setAttribute('points','20,20 40,20 40,140 20,140');
+    if(saxophoneLeftToRight){
+      mouth.setAttribute('points','25,0 20,20 40,20 35,0');
+      bell.setAttribute('points','20,140 30,160 40,140');
+    } else {
+      mouth.setAttribute('points','20,140 40,140 35,160 25,160');
+      bell.setAttribute('points','20,20 30,0 40,20');
+    }
+  }
+  [body,mouth,bell].forEach(el=>{
+    el.setAttribute('stroke','#94a3b8');
+    el.setAttribute('stroke-width','2');
+    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
+    svg.appendChild(el);
+  });
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
@@ -2294,6 +2381,21 @@ function buildNeyChart(){
   const isHoriz = neyOrientation === 'horizontal';
   svg.setAttribute('viewBox', isHoriz ? '0 0 160 60' : '0 0 60 160');
   svg.setAttribute('class','mx-auto');
+  const body=document.createElementNS(svgNS,'polygon');
+  const mouth=document.createElementNS(svgNS,'polygon');
+  if(isHoriz){
+    body.setAttribute('points','20,20 140,20 140,40 20,40');
+    mouth.setAttribute('points', neyLeftToRight ? '0,20 20,20 20,40 0,40' : '140,20 160,20 160,40 140,40');
+  } else {
+    body.setAttribute('points','20,20 40,20 40,140 20,140');
+    mouth.setAttribute('points', neyLeftToRight ? '20,0 40,0 40,20 20,20' : '20,140 40,140 40,160 20,160');
+  }
+  [body,mouth].forEach(el=>{
+    el.setAttribute('stroke','#94a3b8');
+    el.setAttribute('stroke-width','2');
+    el.setAttribute('fill', el===body ? 'none' : '#94a3b8');
+    svg.appendChild(el);
+  });
   fing.forEach((closed,i)=>{
     const c=document.createElementNS(svgNS,'circle');
     let x,y;
