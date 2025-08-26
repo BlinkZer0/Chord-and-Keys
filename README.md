@@ -47,6 +47,25 @@ Piano, guitar, bass, violin, koto, and a growing lineup of wind and brass charts
 
 Everything – **everything** – lives in `chord_scale_library_html_tailwind_tone.html`.  Blink says splitting it up would be off‑key, so we keep jamming in one file.  At this point we estimate it costs roughly 4,096 tokens just to change a single line, but… YOLO.
 
+## Embedding in Your Website
+
+The entire library ships as a standalone HTML file: `chord_scale_library_html_tailwind_tone.html`.
+You can use it in another page in two ways:
+
+* **Host and iframe** – upload the file to a public URL and reference it from your site:
+
+  ```html
+  <iframe
+    src="https://example.com/chord_scale_library_html_tailwind_tone.html"
+    width="100%"
+    height="600"
+  ></iframe>
+  ```
+
+  Ensure the server sends permissive [CORS](https://developer.mozilla.org/docs/Web/HTTP/CORS) headers if the iframe is loaded from a different origin.
+
+* **Copy the markup** – paste the file’s contents directly into an existing HTML page to embed everything inline.
+
 ## About the Band
 
 This project is orchestrated by a trio of AIs:
