@@ -1193,6 +1193,7 @@ let saxophoneOrientation = 'horizontal';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
+const TOTAL_PIANO_KEYS = midiFrom('F',5) - midiFrom('C',3) + 1;
 
 // === SEQUENCER: Data Model & Store ===
 const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymbal ClosedHat','Clap Short','Hand Conga'];
@@ -2867,7 +2868,18 @@ $('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); co
 $('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, strum:true}); });
 $('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
 $('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
-$('#btnPlaySelArp').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo}); });
+$('#btnPlaySelArp').addEventListener('click', ()=>{
+  const midi=[...selection].sort((a,b)=>a-b);
+  playMidiNotes(midi,{instrument, tempo});
+  if(selection.size === TOTAL_PIANO_KEYS){
+    window.open('https://soundcloud.com/shurikenmiasma/albums','_blank');
+    const note=document.createElement('div');
+    note.textContent='Meet the Author! [Unlocked]';
+    note.className='fixed inset-0 flex items-center justify-center bg-black/60 text-white text-2xl font-bold z-50';
+    document.body.appendChild(note);
+    setTimeout(()=>note.remove(),3000);
+  }
+});
 
 seqPlay.addEventListener('click', async ()=>{
   try {
