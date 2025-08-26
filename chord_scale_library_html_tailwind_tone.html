@@ -3283,6 +3283,7 @@ function runTests(){
 
 // ========================= WIRING =========================
 function refreshInstruments(){
+  const isPiano = selInstr.value.startsWith('Piano');
   const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
   const isBass = selInstr.value.startsWith('Bass');
   const isViolin = selInstr.value.startsWith('Violin');
@@ -3292,6 +3293,7 @@ function refreshInstruments(){
   const isSaxophone = selInstr.value.startsWith('Saxophone');
   const isKoto = selInstr.value.startsWith('Koto');
   const isNey = selInstr.value.startsWith('Ney');
+  pianoHost.classList.toggle('hidden', !isPiano);
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
   violinHost.classList.toggle('hidden', !isViolin);
@@ -3301,6 +3303,7 @@ function refreshInstruments(){
   saxophoneHost.classList.toggle('hidden', !isSaxophone);
   kotoHost.classList.toggle('hidden', !isKoto);
   neyHost.classList.toggle('hidden', !isNey);
+  if(isPiano) buildPiano();
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
   if(!fluteHost.classList.contains('hidden')) buildFluteChart();
   if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
