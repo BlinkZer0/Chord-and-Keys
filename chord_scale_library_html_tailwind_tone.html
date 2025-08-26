@@ -8,12 +8,23 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+  <style>
+    body { background-color: var(--bg-body); color: var(--text-body); }
+    body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
+    body.skin-solarized { --bg-body: #002b36; --text-body: #eee8d5; }
+    body.skin-mono { --bg-body: #000000; --text-body: #ffffff; }
+  </style>
 </head>
-<body class="min-h-screen w-full bg-slate-950 text-slate-100">
+<body class="min-h-screen w-full skin-default">
   <div class="max-w-6xl mx-auto p-6">
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
         <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
         <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
+        <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+          <option value="default">Default</option>
+          <option value="solarized">Solarized</option>
+          <option value="mono">Mono</option>
+        </select>
       </header>
 
     <!-- ============ 1) Choose What To Explore ============ -->
@@ -1068,7 +1079,7 @@ async function copyBytesToClipboard(bytes){ const status=document.getElementById
 // ========================= UI STATE =========================
 const $ = (sel)=>document.querySelector(sel);
 const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const saxophoneHost = $('#saxophoneHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost');
-const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem');
+const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem'); const skinSelector = $('#skinSelector');
 const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
 const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
 const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale'); const btnModeSequencer = $('#btnModeSequencer');
@@ -2586,6 +2597,8 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
+const skinClasses = { default: 'skin-default', solarized: 'skin-solarized', mono: 'skin-mono' };
+skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(...Object.values(skinClasses)); document.body.classList.add(skinClasses[e.target.value]); });
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
