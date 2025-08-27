@@ -224,12 +224,23 @@
 
         <div id="seqTracks" class="space-y-2"></div>
 
-        <div id="pianoRollWrap" class="flex">
-          <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
-          <div id="pianoRollScroll" class="overflow-auto relative">
-            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-            <div id="pianoRollSpacer"></div>
-
+        <div id="pianoRollWrap" class="flex flex-col">
+          <div class="flex">
+            <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
+            <div id="pianoRollScroll" class="overflow-auto relative">
+              <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+              <div id="pianoRollSpacer"></div>
+            </div>
+          </div>
+          <!-- Velocity Chart -->
+          <div class="flex">
+            <div class="w-[60px] bg-slate-900 border border-slate-700 flex items-center justify-center">
+              <span class="text-xs text-slate-400 rotate-90">Velocity</span>
+            </div>
+            <div id="velocityChartScroll" class="overflow-auto relative">
+              <canvas id="velocityChart" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+              <div id="velocityChartSpacer"></div>
+            </div>
           </div>
         </div>
 
@@ -268,7 +279,7 @@
             <button id="btnCopyFL" aria-label="Copy for FL Paste (Score)" title="Copy for FL Paste (Score)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
             <button id="btnCopyCSV" aria-label="Copy CSV" title="Copy CSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
             <button id="btnMid" aria-label="Download .MID" title="Download .MID" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
-          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL’s Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
+          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL's Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
         </div>
         <div id="copyStatus" class="text-xs text-slate-300 mt-2"></div>
       </div>
@@ -973,6 +984,7 @@ function undo() {
   song.tracks = prevState.tracks;
   selectedNotes.clear();
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -994,6 +1006,7 @@ function redo() {
   song.tracks = nextState.tracks;
   selectedNotes.clear();
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -1003,6 +1016,7 @@ function selectAll() {
   const track = song.tracks[activeTrack];
   track.clips[0].notes.forEach(note => selectedNotes.add(note));
   drawPianoRoll();
+  drawVelocityChart();
 }
 
 function deleteSelected() {
@@ -1012,6 +1026,7 @@ function deleteSelected() {
   track.clips[0].notes = track.clips[0].notes.filter(note => !selectedNotes.has(note));
   selectedNotes.clear();
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong(activeTrack);
 }
 
@@ -1045,6 +1060,7 @@ function cutSelected() {
   
   track.clips[0].notes.sort((a,b) => a.tick - b.tick);
     drawPianoRoll();
+    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1072,6 +1088,7 @@ function cutSelected() {
     clipboard = newNotes.map(n => ({...n}));
     track.clips[0].notes.sort((a,b) => a.tick - b.tick);
     drawPianoRoll();
+    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1092,6 +1109,7 @@ function cutSelected() {
     events.forEach(n=>{ track.clips[0].notes.push(n); selectedNotes.add(n); });
     track.clips[0].notes.sort((a,b)=>a.tick - b.tick);
     drawPianoRoll();
+    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1154,6 +1172,7 @@ function cutSelected() {
   const track = song.tracks[activeTrack];
   track.clips[0].notes.sort((a,b) => a.tick - b.tick);
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong(activeTrack);
 }
 
@@ -1342,6 +1361,9 @@ const pianoRoll = $('#pianoRoll');
 const pianoRollGutter = $('#pianoRollGutter');
 const pianoRollScroll = $('#pianoRollScroll');
 const pianoRollSpacer = $('#pianoRollSpacer');
+const velocityChart = $('#velocityChart');
+const velocityChartScroll = $('#velocityChartScroll');
+const velocityChartSpacer = $('#velocityChartSpacer');
 const seqTracks = $('#seqTracks');
 const seqZoomX = $('#seqZoomX'); const seqZoomY = $('#seqZoomY');
 const seqClearAll = $('#seqClearAll');
@@ -1363,9 +1385,21 @@ pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
   ui.scrollY = pianoRollScroll.scrollTop;
   pianoRollGutter.scrollTop = ui.scrollY;
+  velocityChartScroll.scrollLeft = ui.scrollX;
   drawPianoRoll();
+  drawVelocityChart();
 });
-window.addEventListener('resize', drawPianoRoll);
+
+velocityChartScroll.addEventListener('scroll', ()=>{
+  ui.scrollX = velocityChartScroll.scrollLeft;
+  pianoRollScroll.scrollLeft = ui.scrollX;
+  drawPianoRoll();
+  drawVelocityChart();
+});
+window.addEventListener('resize', () => {
+  drawPianoRoll();
+  drawVelocityChart();
+});
 
 let mode = 'Chord';
 let instrument = 'Piano';
@@ -1954,7 +1988,7 @@ function drawPianoRoll(){
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
       
-      // Draw note with piano colors
+      // Draw note with complete coloring - FIXED: Full note coloring
       ctx.fillStyle = pianoColor;
       ctx.fillRect(x,y,w,cellH);
       
@@ -1963,10 +1997,16 @@ function drawPianoRoll(){
       ctx.lineWidth = 1;
       ctx.strokeRect(x,y,w,cellH);
       
-      // Add track color as small indicator on active track notes
+      // Add track color overlay for active track notes (more prominent)
       if(idx === activeTrack) {
         ctx.fillStyle = baseColor;
-        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
+        ctx.fillRect(x + 1, y + 1, w - 2, cellH - 2);
+        
+        // Redraw the note color on top with transparency
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = pianoColor;
+        ctx.fillRect(x + 1, y + 1, w - 2, cellH - 2);
+        ctx.globalAlpha = 1.0;
       }
     });
   });
@@ -2001,6 +2041,155 @@ function drawPianoRoll(){
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  
+  // Draw velocity chart
+  drawVelocityChart();
+}
+
+// Draw velocity chart at the bottom
+function drawVelocityChart() {
+  const clip = song.tracks[activeTrack].clips[0];
+  const track = song.tracks[activeTrack];
+  const instrument = track.instrument;
+  
+  const totalSteps = clip.length / SIXTEENTH;
+  let cellW = 20 * ui.zoomX;
+  let totalWidth = totalSteps * cellW;
+  
+  // Handle large files same as piano roll
+  const maxBrowserWidth = 33554427;
+  if(totalWidth > maxBrowserWidth) {
+    const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+    if(ui.zoomX > maxZoomX) {
+      cellW = 20 * maxZoomX;
+      totalWidth = totalSteps * cellW;
+    }
+    if(totalWidth > maxBrowserWidth) {
+      totalWidth = maxBrowserWidth;
+    }
+  }
+  
+  const scrollLeft = velocityChartScroll.scrollLeft;
+  const viewportWidth = velocityChartScroll.clientWidth;
+  const height = 80; // Fixed height for velocity chart
+  const dpr = window.devicePixelRatio||1;
+  
+  velocityChart.width = viewportWidth*dpr; 
+  velocityChart.height = height*dpr; 
+  velocityChart.style.width=viewportWidth+'px'; 
+  velocityChart.style.height=height+'px';
+  velocityChartSpacer.style.width = totalWidth+'px'; 
+  velocityChartSpacer.style.height = height+'px';
+  
+  const ctx = velocityChart.getContext('2d'); 
+  ctx.setTransform(dpr,0,0,dpr,0,0); 
+  ctx.clearRect(0,0,viewportWidth,height);
+  
+  // Background
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(0,0,viewportWidth,height);
+  
+  // Grid lines
+  ctx.strokeStyle = '#334155';
+  ctx.lineWidth = 1;
+  
+  // Vertical grid (same as piano roll)
+  const startStep = Math.floor(scrollLeft / cellW);
+  const endStep = startStep + Math.ceil(viewportWidth / cellW) + 1;
+  for(let i=startStep;i<=endStep;i++){
+    const x=i*cellW - scrollLeft; 
+    if(i%(song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#475569'; 
+    if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#64748b'; 
+    ctx.beginPath(); 
+    ctx.moveTo(x,0); 
+    ctx.lineTo(x,height); 
+    ctx.stroke();
+    ctx.strokeStyle = '#334155';
+  }
+  
+  // Horizontal grid for velocity levels
+  for(let i=0;i<=10;i++){
+    const y = (height/10) * i;
+    ctx.strokeStyle = i % 5 === 0 ? '#475569' : '#334155';
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(viewportWidth,y);
+    ctx.stroke();
+  }
+  
+  // Velocity labels
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'right';
+  for(let i=0;i<=10;i++){
+    const y = (height/10) * i;
+    const vel = 100 - (i * 10);
+    ctx.fillText(vel.toString(), 55, y + 3);
+  }
+  
+  // Draw velocity bars for notes
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + viewportWidth) / cellW) * SIXTEENTH;
+  const renderBuffer = 1000;
+  const renderStartTick = Math.max(0, startTick - renderBuffer);
+  const renderEndTick = endTick + renderBuffer;
+  
+  // Get visible notes
+  const visibleNotes = clip.notes.filter(n => 
+    n.tick + n.dur >= renderStartTick && n.tick <= renderEndTick
+  );
+  
+  // Instrument-specific velocity visualization
+  const getVelocityColor = (velocity, instrument) => {
+    const vel = velocity || 0.8;
+    const intensity = Math.min(1, vel * 1.2);
+    
+    switch(instrument) {
+      case 'Piano':
+        return `rgba(59, 130, 246, ${intensity})`; // Blue
+      case 'Guitar':
+        return `rgba(34, 197, 94, ${intensity})`; // Green
+      case 'Bass':
+        return `rgba(168, 85, 247, ${intensity})`; // Purple
+      case 'Violin':
+        return `rgba(236, 72, 153, ${intensity})`; // Pink
+      case 'Flute':
+        return `rgba(14, 165, 233, ${intensity})`; // Sky blue
+      case 'Trumpet':
+        return `rgba(245, 158, 11, ${intensity})`; // Amber
+      case 'Saxophone':
+        return `rgba(239, 68, 68, ${intensity})`; // Red
+      case 'Koto':
+        return `rgba(16, 185, 129, ${intensity})`; // Emerald
+      default:
+        return `rgba(156, 163, 175, ${intensity})`; // Gray
+    }
+  };
+  
+  visibleNotes.forEach(note => {
+    const x = note.tick/SIXTEENTH*cellW - scrollLeft;
+    const w = note.dur/SIXTEENTH*cellW;
+    const vel = note.vel || 0.8;
+    const barHeight = (vel * height);
+    const y = height - barHeight;
+    
+    // Draw velocity bar
+    ctx.fillStyle = getVelocityColor(vel, instrument);
+    ctx.fillRect(x, y, w, barHeight);
+    
+    // Add border
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, barHeight);
+    
+    // Add velocity text for longer notes
+    if(w > 30) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(Math.round(vel * 100), x + w/2, y + barHeight/2 + 3);
+    }
+  });
 }
 
 function cancelTrackSwitch(){
@@ -2017,6 +2206,7 @@ function startTrackSwitchTimer(idx){
     refreshActiveTrackHighlight();
     seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
     drawPianoRoll();
+    drawVelocityChart();
     cancelTrackSwitch();
   }, TRACK_SWITCH_DELAY);
   pianoRoll.addEventListener('pointerup', cancelTrackSwitch);
@@ -2039,13 +2229,19 @@ pianoRoll.addEventListener('contextmenu', ev => {
   
   const clip = song.tracks[activeTrack].clips[0];
   
-  // Find if we right-clicked on a note
+  // Find if we right-clicked on a note - FIXED: Improved hitbox detection
   let foundNote = null;
   for(let i = clip.notes.length - 1; i >= 0; i--) {
     const n = clip.notes[i];
     const noteX = n.tick / SIXTEENTH * cellW;
     const noteW = n.dur / SIXTEENTH * cellW;
-    if(n.midi === midi && x >= noteX && x < noteX + noteW) {
+    const noteY = (MAX_MIDI - n.midi - 1) * cellH;
+    const noteH = cellH;
+    
+    // Check if click is within the note's full rectangle (including borders)
+    if(n.midi === midi && 
+       x >= noteX - 2 && x < noteX + noteW + 2 && 
+       y >= noteY - 2 && y < noteY + noteH + 2) {
       foundNote = n;
       break;
     }
@@ -2073,7 +2269,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
   const cellW = 20*ui.zoomX; const cellH = 20*ui.zoomY;
   const tick = Math.floor(x/cellW)*SIXTEENTH;
   const midi = MAX_MIDI-1-Math.floor(y/cellH);
-  // check notes from non-active tracks for potential track switch
+  // check notes from non-active tracks for potential track switch - FIXED: Improved hitbox detection
   for(let t=0;t<song.tracks.length;t++){
     if(t===activeTrack) continue;
     const oClip = song.tracks[t].clips[0];
@@ -2081,20 +2277,32 @@ pianoRoll.addEventListener('pointerdown', ev => {
       const n=oClip.notes[i];
       const noteX=n.tick/SIXTEENTH*cellW;
       const noteW=n.dur/SIXTEENTH*cellW;
-      if(n.midi===midi && x>=noteX && x<noteX+noteW){
+      const noteY=(MAX_MIDI-n.midi-1)*cellH;
+      const noteH=cellH;
+      
+      // Check if click is within the note's full rectangle (including borders)
+      if(n.midi===midi && 
+         x>=noteX-2 && x<noteX+noteW+2 && 
+         y>=noteY-2 && y<noteY+noteH+2){
         startTrackSwitchTimer(t);
         return;
       }
     }
   }
   const clip=song.tracks[activeTrack].clips[0];
-  // check existing notes first
+  // check existing notes first - FIXED: Improved hitbox detection
   let foundNote = null;
   for(let i=clip.notes.length-1;i>=0;i--){
     const n=clip.notes[i];
     const noteX=n.tick/SIXTEENTH*cellW;
     const noteW=n.dur/SIXTEENTH*cellW;
-    if(n.midi===midi && x>=noteX && x<noteX+noteW){
+    const noteY=(MAX_MIDI-n.midi-1)*cellH;
+    const noteH=cellH;
+    
+    // Check if click is within the note's full rectangle (including borders)
+    if(n.midi===midi && 
+       x>=noteX-2 && x<noteX+noteW+2 && 
+       y>=noteY-2 && y<noteY+noteH+2){
       foundNote = n;
       break;
     }
@@ -2117,17 +2325,20 @@ pianoRoll.addEventListener('pointerdown', ev => {
         selectedNotes.add(foundNote);
       }
       drawPianoRoll();
+      drawVelocityChart();
       return;
     } else if(ev.ctrlKey || ev.metaKey) {
       // Ctrl+Click = Add to selection
       selectedNotes.add(foundNote);
       drawPianoRoll();
+      drawVelocityChart();
       return;
     } else if(!selectedNotes.has(foundNote)) {
       // Regular click on unselected note = Select only this note
       selectedNotes.clear();
       selectedNotes.add(foundNote);
       drawPianoRoll();
+      drawVelocityChart();
     }
     
     // Start dragging if note is selected
@@ -2154,6 +2365,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
     } else if(!ev.ctrlKey && !ev.metaKey) {
       selectedNotes.clear();
       drawPianoRoll();
+      drawVelocityChart();
     }
   }
   
@@ -2242,6 +2454,7 @@ pianoRoll.addEventListener('pointerup', ev=>{
     
     ui.selecting = false;
     drawPianoRoll();
+    drawVelocityChart();
     pianoRoll.releasePointerCapture(ev.pointerId);
     return;
   }
@@ -2259,13 +2472,13 @@ pianoRoll.addEventListener('pointerup', ev=>{
   }
   // keep notes ordered after edits
   track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
-  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
+  dragNote=null; drawPianoRoll(); drawVelocityChart(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
 });
-pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
+pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); drawVelocityChart(); });
 
 pianoRoll.addEventListener('wheel', ev=>{
-  if(ev.ctrlKey){ ev.preventDefault(); ui.zoomX=Math.min(8,Math.max(0.5,ui.zoomX*(ev.deltaY>0?0.9:1.1))); seqZoomX.value=ui.zoomX; drawPianoRoll(); }
-  else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); }
+  if(ev.ctrlKey){ ev.preventDefault(); ui.zoomX=Math.min(8,Math.max(0.5,ui.zoomX*(ev.deltaY>0?0.9:1.1))); seqZoomX.value=ui.zoomX; drawPianoRoll(); drawVelocityChart(); }
+  else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); drawVelocityChart(); }
   else if(ev.shiftKey){ pianoRollScroll.scrollLeft += ev.deltaY; ev.preventDefault(); }
 });
 
@@ -2274,9 +2487,13 @@ function startPlayhead(){
   function loop(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
-    if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
+    if(seqAutoScroll.checked){ 
+      pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; 
+      velocityChartScroll.scrollLeft = x - velocityChartScroll.clientWidth/2;
+    }
     updatePositionDisplay();
     drawPianoRoll();
+    drawVelocityChart();
     playheadReq=requestAnimationFrame(loop);
   }
   loop();
@@ -2286,6 +2503,7 @@ function stopPlayhead(){
   playheadReq=null; 
   updatePositionDisplay();
   drawPianoRoll(); 
+  drawVelocityChart();
 }
 
 function initSequencer(){
@@ -2342,11 +2560,13 @@ function initSequencer(){
       track.color = e.target.value;
       track.colorOverridden = true;
       drawPianoRoll();
+      drawVelocityChart();
     });
     clrReset.addEventListener('click', ()=>{
       track.colorOverridden = false;
       applySeqColorScheme(seqColorScheme.value);
       drawPianoRoll();
+      drawVelocityChart();
     });
     row.addEventListener('click', e=>{
       if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
@@ -2354,12 +2574,14 @@ function initSequencer(){
       refreshActiveTrackHighlight();
       seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
       drawPianoRoll();
+      drawVelocityChart();
     });
   });
   applySeqColorScheme('Classic');
   refreshActiveTrackHighlight();
   seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
+  drawVelocityChart();
 }
 
 function updateSelButtons(){
@@ -4644,8 +4866,8 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
-seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
-seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
+seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); drawVelocityChart(); });
+seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); drawVelocityChart(); });
 
 // Quantization controls
 seqQuantize.addEventListener('change', ()=>{
@@ -4712,10 +4934,13 @@ function showVelocityEditor() {
   
   hideContextMenu();
 }
-seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
-seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
-seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
-seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
+seqColorScheme.addEventListener('change', e=>{
+  applySeqColorScheme(e.target.value);
+  drawVelocityChart();
+});
+seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); drawVelocityChart(); });
+seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); drawVelocityChart(); });
+seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); drawVelocityChart(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
