@@ -593,14 +593,23 @@ function makeSynth(type, env, options = {}) {
             synth.triggerAttackRelease(freq, dur, time, vel);
         } else {
             synth.triggerAttack(freq, time, vel);
+            const durSec = Tone.Time(dur).toSeconds();
+            gain.gain.cancelScheduledValues(time);
+            gain.gain.setValueAtTime(1, time);
+            gain.gain.setValueAtTime(0, time + durSec);
         }
       } catch(e) {
         console.warn(`${type} trigger error:`, e);
       }
     },
     release(midi,time=Tone.now()){
-      // PluckSynth doesn't need explicit release, others do.
-      if (type !== 'PluckSynth') synth.triggerRelease(midiToFreq(midi), time);
+      // PluckSynth needs explicit gain drop, others use release.
+      if (type !== 'PluckSynth') {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } else {
+        gain.gain.cancelScheduledValues(time);
+        gain.gain.setValueAtTime(0, time);
+      }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
@@ -2139,10 +2148,17 @@ pianoRoll.addEventListener('wheel', ev=>{
 
 let playheadReq=null;
 function startPlayhead(){
+  let skipScroll=false;
   function loop(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
-    if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
+    if(seqAutoScroll.checked){
+      const target = x - pianoRollScroll.clientWidth/2;
+      if(skipScroll){
+        pianoRollScroll.scrollLeft += (target - pianoRollScroll.scrollLeft) * 0.15;
+      }
+      skipScroll=!skipScroll;
+    }
     updatePositionDisplay();
     drawPianoRoll();
     playheadReq=requestAnimationFrame(loop);
