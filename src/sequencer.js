@@ -1023,7 +1023,87 @@ Tone.Transport.PPQ = song.ppq;
 const ticksToSeconds = ticks => Tone.Ticks(ticks).toSeconds();
 const secondsToTicks = seconds => Tone.Time(seconds).toTicks();
 
-const SIXTEENTH = song.ppq / 4;
+// Helper function to check if a number is a power of 2
+function isPowerOfTwo(n) {
+  return n > 0 && (n & (n - 1)) === 0;
+}
+
+// Helper function to find the greatest common divisor
+function gcd(a, b) {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+// Helper function to find the least common multiple
+function lcm(a, b) {
+  return (a * b) / gcd(a, b);
+}
+
+// Dynamic grid calculation based on time signature
+function getGridResolution() {
+  // Calculate the smallest practical grid division
+  // For traditional time signatures (powers of 2), use standard divisions
+  // For irrational time signatures, calculate based on the denominator
+  const denominator = song.ts.den;
+  
+  if (isPowerOfTwo(denominator)) {
+    // Traditional time signatures (powers of 2)
+    if (denominator >= 8) {
+      // For 8th note and smaller denominators, use 1/16th note grid
+      return song.ppq / 4;
+    } else if (denominator >= 4) {
+      // For 4th note denominators, use 1/8th note grid
+      return song.ppq / 2;
+    } else if (denominator >= 2) {
+      // For 2nd note denominators, use 1/4th note grid
+      return song.ppq;
+    } else {
+      // For whole note denominators, use 1/2 note grid
+      return song.ppq * 2;
+    }
+  } else {
+    // Irrational time signatures (non-powers of 2)
+    // For irrational time signatures, we need to calculate a practical grid division
+    // that works well with the denominator
+    
+    // Calculate the beat duration in ticks
+    const beatDuration = song.ppq * (4 / denominator);
+    
+    // For irrational time signatures, we want a grid that can represent
+    // common subdivisions of the beat. We'll use a division that's
+    // a practical fraction of the beat duration.
+    
+    // Find a good grid resolution based on the denominator
+    // For denominators like 3, 5, 6, 7, etc., we want to be able to
+    // represent common rhythmic patterns
+    
+    if (denominator === 3) {
+      // For 3-based time signatures (like 4/3), use 1/3 of the beat
+      return beatDuration / 3;
+    } else if (denominator === 5) {
+      // For 5-based time signatures (like 4/5), use 1/5 of the beat
+      return beatDuration / 5;
+    } else if (denominator === 6) {
+      // For 6-based time signatures (like 4/6), use 1/6 of the beat
+      return beatDuration / 6;
+    } else if (denominator === 7) {
+      // For 7-based time signatures (like 4/7), use 1/7 of the beat
+      return beatDuration / 7;
+    } else if (denominator <= 12) {
+      // For other irrational denominators up to 12, use a finer grid
+      // that can accommodate common subdivisions
+      return beatDuration / Math.min(denominator, 8);
+    } else {
+      // For larger irrational denominators (13+), use a standard fine grid
+      // that can accommodate most rhythmic patterns
+      return beatDuration / 8;
+    }
+  }
+}
+
+// Get the current grid resolution
+let currentGridResolution = getGridResolution();
+
+const SIXTEENTH = currentGridResolution; // Now dynamic based on time signature
 let lastNoteDur = song.ppq * song.ts.num;
 const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
 const MAX_MIDI = MIN_MIDI + 7*12; // Extended to 7 octaves (C1 to C8) for full 88-key piano range
@@ -1391,21 +1471,53 @@ function drawPianoRoll(){
   const ctx = pianoRoll.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height);
   // background lanes
   for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
-  // grid vertical
-  const stepsPerBeat = 16 / song.ts.den;
-  const stepsPerMeasure = song.ts.num * stepsPerBeat;
+  // grid vertical - dynamic based on time signature
+  // Update grid resolution when time signature changes
+  currentGridResolution = getGridResolution();
+  
+  // Calculate grid lines based on current time signature
+  // For irrational time signatures, we need to handle beat and measure calculations differently
+  const denominator = song.ts.den;
+  
+  let ticksPerBeat, ticksPerMeasure;
+  
+  if (isPowerOfTwo(denominator)) {
+    // Traditional time signatures (powers of 2)
+    ticksPerBeat = song.ppq * (4 / denominator);
+    ticksPerMeasure = ticksPerBeat * song.ts.num;
+  } else {
+    // Irrational time signatures (non-powers of 2)
+    // For irrational time signatures, we need to calculate beats differently
+    // The beat duration is based on the denominator relative to a quarter note
+    ticksPerBeat = song.ppq * (4 / denominator);
+    ticksPerMeasure = ticksPerBeat * song.ts.num;
+  }
+  
+  const gridTicks = currentGridResolution;
+  
   for(let i=startStep;i<=endStep;i++){
     const x = i*cellW - scrollLeft;
-    ctx.strokeStyle = '#2d3c4a';
-    if(i % stepsPerBeat === 0) ctx.strokeStyle = '#395063';
-    if(i % stepsPerMeasure === 0) ctx.strokeStyle = '#4a6379';
+    const tick = i * currentGridResolution;
+    
+    ctx.strokeStyle = '#2d3c4a'; // Default grid line color
+    
+    // Beat lines (stronger)
+    if(tick % ticksPerBeat === 0) {
+      ctx.strokeStyle = '#395063';
+    }
+    
+    // Measure lines (strongest)
+    if(tick % ticksPerMeasure === 0) {
+      ctx.strokeStyle = '#4a6379';
+    }
+    
     ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
   // notes - with viewport culling for performance
-  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
-  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+  const startTick = Math.floor(scrollLeft / cellW) * currentGridResolution;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * currentGridResolution;
   const topMidi = MAX_MIDI - Math.floor(pianoRollScroll.scrollTop / cellH);
   const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
   
@@ -1420,8 +1532,8 @@ function drawPianoRoll(){
     );
 
     visibleNotes.forEach(n=>{
-      const x=n.tick/SIXTEENTH*cellW - scrollLeft;
-      const w=n.dur/SIXTEENTH*cellW;
+      const x=n.tick/currentGridResolution*cellW - scrollLeft;
+      const w=n.dur/currentGridResolution*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
 
       // Highlight selected notes
@@ -1444,7 +1556,7 @@ function drawPianoRoll(){
   });
   if(dragNote){
     const dragColor = hexToRgba(song.tracks[activeTrack].color||'#60a5fa',0.8);
-    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
+    const x=dragNote.tick/currentGridResolution*cellW - scrollLeft; const w=dragNote.dur/currentGridResolution*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
     if(x+w>=0 && x<=width) {
       ctx.fillStyle = dragColor;
       ctx.fillRect(x,y,w,cellH);
@@ -4219,8 +4331,27 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
-seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
-seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
+seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); updateTimeSignatureIndicator(); drawPianoRoll(); });
+seqTSDen.addEventListener('change', ()=>{ const v=Number(seqTSDen.value); song.ts.den = v >= 1 && v <= 32 ? v : 4; updateTimeSignatureIndicator(); drawPianoRoll(); });
+
+// Function to update time signature indicator
+function updateTimeSignatureIndicator() {
+  const tsIndicator = document.getElementById('tsIndicator');
+  if (!tsIndicator) return;
+  
+  const denominator = song.ts.den;
+  
+  if (isPowerOfTwo(denominator)) {
+    tsIndicator.textContent = 'Traditional';
+    tsIndicator.className = 'text-xs px-2 py-1 rounded bg-slate-700/50 text-slate-300';
+  } else {
+    tsIndicator.textContent = 'Irrational';
+    tsIndicator.className = 'text-xs px-2 py-1 rounded bg-orange-600/50 text-orange-200';
+  }
+}
+
+// Initialize the indicator
+updateTimeSignatureIndicator();
 
 // Quantization controls
 seqQuantize.addEventListener('change', ()=>{

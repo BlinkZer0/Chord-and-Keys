@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irrational Time Signature Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        .test-section {
+            background-color: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .time-signature {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .traditional { color: #60a5fa; }
+        .irrational { color: #f59e0b; }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass { background-color: #065f46; color: #d1fae5; }
+        .fail { background-color: #7f1d1d; color: #fecaca; }
+    </style>
+</head>
+<body>
+    <h1>Irrational Time Signature Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Cases</h2>
+        
+        <div class="time-signature traditional">Traditional Time Signatures (Powers of 2):</div>
+        <div id="traditional-tests"></div>
+        
+        <div class="time-signature irrational">Irrational Time Signatures (Non-powers of 2):</div>
+        <div id="irrational-tests"></div>
+    </div>
+
+    <script>
+        // Helper function to check if a number is a power of 2
+        function isPowerOfTwo(n) {
+            return n > 0 && (n & (n - 1)) === 0;
+        }
+
+        // Test cases
+        const traditionalDenominators = [1, 2, 4, 8, 16, 32];
+        const irrationalDenominators = [3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+
+        function runTests() {
+            const traditionalContainer = document.getElementById('traditional-tests');
+            const irrationalContainer = document.getElementById('irrational-tests');
+
+            // Test traditional time signatures
+            traditionalDenominators.forEach(den => {
+                const isTraditional = isPowerOfTwo(den);
+                const resultClass = isTraditional ? 'pass' : 'fail';
+                const resultText = isTraditional ? 'PASS' : 'FAIL';
+                
+                const div = document.createElement('div');
+                div.className = `test-result ${resultClass}`;
+                div.textContent = `4/${den} - ${resultText} (Expected: Traditional)`;
+                traditionalContainer.appendChild(div);
+            });
+
+            // Test irrational time signatures
+            irrationalDenominators.forEach(den => {
+                const isTraditional = isPowerOfTwo(den);
+                const resultClass = !isTraditional ? 'pass' : 'fail';
+                const resultText = !isTraditional ? 'PASS' : 'FAIL';
+                
+                const div = document.createElement('div');
+                div.className = `test-result ${resultClass}`;
+                div.textContent = `4/${den} - ${resultText} (Expected: Irrational)`;
+                irrationalContainer.appendChild(div);
+            });
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

@@ -10,7 +10,8 @@ so the only binary you'll find is a joke about 0s and 1s.
 - 🎸 **Polyphonic Plucks** – Guitar, Koto, and Oud strum multiple strings without cutting each other off.
 - 🥁 **Cymbal Smarts** – Metals crash on cue with the right pitch, no more silent beats.
 - 🎛️ **Attribute Bar** – tweak velocity (and friends) à la FL Studio with a bar graph solo.
-- 🔀 **Surge XT Option** – flip a checkbox to swap Tone.js for Surge presets; drums keep grooving in Tone.
+- 🔀 **Surge XT Option** – flip a checkbox to swap Tone.js for Surge presets; drums keep grooving in Tone.
+- ⏱️ **Advanced Time Signatures** – support for traditional (4/4, 3/4, 6/8) and irrational time signatures (4/3, 4/5, 4/7, etc.) with dynamic grid resolution.
 - 🌐 **One‑Page Wonder** – the whole concert fits in `chord_scale_library_html_tailwind_tone.html`.
 
 ## Band Members
@@ -21,6 +22,23 @@ so the only binary you'll find is a joke about 0s and 1s.
 
 Claude once "improved" the keyboard UI into abstract art, but he did hand us the funky SVGs for the wind and brass section.
 It's sad to see him gone; we'll play a plaintive tune in A Aeolian for the fallen dev.
+
+## Time Signatures & Grid System
+
+The sequencer supports both traditional and irrational time signatures:
+
+### Traditional Time Signatures
+- **Powers of 2 denominators**: 1, 2, 4, 8, 16, 32
+- **Examples**: 4/4, 3/4, 6/8, 2/2, 5/8
+- **Grid**: Standard musical divisions (1/16th, 1/8th, 1/4th notes)
+
+### Irrational Time Signatures
+- **Non-powers of 2 denominators**: 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, etc.
+- **Examples**: 4/3, 4/5, 4/7, 3/5, 5/6
+- **Grid**: Dynamic resolution based on denominator for accurate rhythmic placement
+- **Visual Indicator**: Orange "Irrational" badge appears when using non-traditional denominators
+
+The grid automatically adjusts to provide the most practical division for each time signature, ensuring accurate note placement and visual clarity.
 
 ## Embedding the Groove
 

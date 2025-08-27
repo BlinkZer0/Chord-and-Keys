@@ -193,8 +193,9 @@
             TS
             <input id="seqTSNum" type="number" min="1" max="16" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
             /
-            <input id="seqTSDen" type="number" min="1" max="16" list="tsDenList" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
-            <datalist id="tsDenList"><option>1</option><option>2</option><option>4</option><option>8</option><option>16</option></datalist>
+            <input id="seqTSDen" type="number" min="1" max="32" list="tsDenList" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+            <datalist id="tsDenList"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option><option>21</option><option>22</option><option>23</option><option>24</option><option>25</option><option>26</option><option>27</option><option>28</option><option>29</option><option>30</option><option>31</option><option>32</option></datalist>
+            <span id="tsIndicator" class="text-xs px-2 py-1 rounded bg-slate-700/50 text-slate-300"></span>
           </label>
           <label class="flex items-center gap-2 text-sm text-slate-300">Scheme
             <select id="seqColorScheme" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1">
@@ -4534,8 +4535,28 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
-seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
-seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
+seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); updateTimeSignatureIndicator(); drawPianoRoll(); });
+seqTSDen.addEventListener('change', ()=>{ const v=Number(seqTSDen.value); song.ts.den = v >= 1 && v <= 32 ? v : 4; updateTimeSignatureIndicator(); drawPianoRoll(); });
+
+// Function to update time signature indicator
+function updateTimeSignatureIndicator() {
+  const tsIndicator = document.getElementById('tsIndicator');
+  if (!tsIndicator) return;
+  
+  const denominator = song.ts.den;
+  const isPowerOfTwo = (n) => n > 0 && (n & (n - 1)) === 0;
+  
+  if (isPowerOfTwo(denominator)) {
+    tsIndicator.textContent = 'Traditional';
+    tsIndicator.className = 'text-xs px-2 py-1 rounded bg-slate-700/50 text-slate-300';
+  } else {
+    tsIndicator.textContent = 'Irrational';
+    tsIndicator.className = 'text-xs px-2 py-1 rounded bg-orange-600/50 text-orange-200';
+  }
+}
+
+// Initialize the indicator
+updateTimeSignatureIndicator();
 
 // Quantization controls
 seqQuantize.addEventListener('change', ()=>{
