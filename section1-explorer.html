@@ -1,0 +1,45 @@
+    <!-- ============ 1) Choose What To Explore ============ -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">1) Choose What To Explore</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <div class="flex flex-wrap gap-3 items-center">
+          <div class="inline-flex rounded-xl overflow-hidden border border-slate-700">
+              <button id="btnModeChord" aria-label="Chord" title="Chord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
+              <button id="btnModeScale" aria-label="Scale/Mode" title="Scale/Mode" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
+              <button id="btnModeSequencer" aria-label="Sequencer" title="Sequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">System</label>
+            <select id="selSystem" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">Key / Root</label>
+            <select id="selKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeRoot" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-emerald-600/20 text-emerald-300 border-emerald-600/40"></span>
+          </div>
+
+          <div id="wrapChord" class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">Quality</label>
+            <select id="selQuality" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeChordNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600"></span>
+          </div>
+
+          <div id="wrapScale" class="hidden items-center gap-2">
+            <label class="text-sm text-slate-300">Mode</label>
+            <select id="selMode" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeScaleNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600"></span>
+          </div>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <label class="text-sm text-slate-300">Instrument</label>
+            <select id="selInstr" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <img id="instrIcon" alt="" class="w-6 h-6 hidden" />
+            <label class="text-sm text-slate-300">Tempo</label>
+            <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
+          </div>
+        </div>
+      </div>
+    </section>
+

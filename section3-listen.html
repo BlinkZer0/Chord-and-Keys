@@ -1,0 +1,25 @@
+    <!-- ============ 3) Listen ============ -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">3) Listen</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <div id="listenChord" class="flex flex-wrap gap-3 items-center">
+            <button id="btnPlayBlock" aria-label="Play Chord (block)" title="Play Chord (block)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Chord (block)</button>
+            <button id="btnPlayArp" aria-label="Arpeggiate" title="Arpeggiate" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Arpeggiate</button>
+            <button id="btnPlayStrum" aria-label="Strum (low→high)" title="Strum (low→high)" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold hidden">Strum (low→high)</button>
+          <div class="text-sm text-slate-400">First click activates audio.</div>
+        </div>
+        <div id="listenScale" class="hidden items-center gap-3">
+            <button id="btnPlayScale" aria-label="Play Scale (asc.)" title="Play Scale (asc.)" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Scale (asc.)</button>
+          <div class="text-sm text-slate-400">Plays two octaves from the tonic.</div>
+        </div>
+        <div id="listenSel" class="mt-4 flex flex-wrap gap-3 items-center">
+            <button id="btnPlaySelChord" aria-label="Play Selection (chord)" title="Play Selection (chord)" disabled class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (chord)</button>
+            <button id="btnPlaySelArp" aria-label="Play Selection (arp)" title="Play Selection (arp)" disabled class="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed">Play Selection (arp)</button>
+        </div>
+        <div class="mt-4 flex items-center gap-2">
+          <input id="heldSustainSnap" type="checkbox" class="h-4 w-4" checked>
+          <label for="heldSustainSnap" class="text-sm text-slate-300">Snap held note sustain to 1/16 note</label>
+        </div>
+      </div>
+    </section>
+

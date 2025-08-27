@@ -1,0 +1,105 @@
+    <!-- ============ Sequencer ============ -->
+    <section id="sequencerHost" class="mb-6 hidden">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">Sequencer</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
+        <div class="flex flex-wrap gap-3 items-center">
+          <button id="seqPlay" aria-label="Play" title="Play" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
+          <button id="seqPause" aria-label="Pause" title="Pause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
+          <button id="seqStop" aria-label="Stop" title="Stop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
+          <div class="flex items-center gap-2">
+            <span id="seqPosition" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 font-mono text-sm text-slate-300 min-w-[100px] text-center">0:0:0</span>
+            <button id="seqToStart" aria-label="To start" title="To start" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">|&lt;</button>
+            <button id="seqToEnd" aria-label="To end" title="To end" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">&gt;|</button>
+          </div>
+          <label class="text-sm text-slate-300 flex items-center gap-2">BPM
+            <input id="seqBpm" type="number" value="120" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqLoop" type="checkbox" class="h-4 w-4">Loop
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqClick" type="checkbox" class="h-4 w-4">Click
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            <input id="seqAutoScroll" type="checkbox" class="h-4 w-4" checked>Auto-scroll
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            Snap
+            <select id="seqQuantize" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+              <option value="0">Off</option>
+              <option value="48">1/4</option>
+              <option value="24">1/8</option>
+              <option value="12" selected>1/16</option>
+              <option value="6">1/32</option>
+            </select>
+          </label>
+            <button id="seqQuantizeBtn" aria-label="Quantize" title="Quantize" class="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium">Quantize</button>
+          <label class="flex items-center gap-2 text-sm text-slate-300">
+            TS
+            <input id="seqTSNum" type="number" min="1" max="16" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+            /
+            <input id="seqTSDen" type="number" min="1" max="16" list="tsDenList" value="4" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" />
+            <datalist id="tsDenList"><option>1</option><option>2</option><option>4</option><option>8</option><option>16</option></datalist>
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-300">Scheme
+            <select id="seqColorScheme" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1">
+              <option>Classic</option>
+              <option>Pastel</option>
+              <option>Neon</option>
+              <option>Sunset</option>
+              <option>Ocean</option>
+            </select>
+          </label>
+        </div>
+
+
+          <div id="patternLibraryPanel" class="flex flex-col sm:flex-row flex-wrap gap-3 items-center">
+            <label class="text-sm text-slate-300">Type</label>
+            <select id="patternCategory" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
+            <label class="text-sm text-slate-300">Pattern</label>
+            <select id="patternKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm w-full sm:w-auto"></select>
+            <button id="btnPastePattern" aria-label="Paste Pattern" title="Paste Pattern" class="w-full sm:w-auto px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm">Paste Pattern</button>
+            <button id="btnImportMidi" class="w-full sm:w-auto px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Import MIDI</button>
+            <input id="midiImportFile" type="file" accept="audio/midi" class="hidden">
+            <canvas id="patternPreview" width="200" height="40" class="border border-slate-700 bg-slate-900 w-full sm:w-auto"></canvas>
+          </div>
+
+
+        <div id="seqTracks" class="space-y-2"></div>
+
+        <div id="pianoRollWrap" class="flex">
+          <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
+          <div id="pianoRollScroll" class="overflow-auto relative">
+            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+            <div id="pianoRollSpacer"></div>
+
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 items-center">
+          <label class="text-sm text-slate-300">Zoom X
+            <input id="seqZoomX" type="range" min="0.5" max="8" step="0.1" value="1" class="w-32" />
+          </label>
+          <label class="text-sm text-slate-300">Zoom Y
+            <input id="seqZoomY" type="range" min="0.5" max="2" step="0.1" value="1" class="w-32" />
+          </label>
+            <button id="seqClearAll" aria-label="Clear All" title="Clear All" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Clear All</button>
+        </div>
+
+        <div class="flex flex-wrap gap-3 items-center">
+            <button id="seqExportJson" aria-label="Export JSON" title="Export JSON" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export JSON</button>
+            <button id="seqImportJson" aria-label="Import JSON" title="Import JSON" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Import JSON</button>
+          <input id="seqImportFile" type="file" accept="application/json" class="hidden" />
+            <button id="seqExportMid" aria-label="Export MIDI" title="Export MIDI" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MIDI</button>
+            <button id="seqExportWav" aria-label="Export WAV" title="Export WAV" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export WAV</button>
+            <button id="seqExportMp3" aria-label="Export MP3" title="Export MP3" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">Export MP3</button>
+        </div>
+        <div id="seqStatus" class="text-xs text-slate-300"></div>
+        <div id="seqHotkeys" class="text-xs text-slate-400 space-y-1">
+          <div><strong>Selection:</strong> Click note • Shift+Click: toggle • Ctrl+A: select all • Delete: delete selected</div>
+          <div><strong>Edit:</strong> Ctrl+C/X/V: copy/cut/paste • Ctrl+Z/Y: undo/redo • Ctrl+Q: quantize • Space: play/pause</div>
+          <div><strong>View:</strong> Ctrl+Wheel: zoom X • Alt+Wheel: zoom Y • Shift+Wheel: scroll X</div>
+        </div>
+      </div>
+    </section>
+
