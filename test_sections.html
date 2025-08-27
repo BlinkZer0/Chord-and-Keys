@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sections 1 & 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-6">
+    <h1 class="text-2xl font-bold mb-6">Test Sections 1 & 2</h1>
+    
+    <div class="space-y-6">
+        <!-- Section 1 Test -->
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4">Section 1: Tab Test</h2>
+            <div class="flex gap-2 mb-4">
+                <button id="btnModeChord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
+                <button id="btnModeScale" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
+                <button id="btnModeSequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
+            </div>
+            <div id="wrapChord" class="p-2 bg-green-900/20 rounded">Chord Content</div>
+            <div id="wrapScale" class="p-2 bg-blue-900/20 rounded hidden">Scale Content</div>
+            <div id="listenChord" class="p-2 bg-emerald-900/20 rounded">Listen Chord</div>
+            <div id="listenScale" class="p-2 bg-indigo-900/20 rounded hidden">Listen Scale</div>
+            <div id="sequencerHost" class="p-2 bg-purple-900/20 rounded hidden">Sequencer Content</div>
+        </div>
+
+        <!-- Section 2 Test -->
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4">Section 2: Instrument Test</h2>
+            <div class="mb-4">
+                <label class="text-sm text-slate-300">Instrument: </label>
+                <select id="selInstr" class="bg-slate-700 border border-slate-600 rounded px-2 py-1">
+                    <option value="Piano">Piano</option>
+                    <option value="Guitar">Guitar</option>
+                    <option value="Bass">Bass</option>
+                    <option value="Violin">Violin</option>
+                    <option value="Flute">Flute</option>
+                    <option value="Recorder">Recorder</option>
+                    <option value="Trumpet">Trumpet</option>
+                    <option value="Saxophone">Saxophone</option>
+                    <option value="Koto">Koto</option>
+                    <option value="Ney">Ney</option>
+                </select>
+            </div>
+            <div id="pianoHost" class="p-2 bg-red-900/20 rounded">Piano Host</div>
+            <div id="guitarHost" class="p-2 bg-orange-900/20 rounded hidden">Guitar Host</div>
+            <div id="bassHost" class="p-2 bg-yellow-900/20 rounded hidden">Bass Host</div>
+            <div id="violinHost" class="p-2 bg-lime-900/20 rounded hidden">Violin Host</div>
+            <div id="fluteHost" class="p-2 bg-green-900/20 rounded hidden">Flute Host</div>
+            <div id="recorderHost" class="p-2 bg-teal-900/20 rounded hidden">Recorder Host</div>
+            <div id="trumpetHost" class="p-2 bg-cyan-900/20 rounded hidden">Trumpet Host</div>
+            <div id="saxophoneHost" class="p-2 bg-blue-900/20 rounded hidden">Saxophone Host</div>
+            <div id="kotoHost" class="p-2 bg-indigo-900/20 rounded hidden">Koto Host</div>
+            <div id="neyHost" class="p-2 bg-purple-900/20 rounded hidden">Ney Host</div>
+        </div>
+
+        <!-- Status -->
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4">Status</h2>
+            <div id="status" class="text-sm">
+                <div>Section1Tabs: <span id="tabsStatus">Loading...</span></div>
+                <div>Section2Instruments: <span id="instrumentsStatus">Loading...</span></div>
+                <div>Current Mode: <span id="currentMode">-</span></div>
+                <div>Current Instrument: <span id="currentInstrument">-</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the section modules -->
+    <script src="section1_tabs.js"></script>
+    <script src="section2_instruments.js"></script>
+    
+    <script>
+        // Test the functionality
+        setTimeout(() => {
+            const status = document.getElementById('status');
+            const tabsStatus = document.getElementById('tabsStatus');
+            const instrumentsStatus = document.getElementById('instrumentsStatus');
+            const currentMode = document.getElementById('currentMode');
+            const currentInstrument = document.getElementById('currentInstrument');
+
+            // Check if modules loaded
+            if (window.Section1Tabs) {
+                tabsStatus.textContent = 'Loaded ✓';
+                tabsStatus.className = 'text-green-400';
+                currentMode.textContent = window.Section1Tabs.getCurrentMode();
+            } else {
+                tabsStatus.textContent = 'Failed ✗';
+                tabsStatus.className = 'text-red-400';
+            }
+
+            if (window.Section2Instruments) {
+                instrumentsStatus.textContent = 'Loaded ✓';
+                instrumentsStatus.className = 'text-green-400';
+                currentInstrument.textContent = window.Section2Instruments.getCurrentInstrument();
+            } else {
+                instrumentsStatus.textContent = 'Failed ✗';
+                instrumentsStatus.className = 'text-red-400';
+            }
+
+            // Listen for changes
+            window.addEventListener('modeChanged', (e) => {
+                currentMode.textContent = e.detail.mode;
+            });
+
+            window.addEventListener('instrumentChanged', (e) => {
+                currentInstrument.textContent = e.detail.instrument;
+            });
+        }, 100);
+    </script>
+</body>
+</html>
