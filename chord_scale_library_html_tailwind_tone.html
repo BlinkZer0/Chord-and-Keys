@@ -219,9 +219,20 @@
         <div id="pianoRollWrap" class="flex">
           <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
           <div id="pianoRollScroll" class="overflow-auto relative">
-            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-            <div id="pianoRollSpacer"></div>
+          <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+          <div id="pianoRollSpacer"></div>
 
+        </div>
+        </div>
+
+        <div id="noteAttrWrap" class="mt-2">
+          <canvas id="noteAttrBar" class="bg-slate-900 border border-slate-700 w-full h-24"></canvas>
+          <div class="mt-2 flex items-center gap-2">
+            <label for="noteAttrSelect" class="text-sm text-slate-300">Attribute</label>
+            <select id="noteAttrSelect" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+              <option value="velocity" selected>Velocity</option>
+              <option value="pan" disabled>Pan (stub)</option>
+            </select>
           </div>
         </div>
 
@@ -1262,6 +1273,8 @@ const patternCategory = $('#patternCategory');
 const patternKey = $('#patternKey');
 const btnPastePattern = $('#btnPastePattern');
 const patternPreview = $('#patternPreview');
+const noteAttrBar = $('#noteAttrBar');
+const noteAttrSelect = $('#noteAttrSelect');
 const seqHotkeys = $('#seqHotkeys');
 pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
@@ -1289,6 +1302,7 @@ let trumpetLeftToRight = true;
 let trumpetOrientation = 'horizontal';
 let saxophoneLeftToRight = true;
 let saxophoneOrientation = 'horizontal';
+let activeNoteAttr = 'velocity';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
@@ -1870,6 +1884,45 @@ function drawPianoRoll(){
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  drawNoteAttrBar();
+}
+
+function drawNoteAttrBar(){
+  const width = pianoRollScroll.clientWidth;
+  const height = noteAttrBar.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  noteAttrBar.width = width * dpr;
+  noteAttrBar.height = height * dpr;
+  noteAttrBar.style.width = width + 'px';
+  noteAttrBar.style.height = height + 'px';
+  const ctx = noteAttrBar.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+
+  const cellW = 20 * ui.zoomX;
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+
+  song.tracks.forEach((track, idx) => {
+    const alpha = idx === activeTrack ? 1 : 0.4;
+    ctx.fillStyle = hexToRgba(track.color || '#60a5fa', alpha);
+    const visible = track.clips[0].notes.filter(n => n.tick >= startTick && n.tick <= endTick);
+    visible.forEach(n => {
+      const x = n.tick / SIXTEENTH * cellW - scrollLeft;
+      let v = 0;
+      switch(activeNoteAttr){
+        case 'velocity':
+          v = n.vel ?? 0;
+          break;
+        default:
+          v = 0; // stub for other attributes
+      }
+      const barH = v * height;
+      const barW = Math.max(1, cellW * 0.8);
+      ctx.fillRect(x, height - barH, barW, barH);
+    });
+  });
 }
 
 function cancelTrackSwitch(){
@@ -2137,6 +2190,44 @@ pianoRoll.addEventListener('wheel', ev=>{
   else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); }
   else if(ev.shiftKey){ pianoRollScroll.scrollLeft += ev.deltaY; ev.preventDefault(); }
 });
+
+let attrDragNote=null;
+function updateAttrFromEvent(ev){
+  if(!attrDragNote) return;
+  const rect = noteAttrBar.getBoundingClientRect();
+  const y = ev.clientY - rect.top;
+  const height = noteAttrBar.clientHeight;
+  let v = 1 - y / height;
+  v = Math.max(0, Math.min(1, v));
+  if(activeNoteAttr === 'velocity'){
+    attrDragNote.vel = v;
+  } else {
+    // stub for other attributes
+  }
+  drawPianoRoll();
+}
+noteAttrBar.addEventListener('pointerdown', ev=>{
+  const rect = noteAttrBar.getBoundingClientRect();
+  const x = ev.clientX - rect.left + pianoRollScroll.scrollLeft;
+  const cellW = 20*ui.zoomX;
+  const barW = Math.max(1, cellW*0.8);
+  const notes = song.tracks[activeTrack].clips[0].notes;
+  for(let i=notes.length-1;i>=0;i--){
+    const n=notes[i];
+    const bx = n.tick / SIXTEENTH * cellW;
+    if(x>=bx && x<=bx+barW){
+      attrDragNote = n;
+      saveState('Edit note attribute');
+      noteAttrBar.setPointerCapture(ev.pointerId);
+      updateAttrFromEvent(ev);
+      break;
+    }
+  }
+});
+noteAttrBar.addEventListener('pointermove', ev=>{ if(attrDragNote) updateAttrFromEvent(ev); });
+noteAttrBar.addEventListener('pointerup', ev=>{ if(attrDragNote){ updateAttrFromEvent(ev); attrDragNote=null; noteAttrBar.releasePointerCapture(ev.pointerId); }});
+noteAttrBar.addEventListener('pointercancel', ()=>{ attrDragNote=null; });
+noteAttrSelect.addEventListener('change', e=>{ activeNoteAttr = e.target.value; drawPianoRoll(); });
 
 let playheadReq=null;
 function startPlayhead(){
