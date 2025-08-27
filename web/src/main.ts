@@ -1,4 +1,7 @@
 import './styles.css';
+import { mountChordPanel } from './panels/chord';
+import { mountScalePanel } from './panels/scale';
+import { mountSequencerPanel } from './panels/sequencer';
 
 // Register a minimal service worker (optional)
 if ('serviceWorker' in navigator) {
@@ -50,9 +53,7 @@ app.innerHTML = `
         <button class="focus-ring rounded px-2 py-1 hover:bg-slate-700 text-left" data-action="mode-seq">Sequencer</button>
       </nav>
     </aside>
-    <main class="row-start-2 col-start-2 p-4 overflow-auto">
-      <div class="opacity-80 text-sm">This shell is ready to host the modular UI. Hook it up to your sequencer engine and panels here.</div>
-    </main>
+    <main id="content" class="row-start-2 col-start-2 p-4 overflow-auto"></main>
 
     <div id="toasts" class="fixed bottom-3 right-3 flex flex-col gap-2 z-50"></div>
     <div id="cmdp" class="fixed inset-0 hidden items-start justify-center bg-black/50 z-50">
@@ -159,3 +160,16 @@ if (status) {
   });
   mo.observe(status, { childList: true, subtree: true, characterData: true });
 }
+
+// Routing between panels
+const content = document.getElementById('content')!;
+function route(mode: 'chord'|'scale'|'seq'){
+  if (mode === 'chord') mountChordPanel(content);
+  if (mode === 'scale') mountScalePanel(content);
+  if (mode === 'seq') mountSequencerPanel(content);
+}
+route('chord');
+document.querySelectorAll('[data-action^="mode-"]').forEach(el => el.addEventListener('click', (e) => {
+  const a = (e.currentTarget as HTMLElement).dataset.action!;
+  route(a.replace('mode-','') as any);
+}));

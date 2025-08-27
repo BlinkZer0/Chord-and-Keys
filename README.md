@@ -57,7 +57,7 @@ For deeper integration, serve the file from your project and harmonize the style
 
 ## Modern UI (Vite + Tailwind)
 
-There is a modern shell in `web/` using Vite, TypeScript and Tailwind with a top transport bar, sidebar, toasts, keyboard shortcuts, and a command palette.
+There is a modern shell in `web/` using Vite, TypeScript and Tailwind with a top transport bar, sidebar, toasts, keyboard shortcuts, command palette, and modular panels (Chord, Scale, Sequencer).
 
 Run it locally:
 
@@ -68,6 +68,14 @@ npm run dev
 ```
 
 It can bridge actions to the legacy page if embedded on the same domain.
+
+Panels and engine status
+
+- Chord panel: accessible selects; builds chord notes and previews the set.
+- Scale panel: accessible selects; displays scale notes.
+- Sequencer panel: basic Tone.js engine wrapper with grid canvas and sample pattern; transport buttons work.
+
+Next migrations planned: move the legacy sequencer features (piano roll editing, tracks, import/export) into the modular app, then share theory modules from a single source.
 
 ## Packing an APK Solo
 
