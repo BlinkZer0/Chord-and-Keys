@@ -588,7 +588,7 @@ function makeSynth(type, env, options = {}) {
       synth = new Tone.AMSynth({ ...synthOptions, ...options.amOptions }).connect(gain);
       break;
     case 'PluckSynth':
-      synth = new Tone.PluckSynth(options.pluckOptions).connect(gain);
+      synth = new Tone.PolySynth(Tone.PluckSynth, options.pluckOptions).connect(gain);
       break;
     default:
       console.warn(`Unknown synth type: ${type}. Defaulting to PolySynth.`);
