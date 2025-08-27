@@ -1440,6 +1440,10 @@ const song = {
 
 Tone.Transport.PPQ = song.ppq;
 
+// Unit conversion helpers
+const ticksToSeconds = ticks => Tone.Ticks(ticks).toSeconds();
+const secondsToTicks = seconds => Tone.Time(seconds).toTicks();
+
 const SIXTEENTH = song.ppq / 4;
 let lastNoteDur = song.ppq * song.ts.num;
 const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
@@ -1576,7 +1580,7 @@ function scheduleAhead(){
     const active = anySolo ? track.solo : !track.mute;
     if(!active || !track.player) return;
     const env = ENV[track.instrument] || ENV.Piano;
-    const maxDurTicks = env.maxSustain * song.ppq * 4;
+    const maxDurTicks = secondsToTicks(env.maxSustain);
     track.clips.forEach(clip => {
       clip.notes.forEach(n => {
         let when = clip.start + n.tick;
@@ -1585,8 +1589,9 @@ function scheduleAhead(){
         }
         if(when >= scheduledUntil && when < endTick){
           Tone.Transport.schedule(time => {
-            const dur = Math.min(n.dur, maxDurTicks);
-            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${dur}i`);
+            const durTicks = Math.min(n.dur, maxDurTicks);
+            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${durTicks}i`);
+            track.player.release?.(n.midi, time + ticksToSeconds(durTicks));
           }, `${when}i`);
         }
       });
