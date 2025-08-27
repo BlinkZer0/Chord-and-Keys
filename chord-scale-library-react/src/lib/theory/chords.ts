@@ -58,11 +58,19 @@ export function invOf(midiNotes: number[], rootPc: number): string {
   return "inversion"; 
 }
 
-export function chordNameFromNotes(midiNotes: number[]): { name: string; detail: string } { 
+export function chordNameFromNotes(midiNotes: number[]): { name: string; detail: string } {
   if(!midiNotes.length) return {name: "—", detail: ""}; 
   
-  const pcs = [...new Set(midiNotes.map(n => mod(n, OCTAVE)))].sort((a, b) => a - b); 
-  let best: any = null; 
+  const pcs = [...new Set(midiNotes.map(n => mod(n, OCTAVE)))].sort((a, b) => a - b);
+  interface ChordMatch {
+    score: number;
+    name: string;
+    root: number;
+    inv: string;
+    exact: boolean;
+  }
+
+  let best: ChordMatch | null = null;
   
   for(const root of pcs) {
     const trans = pcs.map(pc => mod(pc - root, OCTAVE)).sort((a, b) => a - b); 
