@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white p-6">
+    <h1 class="text-2xl font-bold mb-6">Debug Test</h1>
+    
+    <div class="space-y-4">
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">DOM Elements Check</h2>
+            <div id="domStatus" class="text-sm">
+                <div>Loading...</div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Functions Check</h2>
+            <div id="functionStatus" class="text-sm">
+                <div>Loading...</div>
+            </div>
+        </div>
+        
+        <div class="bg-slate-800 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Console Log</h2>
+            <div id="consoleLog" class="text-sm font-mono bg-slate-900 p-2 rounded h-32 overflow-y-auto">
+                <div>Console output will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Capture console.log
+        const originalLog = console.log;
+        const originalError = console.error;
+        const consoleLogDiv = document.getElementById('consoleLog');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = args.join(' ');
+            logEntry.className = 'text-green-400';
+            consoleLogDiv.appendChild(logEntry);
+            consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            const logEntry = document.createElement('div');
+            logEntry.textContent = 'ERROR: ' + args.join(' ');
+            logEntry.className = 'text-red-400';
+            consoleLogDiv.appendChild(logEntry);
+            consoleLogDiv.scrollTop = consoleLogDiv.scrollHeight;
+        };
+
+        // Test DOM elements
+        function checkDOMElements() {
+            const domStatus = document.getElementById('domStatus');
+            const elements = [
+                'selKey', 'selQuality', 'selMode', 'selInstr', 'selSystem',
+                'pianoHost', 'guitarHost', 'bassHost', 'violinHost', 'fluteHost',
+                'recorderHost', 'trumpetHost', 'saxophoneHost', 'kotoHost', 'neyHost',
+                'sequencerHost', 'seqTracks', 'pianoRoll', 'velocityChart'
+            ];
+            
+            let html = '';
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                const status = element ? '✓ Found' : '✗ Missing';
+                const color = element ? 'text-green-400' : 'text-red-400';
+                html += `<div class="${color}">${id}: ${status}</div>`;
+            });
+            
+            domStatus.innerHTML = html;
+        }
+
+        // Test functions
+        function checkFunctions() {
+            const functionStatus = document.getElementById('functionStatus');
+            const functions = [
+                'buildPiano', 'refreshInstruments', 'updateAll', 'initSequencer',
+                'populateDropdowns', 'populateModeOptions', 'fillSelect'
+            ];
+            
+            let html = '';
+            functions.forEach(funcName => {
+                const func = window[funcName];
+                const status = typeof func === 'function' ? '✓ Function' : '✗ Missing';
+                const color = typeof func === 'function' ? 'text-green-400' : 'text-red-400';
+                html += `<div class="${color}">${funcName}: ${status}</div>`;
+            });
+            
+            functionStatus.innerHTML = html;
+        }
+
+        // Run tests
+        setTimeout(() => {
+            checkDOMElements();
+            checkFunctions();
+        }, 100);
+    </script>
+</body>
+</html>

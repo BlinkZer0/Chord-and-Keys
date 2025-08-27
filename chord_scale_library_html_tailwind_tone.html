@@ -2634,15 +2634,23 @@ function updateSelButtons(){
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
-fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
-fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
-fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
 function populateModeOptions(){
   fillSelect(selMode, MODE_SYSTEMS[system]);
   if(!MODE_SYSTEMS[system].includes(scaleMode)) scaleMode = MODE_SYSTEMS[system][0];
   selMode.value = scaleMode;
 }
-populateModeOptions();
+function populateDropdowns() {
+  fillSelect(selKey, KEYS); 
+  selKey.value = keyRoot; 
+  fillSelect(selInstr, INSTRUMENTS); 
+  selInstr.value=instrument; 
+  updateInstrumentIcon();
+  fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); 
+  selQuality.value=chordQuality;
+  fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); 
+  selSystem.value = system;
+  populateModeOptions();
+}
 
 function updateBadges(){
   badgeRoot.textContent = 'Root: '+toSharpName(keyRoot);
@@ -4463,15 +4471,21 @@ function updateInstrumentIcon(){
 }
 function refreshInstruments(){
   updateInstrumentIcon();
-  const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
-  const isBass = selInstr.value.startsWith('Bass');
-  const isViolin = selInstr.value.startsWith('Violin');
-  const isFlute = selInstr.value.startsWith('Flute');
-  const isRecorder = selInstr.value.startsWith('Recorder');
-  const isTrumpet = selInstr.value.startsWith('Trumpet');
-  const isSaxophone = selInstr.value.startsWith('Saxophone');
-  const isKoto = selInstr.value.startsWith('Koto');
-  const isNey = selInstr.value.startsWith('Ney');
+  // Get current instrument value, default to 'Piano' if not set
+  const currentInstrument = selInstr.value || 'Piano';
+  const isPiano = currentInstrument === 'Piano';
+  const isGuitar = currentInstrument.startsWith('Guitar') || currentInstrument.startsWith('Oud');
+  const isBass = currentInstrument.startsWith('Bass');
+  const isViolin = currentInstrument.startsWith('Violin');
+  const isFlute = currentInstrument.startsWith('Flute');
+  const isRecorder = currentInstrument.startsWith('Recorder');
+  const isTrumpet = currentInstrument.startsWith('Trumpet');
+  const isSaxophone = currentInstrument.startsWith('Saxophone');
+  const isKoto = currentInstrument.startsWith('Koto');
+  const isNey = currentInstrument.startsWith('Ney');
+  
+  // Show/hide hosts based on current instrument
+  pianoHost.classList.toggle('hidden', !isPiano);
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
   violinHost.classList.toggle('hidden', !isViolin);
@@ -4481,6 +4495,9 @@ function refreshInstruments(){
   saxophoneHost.classList.toggle('hidden', !isSaxophone);
   kotoHost.classList.toggle('hidden', !isKoto);
   neyHost.classList.toggle('hidden', !isNey);
+  
+  // Build the appropriate instrument visualization
+  if(!pianoHost.classList.contains('hidden')) buildPiano();
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
   if(!fluteHost.classList.contains('hidden')) buildFluteChart();
   if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
@@ -4493,6 +4510,8 @@ function refreshInstruments(){
 function updateAll(){
   renderHighlights();
   updateBadges();
+  if(!pianoHost.classList.contains('hidden'))
+    buildPiano();
   if(!guitarHost.classList.contains('hidden'))
     buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)');
   if(!bassHost.classList.contains('hidden'))
@@ -4684,10 +4703,10 @@ PC Keyboard Layout:
 // Build UI - ensure DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
+    populateDropdowns(); buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
   });
 } else {
-  buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
+  populateDropdowns(); buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
 }
 // === TAB: Sequencer wiring (now handled by section1_tabs.js) ===
 // Tab functionality moved to separate module for better organization

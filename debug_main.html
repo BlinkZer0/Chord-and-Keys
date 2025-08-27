@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Debug - Chord & Scale Library</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+  <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+  <script src="sequencer.js"></script>
+  <script src="section1_tabs.js"></script>
+  <script src="section2_instruments.js"></script>
+  <style>
+    body { background: var(--bg-body); color: var(--text-body); }
+    body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
+    .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
+    .key-pressed { 
+      box-shadow: 0 0 8px 3px rgba(59,130,246,.8) !important; 
+      transform: translateY(2px); 
+      transition: all 0.1s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen w-full skin-default">
+  <div class="max-w-6xl mx-auto p-6">
+      <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
+        <h1 class="text-2xl md:text-3xl font-bold">Debug - Chord & Scale Library</h1>
+        <div class="text-xs text-slate-400">Debug Mode</div>
+      </header>
+
+    <!-- Debug Panel -->
+    <div class="mb-6 bg-red-900/20 border border-red-700 rounded-lg p-4">
+      <h2 class="text-lg font-semibold text-red-300 mb-2">Debug Panel</h2>
+      <div id="debugStatus" class="text-sm space-y-1">
+        <div>Initializing...</div>
+      </div>
+    </div>
+
+    <!-- ============ 1) Choose What To Explore ============ -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">1) Choose What To Explore</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <div class="flex flex-wrap gap-3 items-center">
+          <div class="inline-flex rounded-xl overflow-hidden border border-slate-700">
+              <button id="btnModeChord" aria-label="Chord" title="Chord" class="px-3 py-2 text-sm bg-slate-700/70">Chord</button>
+              <button id="btnModeScale" aria-label="Scale/Mode" title="Scale/Mode" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Scale/Mode</button>
+              <button id="btnModeSequencer" aria-label="Sequencer" title="Sequencer" class="px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50">Sequencer</button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">System</label>
+            <select id="selSystem" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">Key / Root</label>
+            <select id="selKey" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeRoot" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-emerald-600/20 text-emerald-300 border-emerald-600/40"></span>
+          </div>
+
+          <div id="wrapChord" class="flex items-center gap-2">
+            <label class="text-sm text-slate-300">Quality</label>
+            <select id="selQuality" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeChordNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600"></span>
+          </div>
+
+          <div id="wrapScale" class="hidden items-center gap-2">
+            <label class="text-sm text-slate-300">Mode</label>
+            <select id="selMode" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <span id="badgeScaleNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600"></span>
+          </div>
+
+          <div class="flex items-center gap-2 ml-auto">
+            <label class="text-sm text-slate-300">Instrument</label>
+            <select id="selInstr" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1"></select>
+            <img id="instrIcon" class="w-6 h-6 hidden" alt="Instrument icon" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2) Visualize ============ -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">2) Visualize</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <div id="pianoHost"></div>
+        <div id="guitarHost" class="hidden"></div>
+        <div id="bassHost" class="hidden"></div>
+        <div id="violinHost" class="hidden"></div>
+        <div id="fluteHost" class="hidden"></div>
+        <div id="recorderHost" class="hidden"></div>
+        <div id="trumpetHost" class="hidden"></div>
+        <div id="saxophoneHost" class="hidden"></div>
+        <div id="kotoHost" class="hidden"></div>
+        <div id="neyHost" class="hidden"></div>
+      </div>
+    </section>
+
+    <!-- ============ Sequencer ============ -->
+    <section id="sequencerHost" class="mb-6 hidden">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">Sequencer</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700 space-y-4">
+        <div class="flex flex-wrap gap-3 items-center">
+          <button id="seqPlay" aria-label="Play" title="Play" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
+          <button id="seqPause" aria-label="Pause" title="Pause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
+          <button id="seqStop" aria-label="Stop" title="Stop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
+        </div>
+        <div id="seqTracks" class="space-y-2"></div>
+        <div id="pianoRollWrap" class="flex flex-col">
+          <div class="flex">
+            <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
+            <div id="pianoRollScroll" class="overflow-auto relative">
+              <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+              <div id="pianoRollSpacer"></div>
+            </div>
+          </div>
+        </div>
+        <div id="seqStatus" class="text-xs text-slate-300"></div>
+      </div>
+    </section>
+
+    <!-- ============ 3) Listen ============ -->
+    <section class="mb-6">
+      <h2 class="text-lg font-semibold text-slate-100 mb-2">3) Listen</h2>
+      <div class="bg-slate-800/60 rounded-2xl p-4 border border-slate-700">
+        <div id="listenChord" class="flex flex-wrap gap-3 items-center">
+          <button id="btnPlayChord" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Chord</button>
+          <button id="btnPlayArp" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold">Play Arpeggio</button>
+        </div>
+        <div id="listenScale" class="hidden flex flex-wrap gap-3 items-center">
+          <button id="btnPlayScale" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play Scale</button>
+          <button id="btnPlayScaleUp" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold">Play Scale Up</button>
+          <button id="btnPlayScaleDown" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold">Play Scale Down</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // Essential data structures
+    const KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+    const INSTRUMENTS = ['Piano','Guitar','Bass','Violin','Flute','Recorder','Trumpet','Saxophone','Koto','Ney'];
+    const CHORD_QUALITIES = {
+      'Maj': [0,4,7], 'Min': [0,3,7], 'Dim': [0,3,6], 'Aug': [0,4,8],
+      'Maj7': [0,4,7,11], 'Min7': [0,3,7,10], 'Dom7': [0,4,7,10], 'Dim7': [0,3,6,9],
+      'Maj9': [0,4,7,11,14], 'Min9': [0,3,7,10,14], 'Dom9': [0,4,7,10,14]
+    };
+    const MODE_SYSTEMS = {
+      'Western': ['Ionian','Dorian','Phrygian','Lydian','Mixolydian','Aeolian','Locrian']
+    };
+    const OCTAVE = 12;
+    
+    // Essential functions
+    function midiFrom(note, octave) {
+      const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      return noteNames.indexOf(note) + (octave + 1) * 12;
+    }
+    
+    function pcName(pc) {
+      const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      return names[pc];
+    }
+    
+    function mod(n, m) { return ((n % m) + m) % m; }
+    
+    function buildChord(root, quality) {
+      const rootPc = KEYS.indexOf(root);
+      return CHORD_QUALITIES[quality].map(interval => (rootPc + interval) % 12);
+    }
+    
+    function buildScale(root, mode) {
+      const rootPc = KEYS.indexOf(root);
+      const intervals = [0,2,4,5,7,9,11]; // Major scale intervals
+      return intervals.map(interval => (rootPc + interval) % 12);
+    }
+    
+    function makePcSet(notes) {
+      return new Set(notes);
+    }
+    
+    function pcIndex(note) {
+      return KEYS.indexOf(note);
+    }
+    
+    function toSharpName(note) {
+      return note;
+    }
+    
+    function chordNameFromNotes(notes) {
+      return { name: 'Chord', detail: '' };
+    }
+    
+    // Debug logging
+    function debugLog(message, type = 'info') {
+      const debugStatus = document.getElementById('debugStatus');
+      const timestamp = new Date().toLocaleTimeString();
+      const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-yellow-400';
+      const logEntry = document.createElement('div');
+      logEntry.className = color;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      debugStatus.appendChild(logEntry);
+      console.log(`[DEBUG] ${message}`);
+    }
+
+    // Override console.error to also log to debug panel
+    const originalError = console.error;
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      debugLog('ERROR: ' + args.join(' '), 'error');
+    };
+
+    // Test DOM elements
+    function testDOMElements() {
+      const elements = [
+        'selKey', 'selQuality', 'selMode', 'selInstr', 'selSystem',
+        'pianoHost', 'guitarHost', 'bassHost', 'violinHost', 'fluteHost',
+        'recorderHost', 'trumpetHost', 'saxophoneHost', 'kotoHost', 'neyHost',
+        'sequencerHost', 'seqTracks', 'pianoRoll'
+      ];
+      
+      const missing = [];
+      elements.forEach(id => {
+        const element = document.getElementById(id);
+        if (!element) {
+          missing.push(id);
+        }
+      });
+      
+      if (missing.length > 0) {
+        debugLog(`Missing DOM elements: ${missing.join(', ')}`, 'error');
+        return false;
+      } else {
+        debugLog('All DOM elements found', 'success');
+        return true;
+      }
+    }
+
+    // Test functions
+    function testFunctions() {
+      const functions = [
+        'buildPiano', 'refreshInstruments', 'updateAll', 'initSequencer',
+        'populateDropdowns', 'populateModeOptions', 'fillSelect'
+      ];
+      
+      const missing = [];
+      functions.forEach(funcName => {
+        if (typeof window[funcName] !== 'function') {
+          missing.push(funcName);
+        }
+      });
+      
+      if (missing.length > 0) {
+        debugLog(`Missing functions: ${missing.join(', ')}`, 'error');
+        return false;
+      } else {
+        debugLog('All functions available', 'success');
+        return true;
+      }
+    }
+
+    // Test dropdown population
+    function testDropdowns() {
+      const dropdowns = ['selKey', 'selQuality', 'selMode', 'selInstr', 'selSystem'];
+      const empty = [];
+      
+      dropdowns.forEach(id => {
+        const element = document.getElementById(id);
+        if (element && element.options.length === 0) {
+          empty.push(id);
+        }
+      });
+      
+      if (empty.length > 0) {
+        debugLog(`Empty dropdowns: ${empty.join(', ')}`, 'error');
+        return false;
+      } else {
+        debugLog('All dropdowns populated', 'success');
+        return true;
+      }
+    }
+
+    // Test piano display
+    function testPianoDisplay() {
+      const pianoHost = document.getElementById('pianoHost');
+      if (!pianoHost) {
+        debugLog('Piano host not found', 'error');
+        return false;
+      }
+      
+      if (pianoHost.children.length === 0) {
+        debugLog('Piano not built', 'error');
+        return false;
+      } else {
+        debugLog('Piano built successfully', 'success');
+        return true;
+      }
+    }
+
+    // Test sequencer display
+    function testSequencerDisplay() {
+      const sequencerHost = document.getElementById('sequencerHost');
+      if (!sequencerHost) {
+        debugLog('Sequencer host not found', 'error');
+        return false;
+      }
+      
+      if (sequencerHost.classList.contains('hidden')) {
+        debugLog('Sequencer is hidden', 'info');
+        return true; // This is expected when not in sequencer mode
+      } else {
+        debugLog('Sequencer is visible', 'success');
+        return true;
+      }
+    }
+
+    // Run all tests
+    function runAllTests() {
+      debugLog('Starting debug tests...');
+      
+      const domOk = testDOMElements();
+      const funcOk = testFunctions();
+      
+      if (domOk && funcOk) {
+        // Wait a bit for initialization to complete
+        setTimeout(() => {
+          const dropdownOk = testDropdowns();
+          const pianoOk = testPianoDisplay();
+          const sequencerOk = testSequencerDisplay();
+          
+          if (dropdownOk && pianoOk && sequencerOk) {
+            debugLog('All tests passed!', 'success');
+          } else {
+            debugLog('Some tests failed', 'error');
+          }
+        }, 500);
+      } else {
+        debugLog('Critical tests failed', 'error');
+      }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        // Initialize the application
+        populateDropdowns();
+        buildPiano();
+        refreshInstruments();
+        updateAll();
+        initSequencer();
+        
+        // Run debug tests
+        runAllTests();
+      });
+    } else {
+      // Initialize the application
+      populateDropdowns();
+      buildPiano();
+      refreshInstruments();
+      updateAll();
+      initSequencer();
+      
+      // Run debug tests
+      runAllTests();
+    }
+
+    // Essential UI functions
+    function fillSelect(el, arr) {
+      if (!el) return;
+      el.innerHTML = arr.map(v => `<option value="${v}">${v}</option>`).join('');
+    }
+    
+    function populateModeOptions() {
+      const selMode = document.getElementById('selMode');
+      const selSystem = document.getElementById('selSystem');
+      if (!selMode || !selSystem) return;
+      
+      const system = selSystem.value || 'Western';
+      fillSelect(selMode, MODE_SYSTEMS[system]);
+      selMode.value = 'Ionian';
+    }
+    
+    function populateDropdowns() {
+      const selKey = document.getElementById('selKey');
+      const selQuality = document.getElementById('selQuality');
+      const selInstr = document.getElementById('selInstr');
+      const selSystem = document.getElementById('selSystem');
+      
+      if (selKey) fillSelect(selKey, KEYS);
+      if (selQuality) fillSelect(selQuality, Object.keys(CHORD_QUALITIES));
+      if (selInstr) fillSelect(selInstr, INSTRUMENTS);
+      if (selSystem) fillSelect(selSystem, Object.keys(MODE_SYSTEMS));
+      
+      populateModeOptions();
+    }
+    
+    function updateInstrumentIcon() {
+      // Placeholder function
+    }
+    
+    function buildPiano() {
+      const pianoHost = document.getElementById('pianoHost');
+      if (!pianoHost) return;
+      
+      pianoHost.innerHTML = '';
+      const container = document.createElement('div');
+      container.className = 'relative mx-auto select-none';
+      const shell = document.createElement('div');
+      shell.className = 'relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2';
+      container.appendChild(shell);
+      
+      // Simple piano visualization
+      const whiteRow = document.createElement('div');
+      whiteRow.className = 'flex h-full';
+      shell.appendChild(whiteRow);
+      
+      // Add some white keys
+      for (let i = 0; i < 7; i++) {
+        const key = document.createElement('div');
+        key.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400';
+        const label = document.createElement('div');
+        label.className = 'absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none';
+        label.textContent = ['C','D','E','F','G','A','B'][i] + '4';
+        key.appendChild(label);
+        whiteRow.appendChild(key);
+      }
+      
+      pianoHost.appendChild(container);
+    }
+    
+    function refreshInstruments() {
+      updateInstrumentIcon();
+      const selInstr = document.getElementById('selInstr');
+      const currentInstrument = selInstr ? selInstr.value : 'Piano';
+      
+      // Hide all hosts
+      const hosts = ['pianoHost', 'guitarHost', 'bassHost', 'violinHost', 'fluteHost', 
+                     'recorderHost', 'trumpetHost', 'saxophoneHost', 'kotoHost', 'neyHost'];
+      
+      hosts.forEach(hostId => {
+        const host = document.getElementById(hostId);
+        if (host) {
+          host.classList.add('hidden');
+        }
+      });
+      
+      // Show appropriate host
+      const hostMap = {
+        'Piano': 'pianoHost',
+        'Guitar': 'guitarHost',
+        'Bass': 'bassHost',
+        'Violin': 'violinHost',
+        'Flute': 'fluteHost',
+        'Recorder': 'recorderHost',
+        'Trumpet': 'trumpetHost',
+        'Saxophone': 'saxophoneHost',
+        'Koto': 'kotoHost',
+        'Ney': 'neyHost'
+      };
+      
+      const targetHost = hostMap[currentInstrument];
+      if (targetHost) {
+        const host = document.getElementById(targetHost);
+        if (host) {
+          host.classList.remove('hidden');
+        }
+      }
+      
+      // Build piano if it's the current instrument
+      if (currentInstrument === 'Piano') {
+        buildPiano();
+      }
+    }
+    
+    function updateAll() {
+      // Placeholder function
+    }
+    
+    function initSequencer() {
+      const seqTracks = document.getElementById('seqTracks');
+      if (!seqTracks) return;
+      
+      seqTracks.innerHTML = '';
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2';
+      row.innerHTML = '<span class="w-32">Piano</span><button class="px-2 py-1 text-xs rounded bg-slate-700">M</button>';
+      seqTracks.appendChild(row);
+    }
+    
+    // Monitor for changes
+    setInterval(() => {
+      const pianoHost = document.getElementById('pianoHost');
+      if (pianoHost && pianoHost.children.length === 0) {
+        debugLog('Piano disappeared', 'error');
+      }
+    }, 2000);
+  </script>
+</body>
+</html>
