@@ -10,6 +10,8 @@
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
   <!-- Tonejs-instruments for high-quality sampled instruments -->
   <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+  <!-- Surge XT loader (worklet + wasm fetched remotely) -->
+  <script src="surge-loader.js"></script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
@@ -92,6 +94,10 @@
             <img id="instrIcon" alt="" class="w-6 h-6 hidden" />
             <label class="text-sm text-slate-300">Tempo</label>
             <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
+            <label class="flex items-center gap-2 text-sm text-slate-300">
+              <input id="useSurge" type="checkbox" class="h-4 w-4">
+              Use Surge XT
+            </label>
           </div>
         </div>
       </div>
@@ -219,9 +225,20 @@
         <div id="pianoRollWrap" class="flex">
           <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
           <div id="pianoRollScroll" class="overflow-auto relative">
-            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-            <div id="pianoRollSpacer"></div>
+          <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+          <div id="pianoRollSpacer"></div>
 
+        </div>
+        </div>
+
+        <div id="noteAttrWrap" class="mt-2">
+          <canvas id="noteAttrBar" class="bg-slate-900 border border-slate-700 w-full h-24"></canvas>
+          <div class="mt-2 flex items-center gap-2">
+            <label for="noteAttrSelect" class="text-sm text-slate-300">Attribute</label>
+            <select id="noteAttrSelect" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+              <option value="velocity" selected>Velocity</option>
+              <option value="pan" disabled>Pan (stub)</option>
+            </select>
           </div>
         </div>
 
@@ -387,6 +404,21 @@ const INSTRUMENT_ICONS = {
   Koto: 'assets/instruments/koto_openmoji.svg',
 };
 
+const SURGE_PRESETS = {
+  'Piano': 'piano.fxp',
+  'Guitar': 'guitar.fxp',
+  'Bass': 'bass.fxp',
+  'Violin': 'violin.fxp',
+  'Flute': 'flute.fxp',
+  'Recorder': 'recorder.fxp',
+  'Trumpet': 'trumpet.fxp',
+  'Saxophone': 'saxophone.fxp',
+  'Koto': 'koto.fxp',
+  'Oud': 'oud.fxp',
+  'Ney': 'ney.fxp',
+  'Hammond Organ': 'organ.fxp'
+};
+
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 const MODES = {
   Ionian: [0,2,4,5,7,9,11],
@@ -513,18 +545,18 @@ function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—"
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
-  Piano:{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1}},
-  Guitar:{a:.005,d:.25,s:0,r:1.5,osc:'sawtooth',filter:{frequency:3000,Q:0.8},vibrato:{rate:6,depth:0.02}},
-  Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2}},
-  Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2}},
-  Flute:{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5}},
-  Recorder:{a:.06,d:.12,s:.85,r:.4,osc:'sine',filter:{frequency:3500,Q:0.7}},
-  Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03}},
-  Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1}},
-  Koto:{a:.002,d:.3,s:0,r:1.6,osc:'triangle',filter:{frequency:4500,Q:0.8}},
-  Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle',filter:{frequency:3800,Q:0.9}},
-  Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6}},
-  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3}},
+  Piano:{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
+  Guitar:{a:.005,d:.3,s:0,r:1.5,osc:'sawtooth',filter:{frequency:3500,Q:0.9},vibrato:{rate:6,depth:0.02},maxSustain:3},
+  Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2},maxSustain:3},
+  Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
+  Flute:{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5},maxSustain:4},
+  Recorder:{a:.06,d:.12,s:.85,r:.4,osc:'sine',filter:{frequency:3500,Q:0.7},maxSustain:3},
+  Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1},maxSustain:4},
+  Koto:{a:.002,d:.25,s:0,r:1.6,osc:'triangle',filter:{frequency:4000,Q:0.8},maxSustain:3},
+  Oud:{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
+  Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
+  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
 };
 
 const masterLim = new Tone.Limiter(-1).toDestination();
@@ -577,7 +609,7 @@ function makeSynth(type, env, options = {}) {
       synth = new Tone.AMSynth({ ...synthOptions, ...options.amOptions }).connect(gain);
       break;
     case 'PluckSynth':
-      synth = new Tone.PluckSynth(options.pluckOptions).connect(gain);
+      synth = new Tone.PolySynth(Tone.PluckSynth, options.pluckOptions).connect(gain);
       break;
     default:
       console.warn(`Unknown synth type: ${type}. Defaulting to PolySynth.`);
@@ -589,18 +621,10 @@ function makeSynth(type, env, options = {}) {
       try {
         const freq = midiToFreq(midi);
         const vel = Math.max(0.1, Math.min(1, velocity));
-        if (type !== 'PluckSynth') {
-            synth.triggerAttackRelease(freq, dur, time, vel);
-        } else {
-            synth.triggerAttack(freq, time, vel);
-        }
+        synth.triggerAttackRelease(freq, dur, time, vel);
       } catch(e) {
         console.warn(`${type} trigger error:`, e);
       }
-    },
-    release(midi,time=Tone.now()){
-      // PluckSynth doesn't need explicit release, others do.
-      if (type !== 'PluckSynth') synth.triggerRelease(midiToFreq(midi), time);
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
@@ -612,7 +636,7 @@ function makeSynth(type, env, options = {}) {
 
 // ========================= SAMPLE-BASED INSTRUMENTS =========================
 let sampleLibrary = null;
-const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar', 'flute'];
+const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar-acoustic', 'flute'];
 
 function makeSampler(instrumentName) {
   if (!sampleLibrary || !sampleLibrary[instrumentName]) {
@@ -648,11 +672,12 @@ function makeSampler(instrumentName) {
     },
     setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    dispose() { 
+    dispose() {
       if (sampler) sampler.disconnect();
-      gain.dispose(); 
-      panner.dispose(); 
-    }
+      gain.dispose();
+      panner.dispose();
+    },
+    loaded: sampler.loaded
   };
 }
 
@@ -674,26 +699,33 @@ async function initSampleLibrary() {
 
 const SEQ_INSTR = {
   Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
-  Guitar: () => makeSampler('guitar') || makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
+  Guitar: () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
   Bass: () => makeSynth('MonoSynth', ENV.Bass),
   Violin: () => makeSampler('violin') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
   Flute: () => makeSampler('flute') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
   Recorder: () => makeSynth('PolySynth', ENV.Recorder),
   Trumpet: () => makeSampler('trumpet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
   Saxophone: () => makeSampler('saxophone') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
-  Koto: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
-  Oud: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
+  Koto: () => makeSynth('PluckSynth', ENV.Koto, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
+  Oud: () => makeSynth('PluckSynth', ENV.Oud, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
   Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
   'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
 };
 
 function createSeqInstrument(name){
+  if(surgeEnabled && SURGE_PRESETS[name] && window.SurgeLoader){
+    try {
+      return SurgeLoader.createInstrument(SURGE_PRESETS[name]);
+    } catch(err){
+      console.error('Surge creation failed, falling back to Tone', err);
+    }
+  }
   try {
     const factory = SEQ_INSTR[name];
     if(factory) {
       return factory();
     }
-    
+
     // Fallback to makePoly with appropriate envelope
     const env = ENV[name] || ENV.Piano;
     return makeSynth('PolySynth', env);
@@ -747,11 +779,22 @@ function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 // [fix] press/hold piano
 function pressHeld(midi){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    const player = createSeqInstrument(instrument);
+    player.loaded.then(()=>{
+      player.trigger(midi, Tone.now(), 0.8, 1);
+    });
+    return;
+  }
   ensureTone(instrument).then(()=>{
     _synth.triggerAttack(midiToFreq(midi));
   });
 }
 function releaseHeld(midi){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    // noteOff handled automatically in trigger duration
+    return;
+  }
   ensureTone(instrument).then(()=>{
     const now=Tone.now();
     const beat=60/tempo;
@@ -1149,7 +1192,7 @@ function makeMetal(opts){
   const synth = new Tone.MetalSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
-      synth.triggerAttackRelease(duration, time, velocity);
+      synth.triggerAttackRelease(midiToFreq(note), duration, time, velocity);
     },
     setVolume(v){ gain.gain.value = v; },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
@@ -1194,6 +1237,32 @@ const DRUM_NAMES = Object.keys(DRUMS);
 // use `asChord` to trigger them simultaneously or `strum` for a quick
 // guitar-style roll.
 async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false, noteDur}={}){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    const player = createSeqInstrument(instrument);
+    await player.loaded;
+    const beat=60/tempo;
+    const now=Tone.now();
+    if(asChord){
+      list.forEach(m=>player.trigger(m, now, 0.8, beat*2));
+      return;
+    }
+    if(strum){
+      list.forEach((m,i)=>{
+        const t=now + i*(beat/6);
+        player.trigger(m, t, 0.8, beat*1.2);
+      });
+      return;
+    }
+    if(noteDur!==undefined && list.length===1){
+      player.trigger(list[0], now, 0.8, noteDur);
+      return;
+    }
+    list.forEach((m,i)=>{
+      const t=now + i*(beat*0.6);
+      player.trigger(m, t, 0.8, beat*0.9);
+    });
+    return;
+  }
   await ensureTone(instrument);
   const beat=60/tempo;
   const now=Tone.now();
@@ -1238,6 +1307,7 @@ const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); co
 const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
+const chkSurge = $('#useSurge');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
@@ -1269,10 +1339,13 @@ const patternCategory = $('#patternCategory');
 const patternKey = $('#patternKey');
 const btnPastePattern = $('#btnPastePattern');
 const patternPreview = $('#patternPreview');
+const noteAttrBar = $('#noteAttrBar');
+const noteAttrSelect = $('#noteAttrSelect');
 const seqHotkeys = $('#seqHotkeys');
 pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
   ui.scrollY = pianoRollScroll.scrollTop;
+  pianoRoll.style.left = pianoRollScroll.scrollLeft + 'px';
   pianoRollGutter.scrollTop = ui.scrollY;
   drawPianoRoll();
 });
@@ -1280,6 +1353,7 @@ window.addEventListener('resize', drawPianoRoll);
 
 let mode = 'Chord';
 let instrument = 'Piano';
+let surgeEnabled = false;
 let keyRoot = 'C';
 let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
@@ -1295,6 +1369,7 @@ let trumpetLeftToRight = true;
 let trumpetOrientation = 'horizontal';
 let saxophoneLeftToRight = true;
 let saxophoneOrientation = 'horizontal';
+let activeNoteAttr = 'velocity';
 
 // Selection for chord identification
 const selection = new Set(); // midi numbers
@@ -1429,6 +1504,10 @@ const song = {
 
 Tone.Transport.PPQ = song.ppq;
 
+// Unit conversion helpers
+const ticksToSeconds = ticks => Tone.Ticks(ticks).toSeconds();
+const secondsToTicks = seconds => Tone.Time(seconds).toTicks();
+
 const SIXTEENTH = song.ppq / 4;
 let lastNoteDur = song.ppq * song.ts.num;
 const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
@@ -1508,44 +1587,52 @@ let scheduledUntil = 0;
 let rescheduleId = null;
 let songEndTick = 0;
 
-function scheduleSong(){
-  const anySolo = song.tracks.some(t => t.solo);
-  song.tracks.forEach(track => {
-    const active = anySolo ? track.solo : !track.mute;
-    if(!active){
-      track.player?.dispose?.();
-      track.player = null;
-      return;
-    }
-    if(!track.player){
-      try {
-        const drumFactory = DRUMS[track.instrument];
-        track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
-        track.player?.setVolume?.(track.volume ?? 0.8);
-        track.player?.setPan?.(track.pan ?? 0);
-      } catch(err){
-        console.error(`Failed to create player for ${track.instrument}:`, err);
-        track.player = createSeqInstrument('Piano');
-        track.player?.setVolume?.(track.volume ?? 0.8);
-        track.player?.setPan?.(track.pan ?? 0);
+async function scheduleSong(trackIdx){
+  try{
+    const anySolo = song.tracks.some(t => t.solo);
+    const loadPromises = [];
+    for(const track of song.tracks){
+      const active = anySolo ? track.solo : !track.mute;
+      if(!active){
+        track.player?.dispose?.();
+        track.player = null;
+        continue;
       }
+      if(!track.player){
+        try{
+          await ensureTone(track.instrument);
+          const drumFactory = DRUMS[track.instrument];
+          track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }catch(err){
+          console.error(`Failed to create player for ${track.instrument}:`, err);
+          track.player = createSeqInstrument('Piano');
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }
+      }
+      if(track.player?.loaded) loadPromises.push(track.player.loaded);
     }
-  });
+    await Promise.all(loadPromises);
 
-  // Determine song length and dynamic scheduling window
-  const ticksPerBeat = song.ppq * (4 / song.ts.den);
-  const ticksPerBar = ticksPerBeat * song.ts.num;
-  songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
-    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-  ));
-  const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
-  scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
+    // Determine song length and dynamic scheduling window
+    const ticksPerBeat = song.ppq * (4 / song.ts.den);
+    const ticksPerBar = ticksPerBeat * song.ts.num;
+    songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
+      t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+    ));
+    const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
+    scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
 
-  Tone.Transport.cancel();
-  scheduledUntil = Tone.Transport.ticks;
-  scheduleAhead();
-  if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
-  rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+    Tone.Transport.cancel();
+    scheduledUntil = Tone.Transport.ticks;
+    scheduleAhead();
+    if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
+    rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+  }catch(err){
+    console.error('scheduleSong error:', err);
+  }
 }
 
 function scheduleAhead(){
@@ -1556,6 +1643,8 @@ function scheduleAhead(){
   song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
     if(!active || !track.player) return;
+    const env = ENV[track.instrument] || ENV.Piano;
+    const maxDurTicks = secondsToTicks(env.maxSustain);
     track.clips.forEach(clip => {
       clip.notes.forEach(n => {
         let when = clip.start + n.tick;
@@ -1564,7 +1653,9 @@ function scheduleAhead(){
         }
         if(when >= scheduledUntil && when < endTick){
           Tone.Transport.schedule(time => {
-            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${n.dur}i`);
+            const durTicks = Math.min(n.dur, maxDurTicks);
+            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${durTicks}i`);
+            track.player.release?.(n.midi, time + ticksToSeconds(durTicks));
           }, `${when}i`);
         }
       });
@@ -1733,6 +1824,7 @@ function exportSongMidi(){
 }
 
 function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+function lightenColor(hex,amt){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); const lr=Math.min(255,Math.round(r+(255-r)*amt)),lg=Math.min(255,Math.round(g+(255-g)*amt)),lb=Math.min(255,Math.round(b+(255-b)*amt)); return `#${lr.toString(16).padStart(2,'0')}${lg.toString(16).padStart(2,'0')}${lb.toString(16).padStart(2,'0')}`; }
 function drawPianoRoll(){
   const clip = song.tracks[activeTrack].clips[0];
   // Auto-extend clip length if needed based on actual notes - generous buffer for large files
@@ -1785,8 +1877,14 @@ function drawPianoRoll(){
   // background lanes
   for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
   // grid vertical
+  const stepsPerBeat = 16 / song.ts.den;
+  const stepsPerMeasure = song.ts.num * stepsPerBeat;
   for(let i=startStep;i<=endStep;i++){
-    const x=i*cellW - scrollLeft; ctx.strokeStyle='#2d3c4a'; if(i%(song.ppq/ SIXTEENTH)===0) ctx.strokeStyle='#395063'; if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#4a6379'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+    const x = i*cellW - scrollLeft;
+    ctx.strokeStyle = '#2d3c4a';
+    if(i % stepsPerBeat === 0) ctx.strokeStyle = '#395063';
+    if(i % stepsPerMeasure === 0) ctx.strokeStyle = '#4a6379';
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
@@ -1797,52 +1895,43 @@ function drawPianoRoll(){
   const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
   
   song.tracks.forEach((track,idx)=>{
-    const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
+    const alpha=idx===activeTrack?1:0.4;
+    const baseColor=hexToRgba(track.color||'#60a5fa',alpha);
+    const sustainColor=hexToRgba(lightenColor(track.color||'#60a5fa',0.5),alpha);
     // Pre-filter notes for viewport culling - major performance improvement for large files
-    const visibleNotes = track.clips[0].notes.filter(n => 
-      n.tick + n.dur >= startTick && n.tick <= endTick && 
+    const visibleNotes = track.clips[0].notes.filter(n =>
+      n.tick + n.dur >= startTick && n.tick <= endTick &&
       n.midi >= bottomMidi && n.midi <= topMidi
     );
-    
+
     visibleNotes.forEach(n=>{
       const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
-      
-      // Piano-style coloring: black keys (sharps) vs white keys (naturals)
-      const pc = n.midi % 12;
-      const isBlackKey = [1,3,6,8,10].includes(pc); // C#, D#, F#, G#, A#
-      const pianoColor = isBlackKey ? '#1f2937' : '#f9fafb'; // Dark gray for sharps, light for naturals
-      const borderColor = isBlackKey ? '#374151' : '#d1d5db';
-      
+
       // Highlight selected notes
       if(idx === activeTrack && selectedNotes.has(n)) {
         ctx.fillStyle = '#ff6b9d';
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
-      
-      // Draw note with piano colors
-      ctx.fillStyle = pianoColor;
-      ctx.fillRect(x,y,w,cellH);
-      
-      // Add border to distinguish notes
-      ctx.strokeStyle = borderColor;
+
+      const sustainWidth=Math.min(8,w*0.15);
+      ctx.fillStyle=sustainColor;
+      ctx.fillRect(x,y,sustainWidth,cellH);
+      ctx.fillStyle=baseColor;
+      ctx.fillRect(x+sustainWidth,y,w-sustainWidth,cellH);
+
+      // Add subtle border for clarity
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
       ctx.lineWidth = 1;
       ctx.strokeRect(x,y,w,cellH);
-      
-      // Add track color as small indicator on active track notes
-      if(idx === activeTrack) {
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
-      }
     });
   });
   if(dragNote){
-    const pc = dragNote.midi % 12;
-    const isBlackKey = [1,3,6,8,10].includes(pc);
-    ctx.fillStyle = isBlackKey ? 'rgba(31,41,55,0.8)' : 'rgba(249,250,251,0.8)';
-    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; 
+    const dragColor = hexToRgba(song.tracks[activeTrack].color||'#60a5fa',0.8);
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
     if(x+w>=0 && x<=width) {
+      ctx.fillStyle = dragColor;
       ctx.fillRect(x,y,w,cellH);
       // Add pink border for drag preview
       ctx.strokeStyle = 'rgba(236,72,153,0.8)';
@@ -1868,6 +1957,45 @@ function drawPianoRoll(){
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  drawNoteAttrBar();
+}
+
+function drawNoteAttrBar(){
+  const width = pianoRollScroll.clientWidth;
+  const height = noteAttrBar.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  noteAttrBar.width = width * dpr;
+  noteAttrBar.height = height * dpr;
+  noteAttrBar.style.width = width + 'px';
+  noteAttrBar.style.height = height + 'px';
+  const ctx = noteAttrBar.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+
+  const cellW = 20 * ui.zoomX;
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+
+  song.tracks.forEach((track, idx) => {
+    const alpha = idx === activeTrack ? 1 : 0.4;
+    ctx.fillStyle = hexToRgba(track.color || '#60a5fa', alpha);
+    const visible = track.clips[0].notes.filter(n => n.tick >= startTick && n.tick <= endTick);
+    visible.forEach(n => {
+      const x = n.tick / SIXTEENTH * cellW - scrollLeft;
+      let v = 0;
+      switch(activeNoteAttr){
+        case 'velocity':
+          v = n.vel ?? 0;
+          break;
+        default:
+          v = 0; // stub for other attributes
+      }
+      const barH = v * height;
+      const barW = Math.max(1, cellW * 0.8);
+      ctx.fillRect(x, height - barH, barW, barH);
+    });
+  });
 }
 
 function cancelTrackSwitch(){
@@ -2136,12 +2264,57 @@ pianoRoll.addEventListener('wheel', ev=>{
   else if(ev.shiftKey){ pianoRollScroll.scrollLeft += ev.deltaY; ev.preventDefault(); }
 });
 
+let attrDragNote=null;
+function updateAttrFromEvent(ev){
+  if(!attrDragNote) return;
+  const rect = noteAttrBar.getBoundingClientRect();
+  const y = ev.clientY - rect.top;
+  const height = noteAttrBar.clientHeight;
+  let v = 1 - y / height;
+  v = Math.max(0, Math.min(1, v));
+  if(activeNoteAttr === 'velocity'){
+    attrDragNote.vel = v;
+  } else {
+    // stub for other attributes
+  }
+  drawPianoRoll();
+}
+noteAttrBar.addEventListener('pointerdown', ev=>{
+  const rect = noteAttrBar.getBoundingClientRect();
+  const x = ev.clientX - rect.left + pianoRollScroll.scrollLeft;
+  const cellW = 20*ui.zoomX;
+  const barW = Math.max(1, cellW*0.8);
+  const notes = song.tracks[activeTrack].clips[0].notes;
+  for(let i=notes.length-1;i>=0;i--){
+    const n=notes[i];
+    const bx = n.tick / SIXTEENTH * cellW;
+    if(x>=bx && x<=bx+barW){
+      attrDragNote = n;
+      saveState('Edit note attribute');
+      noteAttrBar.setPointerCapture(ev.pointerId);
+      updateAttrFromEvent(ev);
+      break;
+    }
+  }
+});
+noteAttrBar.addEventListener('pointermove', ev=>{ if(attrDragNote) updateAttrFromEvent(ev); });
+noteAttrBar.addEventListener('pointerup', ev=>{ if(attrDragNote){ updateAttrFromEvent(ev); attrDragNote=null; noteAttrBar.releasePointerCapture(ev.pointerId); }});
+noteAttrBar.addEventListener('pointercancel', ()=>{ attrDragNote=null; });
+noteAttrSelect.addEventListener('change', e=>{ activeNoteAttr = e.target.value; drawPianoRoll(); });
+
 let playheadReq=null;
 function startPlayhead(){
+  let skipScroll=false;
   function loop(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
-    if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
+    if(seqAutoScroll.checked){
+      const target = x - pianoRollScroll.clientWidth/2;
+      if(skipScroll){
+        pianoRollScroll.scrollLeft += (target - pianoRollScroll.scrollLeft) * 0.15;
+      }
+      skipScroll=!skipScroll;
+    }
     updatePositionDisplay();
     drawPianoRoll();
     playheadReq=requestAnimationFrame(loop);
@@ -4162,6 +4335,23 @@ selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
 
+chkSurge.addEventListener('change', async (e)=>{
+  surgeEnabled = e.target.checked;
+  if(surgeEnabled){
+    await ensureTone(instrument);
+    try{
+      await SurgeLoader.init(Tone.context);
+    }catch(err){
+      console.error('Failed to init Surge XT', err);
+      surgeEnabled = false;
+      e.target.checked = false;
+    }
+  }
+  if(song && song.tracks){
+    song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
+  }
+});
+
 // Settings event listeners
 const reverbAmountSlider = $('#reverbAmount');
 const reverbValue = $('#reverbValue');
@@ -4454,8 +4644,11 @@ $('#btnPlaySelArp').addEventListener('click', ()=>{
 
 seqPlay.addEventListener('click', async ()=>{
   try {
-    await ensureTone('Piano');
-    
+    const instruments = Array.from(new Set(song.tracks.map(t => t.instrument)));
+    for (const instr of instruments) {
+      await ensureTone(instr);
+    }
+
     if(sequencerState === 'paused') {
       // Resume from pause
       Tone.Transport.start();
@@ -4464,13 +4657,13 @@ seqPlay.addEventListener('click', async ()=>{
       seqPlay.textContent = 'Play';
       return;
     }
-    
+
     // Fresh start
     if(sequencerState === 'playing') {
       return; // Already playing
     }
-    
-    scheduleSong();
+
+    await scheduleSong();
     
     if(seqClick.checked){
       clickId = Tone.Transport.scheduleRepeat(time => {
