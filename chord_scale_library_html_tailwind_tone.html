@@ -604,7 +604,7 @@ function makeSynth(type, env, options = {}) {
 
 // ========================= SAMPLE-BASED INSTRUMENTS =========================
 let sampleLibrary = null;
-const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar', 'flute'];
+const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar-acoustic', 'flute'];
 
 function makeSampler(instrumentName) {
   if (!sampleLibrary || !sampleLibrary[instrumentName]) {
@@ -667,7 +667,7 @@ async function initSampleLibrary() {
 
 const SEQ_INSTR = {
   Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
-  Guitar: () => makeSampler('guitar') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
+  Guitar: () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
   Bass: () => makeSynth('MonoSynth', ENV.Bass),
   Violin: () => makeSampler('violin') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
   Flute: () => makeSampler('flute') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
