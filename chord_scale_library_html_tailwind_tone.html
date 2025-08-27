@@ -10,12 +10,6 @@
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
   <!-- Tonejs-instruments for high-quality sampled instruments -->
   <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
-  <!-- Enhanced Sequencer Engine -->
-  <script src="sequencer.js"></script>
-  <!-- Section 1: Tab Management -->
-  <script src="section1_tabs.js"></script>
-  <!-- Section 2: Instrument Visualization -->
-  <script src="section2_instruments.js"></script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
@@ -34,11 +28,6 @@
     #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
     #devTests[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
-    .key-pressed { 
-      box-shadow: 0 0 8px 3px rgba(59,130,246,.8) !important; 
-      transform: translateY(2px); 
-      transition: all 0.1s ease;
-    }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -128,8 +117,7 @@
           <span id="badgeSelNotes" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Notes: —</span>
             <button id="btnClearSel" aria-label="Clear Selection" title="Clear Selection" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Clear Selection</button>
             <button id="btnSendToSeq" aria-label="Send to Sequencer" title="Send to Sequencer" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">Send to Sequencer</button>
-          <button id="btnShowKeyboard" aria-label="Show Keyboard Layout" title="Show PC Keyboard Layout" class="px-2 py-1 text-xs font-semibold rounded-lg border bg-slate-700/40 text-slate-300 border-slate-600 hover:bg-slate-700/60">⌨️ Layout</button>
-          <span class="text-xs text-slate-400">Tip: hold keys to play • <span class="font-semibold">Shift+click</span> toggles selection • <span class="font-semibold">PC keyboard</span> plays notes</span>
+          <span class="text-xs text-slate-400">Tip: hold keys to play • <span class="font-semibold">Shift+click</span> toggles selection</span>
         </div>
       </div>
     </section>
@@ -167,8 +155,6 @@
           <button id="seqPlay" aria-label="Play" title="Play" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold">Play</button>
           <button id="seqPause" aria-label="Pause" title="Pause" class="px-4 py-2 rounded-xl bg-yellow-600 hover:bg-yellow-500 text-white font-semibold">Pause</button>
           <button id="seqStop" aria-label="Stop" title="Stop" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold">Stop</button>
-          <button id="seqRecord" aria-label="Record" title="Record MIDI" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold">Record</button>
-          <button id="seqStopRecord" aria-label="Stop Recording" title="Stop Recording" class="px-4 py-2 rounded-xl bg-gray-600 hover:bg-gray-500 text-white font-semibold hidden">Stop Record</button>
           <div class="flex items-center gap-2">
             <span id="seqPosition" class="bg-slate-900/80 border border-slate-700 rounded-lg px-3 py-2 font-mono text-sm text-slate-300 min-w-[100px] text-center">0:0:0</span>
             <button id="seqToStart" aria-label="To start" title="To start" class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm">|&lt;</button>
@@ -230,23 +216,12 @@
 
         <div id="seqTracks" class="space-y-2"></div>
 
-        <div id="pianoRollWrap" class="flex flex-col">
-          <div class="flex">
-            <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
-            <div id="pianoRollScroll" class="overflow-auto relative">
-              <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-              <div id="pianoRollSpacer"></div>
-            </div>
-          </div>
-          <!-- Velocity Chart -->
-          <div class="flex">
-            <div class="w-[60px] bg-slate-900 border border-slate-700 flex items-center justify-center">
-              <span class="text-xs text-slate-400 rotate-90">Velocity</span>
-            </div>
-            <div id="velocityChartScroll" class="overflow-auto relative">
-              <canvas id="velocityChart" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
-              <div id="velocityChartSpacer"></div>
-            </div>
+        <div id="pianoRollWrap" class="flex">
+          <canvas id="pianoRollGutter" class="bg-slate-900 border border-slate-700"></canvas>
+          <div id="pianoRollScroll" class="overflow-auto relative">
+            <canvas id="pianoRoll" class="bg-slate-900 border border-slate-700 absolute top-0 left-0"></canvas>
+            <div id="pianoRollSpacer"></div>
+
           </div>
         </div>
 
@@ -285,7 +260,7 @@
             <button id="btnCopyFL" aria-label="Copy for FL Paste (Score)" title="Copy for FL Paste (Score)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
             <button id="btnCopyCSV" aria-label="Copy CSV" title="Copy CSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
             <button id="btnMid" aria-label="Download .MID" title="Download .MID" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
-          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL's Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
+          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL’s Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
         </div>
         <div id="copyStatus" class="text-xs text-slate-300 mt-2"></div>
       </div>
@@ -690,8 +665,6 @@ async function initSampleLibrary() {
         instruments: SAMPLED_INSTRUMENTS,
         baseUrl: "https://nbrosowsky.github.io/tonejs-instruments/samples/"
       });
-      // Make sample library globally available for enhanced sequencer
-      window.sampleLibrary = sampleLibrary;
       console.log('Sample library loaded successfully');
     }
   } catch(e) {
@@ -715,12 +688,6 @@ const SEQ_INSTR = {
 };
 
 function createSeqInstrument(name){
-  // Use enhanced sequencer engine
-  if (window.SequencerEngine && window.SequencerEngine.createSeqInstrument) {
-    return window.SequencerEngine.createSeqInstrument(name);
-  }
-  
-  // Fallback to original implementation
   try {
     const factory = SEQ_INSTR[name];
     if(factory) {
@@ -796,75 +763,12 @@ function releaseHeld(midi){
 function allNotesOff(){ _synth?.releaseAll(); }
 window.addEventListener('blur', allNotesOff);
 
-// PC Keyboard to MIDI mapping for piano and instruments
-const PC_KEYBOARD_MAP = {
-  // White keys (natural notes)
-  'KeyA': 60, // C4
-  'KeyS': 62, // D4
-  'KeyD': 64, // E4
-  'KeyF': 65, // F4
-  'KeyG': 67, // G4
-  'KeyH': 69, // A4
-  'KeyJ': 71, // B4
-  'KeyK': 72, // C5
-  'KeyL': 74, // D5
-  'Semicolon': 76, // E5
-  'Quote': 77, // F5
-  
-  // Black keys (sharp/flat notes)
-  'KeyW': 61, // C#4
-  'KeyE': 63, // D#4
-  'KeyT': 66, // F#4
-  'KeyY': 68, // G#4
-  'KeyU': 70, // A#4
-  'KeyO': 73, // C#5
-  'KeyP': 75, // D#5
-  'BracketLeft': 78, // F#5
-  
-  // Lower octave
-  'KeyZ': 48, // C3
-  'KeyX': 50, // D3
-  'KeyC': 52, // E3
-  'KeyV': 53, // F3
-  'KeyB': 55, // G3
-  'KeyN': 57, // A3
-  'KeyM': 59, // B3
-  
-  // Lower octave black keys
-  'Digit1': 49, // C#3
-  'Digit2': 51, // D#3
-  'Digit4': 54, // F#3
-  'Digit5': 56, // G#3
-  'Digit6': 58, // A#3
-};
-
-// Track currently pressed keys to prevent duplicate triggers
-const pressedKeys = new Set();
-
-// Global keyboard shortcuts and PC keyboard instrument control
+// Global keyboard shortcuts
 document.addEventListener('keydown', (ev) => {
   // Don't interfere with input fields
   if(ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
   
   const ctrl = ev.ctrlKey || ev.metaKey;
-  
-  // Check if this is a PC keyboard note
-  if (PC_KEYBOARD_MAP[ev.code] && !pressedKeys.has(ev.code)) {
-    ev.preventDefault();
-    pressedKeys.add(ev.code);
-    const midiNote = PC_KEYBOARD_MAP[ev.code];
-    
-    // Play the note
-    pressHeld(midiNote);
-    
-    // Highlight the corresponding key on the piano
-    const keyElement = pianoHost.querySelector(`[data-midi="${midiNote}"]`);
-    if (keyElement) {
-      keyElement.classList.add('key-pressed');
-    }
-    
-    return;
-  }
   
   switch(ev.code) {
     case 'Space':
@@ -945,24 +849,6 @@ document.addEventListener('keydown', (ev) => {
   }
 });
 
-// Handle key release for PC keyboard
-document.addEventListener('keyup', (ev) => {
-  if (PC_KEYBOARD_MAP[ev.code] && pressedKeys.has(ev.code)) {
-    ev.preventDefault();
-    pressedKeys.delete(ev.code);
-    const midiNote = PC_KEYBOARD_MAP[ev.code];
-    
-    // Release the note
-    releaseHeld(midiNote);
-    
-    // Remove highlight from the corresponding key
-    const keyElement = pianoHost.querySelector(`[data-midi="${midiNote}"]`);
-    if (keyElement) {
-      keyElement.classList.remove('key-pressed');
-    }
-  }
-});
-
 // Undo/Redo system
 function saveState(description) {
   const state = {
@@ -998,7 +884,6 @@ function undo() {
   song.tracks = prevState.tracks;
   selectedNotes.clear();
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -1020,7 +905,6 @@ function redo() {
   song.tracks = nextState.tracks;
   selectedNotes.clear();
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -1030,7 +914,6 @@ function selectAll() {
   const track = song.tracks[activeTrack];
   track.clips[0].notes.forEach(note => selectedNotes.add(note));
   drawPianoRoll();
-  drawVelocityChart();
 }
 
 function deleteSelected() {
@@ -1040,7 +923,6 @@ function deleteSelected() {
   track.clips[0].notes = track.clips[0].notes.filter(note => !selectedNotes.has(note));
   selectedNotes.clear();
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong(activeTrack);
 }
 
@@ -1074,7 +956,6 @@ function cutSelected() {
   
   track.clips[0].notes.sort((a,b) => a.tick - b.tick);
     drawPianoRoll();
-    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1102,7 +983,6 @@ function cutSelected() {
     clipboard = newNotes.map(n => ({...n}));
     track.clips[0].notes.sort((a,b) => a.tick - b.tick);
     drawPianoRoll();
-    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1123,7 +1003,6 @@ function cutSelected() {
     events.forEach(n=>{ track.clips[0].notes.push(n); selectedNotes.add(n); });
     track.clips[0].notes.sort((a,b)=>a.tick - b.tick);
     drawPianoRoll();
-    drawVelocityChart();
     if(Tone.Transport.state==='started') scheduleSong(activeTrack);
   }
 
@@ -1186,7 +1065,6 @@ function cutSelected() {
   const track = song.tracks[activeTrack];
   track.clips[0].notes.sort((a,b) => a.tick - b.tick);
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong(activeTrack);
 }
 
@@ -1215,7 +1093,6 @@ function jumpToStart() {
   Tone.Transport.position = 0;
   updatePositionDisplay();
   drawPianoRoll();
-  drawVelocityChart();
 }
 
 function jumpToEnd() {
@@ -1226,7 +1103,6 @@ function jumpToEnd() {
   Tone.Transport.ticks = lastTick;
   updatePositionDisplay();
   drawPianoRoll();
-  drawVelocityChart();
 }
 
 // Simple Tone.js drum recipes
@@ -1359,11 +1235,11 @@ const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
 const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale'); const btnModeSequencer = $('#btnModeSequencer');
 const wrapChord = $('#wrapChord'); const wrapScale = $('#wrapScale');
 const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); const btnPlayStrum = $('#btnPlayStrum');
-const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq'); const btnShowKeyboard = $('#btnShowKeyboard');
+const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
 const sequencerHost = $('#sequencerHost');
-const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqRecord = $('#seqRecord'); const seqStopRecord = $('#seqStopRecord'); const seqBpm = $('#seqBpm');
+const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
 const seqAutoScroll = $('#seqAutoScroll');
 const seqQuantize = $('#seqQuantize');
@@ -1377,9 +1253,6 @@ const pianoRoll = $('#pianoRoll');
 const pianoRollGutter = $('#pianoRollGutter');
 const pianoRollScroll = $('#pianoRollScroll');
 const pianoRollSpacer = $('#pianoRollSpacer');
-const velocityChart = $('#velocityChart');
-const velocityChartScroll = $('#velocityChartScroll');
-const velocityChartSpacer = $('#velocityChartSpacer');
 const seqTracks = $('#seqTracks');
 const seqZoomX = $('#seqZoomX'); const seqZoomY = $('#seqZoomY');
 const seqClearAll = $('#seqClearAll');
@@ -1401,21 +1274,9 @@ pianoRollScroll.addEventListener('scroll', ()=>{
   ui.scrollX = pianoRollScroll.scrollLeft;
   ui.scrollY = pianoRollScroll.scrollTop;
   pianoRollGutter.scrollTop = ui.scrollY;
-  velocityChartScroll.scrollLeft = ui.scrollX;
   drawPianoRoll();
-  drawVelocityChart();
 });
-
-velocityChartScroll.addEventListener('scroll', ()=>{
-  ui.scrollX = velocityChartScroll.scrollLeft;
-  pianoRollScroll.scrollLeft = ui.scrollX;
-  drawPianoRoll();
-  drawVelocityChart();
-});
-window.addEventListener('resize', () => {
-  drawPianoRoll();
-  drawVelocityChart();
-});
+window.addEventListener('resize', drawPianoRoll);
 
 let mode = 'Chord';
 let instrument = 'Piano';
@@ -1648,12 +1509,6 @@ let rescheduleId = null;
 let songEndTick = 0;
 
 function scheduleSong(){
-  // Use enhanced sequencer engine for better error handling
-  if (window.SequencerEngine && window.SequencerEngine.scheduleSongEnhanced) {
-    return window.SequencerEngine.scheduleSongEnhanced();
-  }
-  
-  // Fallback to original implementation
   const anySolo = song.tracks.some(t => t.solo);
   song.tracks.forEach(track => {
     const active = anySolo ? track.solo : !track.mute;
@@ -1694,12 +1549,6 @@ function scheduleSong(){
 }
 
 function scheduleAhead(){
-  // Use enhanced sequencer engine for better error handling
-  if (window.SequencerEngine && window.SequencerEngine.scheduleAheadEnhanced) {
-    return window.SequencerEngine.scheduleAheadEnhanced();
-  }
-  
-  // Fallback to original implementation
   const anySolo = song.tracks.some(t => t.solo);
   const ticksPerBeat = song.ppq * (4 / song.ts.den);
   const ticksPerBar = ticksPerBeat * song.ts.num;
@@ -1732,14 +1581,6 @@ let clickId = null;
 let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
 let autoStopId = null; // Store the auto-stop event ID
 
-// MIDI Input and Recording
-let midiAccess = null;
-let midiInputs = [];
-let isRecording = false;
-let recordingStartTime = 0;
-let recordedNotes = [];
-let midiInput = null;
-
 // Selection and editing state
 let selectedNotes = new Set(); // Set of note objects
 let clipboard = []; // Copied notes
@@ -1766,7 +1607,6 @@ function loadSong(data){
   updateLoop();
   initSequencer();
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -1863,7 +1703,6 @@ function importSongMidi(buffer){
   updateLoop();
   initSequencer();
   drawPianoRoll();
-  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
   const bars = MAX_SONG_BARS.toLocaleString();
   seqStatus.textContent = truncated ? `⚠️ MIDI truncated to ${bars} bars` : '✅ Imported MIDI';
@@ -1895,68 +1734,42 @@ function exportSongMidi(){
 
 function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
 function drawPianoRoll(){
-  // Use enhanced sequencer engine for better large file handling
-  if (window.SequencerEngine && window.SequencerEngine.drawPianoRollEnhanced) {
-    return window.SequencerEngine.drawPianoRollEnhanced();
-  }
-  
-  // Fallback to original implementation
   const clip = song.tracks[activeTrack].clips[0];
-  
   // Auto-extend clip length if needed based on actual notes - generous buffer for large files
   const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t => 
     t.clips[0].notes.map(n => n.tick + n.dur)
   ));
-  
   // For large MIDI files, add more substantial buffer - minimum 8 bars or 25% of content length
   const bufferSize = Math.max(192*8, Math.floor(maxNoteTick * 0.25));
   const minClipLength = Math.max(clip.length, maxNoteTick + bufferSize);
   if(minClipLength > clip.length) {
     song.tracks.forEach(t => t.clips[0].length = minClipLength);
   }
-  
   const totalSteps = clip.length / SIXTEENTH;
   const noteCount = MAX_MIDI - MIN_MIDI;
   let cellW = 20 * ui.zoomX;
   const cellH = 20 * ui.zoomY;
   let totalWidth = totalSteps * cellW;
   
-  // CRITICAL FIX: Handle extremely large MIDI files that exceed browser limits
-  const maxBrowserWidth = 33554427; // Chrome/Firefox limit
-  const maxBrowserHeight = 33554427; // Chrome/Firefox limit
-  
-  if(totalWidth > maxBrowserWidth) {
-    console.warn('Large MIDI detected - totalWidth:', totalWidth, 'exceeds browser limit:', maxBrowserWidth);
+  // Debug logging for large MIDI files
+  if(clip.length > 192*64) {
+    console.log('Large MIDI detected - clip.length:', clip.length, 'totalSteps:', totalSteps, 'totalWidth:', totalWidth, 'cellW:', cellW);
     
-    // Calculate maximum allowed zoom to fit within browser limits
-    const maxZoomX = maxBrowserWidth / (totalSteps * 20);
-    
-    if(ui.zoomX > maxZoomX) {
-      console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
-      ui.zoomX = Math.max(0.1, maxZoomX); // Ensure minimum zoom
-      seqZoomX.value = ui.zoomX;
-      cellW = 20 * ui.zoomX;
-      totalWidth = totalSteps * cellW;
-      console.log('Adjusted totalWidth:', totalWidth);
-    }
-    
-    // If still too large, truncate the display but keep the data
+    // Check for browser width limits
+    const maxBrowserWidth = 33554427; // Chrome/Firefox limit
     if(totalWidth > maxBrowserWidth) {
-      const maxSteps = Math.floor(maxBrowserWidth / (20 * ui.zoomX));
-      const maxTicks = maxSteps * SIXTEENTH;
-      console.warn('Truncating display to', maxSteps, 'steps, maxTicks:', maxTicks);
-      totalWidth = maxBrowserWidth;
-    }
-  }
-  
-  // Check height limits as well
-  const totalHeight = noteCount * cellH;
-  if(totalHeight > maxBrowserHeight) {
-    console.warn('Large MIDI detected - totalHeight:', totalHeight, 'exceeds browser limit:', maxBrowserHeight);
-    const maxZoomY = maxBrowserHeight / (noteCount * 20);
-    if(ui.zoomY > maxZoomY) {
-      ui.zoomY = Math.max(0.1, maxZoomY);
-      seqZoomY.value = ui.zoomY;
+      console.warn('totalWidth exceeds browser limit:', totalWidth, '> max:', maxBrowserWidth);
+      // Reduce zoom to fit within browser limits
+      const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+      if(ui.zoomX > maxZoomX) {
+        console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
+        ui.zoomX = maxZoomX;
+        seqZoomX.value = maxZoomX;
+        // Recalculate with new zoom
+        cellW = 20 * ui.zoomX;
+        totalWidth = totalSteps * cellW;
+        console.log('Adjusted totalWidth:', totalWidth);
+      }
     }
   }
   const scrollLeft = pianoRollScroll.scrollLeft;
@@ -1977,37 +1790,21 @@ function drawPianoRoll(){
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
-  // notes - with enhanced viewport culling for large files
+  // notes - with viewport culling for performance
   const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
   const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
   const topMidi = MAX_MIDI - Math.floor(pianoRollScroll.scrollTop / cellH);
   const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
   
-  // Enhanced performance for large files - limit rendering to visible area with buffer
-  const renderBuffer = 1000; // Buffer in ticks for smooth scrolling
-  const renderStartTick = Math.max(0, startTick - renderBuffer);
-  const renderEndTick = endTick + renderBuffer;
-  
   song.tracks.forEach((track,idx)=>{
     const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
-    
-    // Enhanced viewport culling with buffer for large files
+    // Pre-filter notes for viewport culling - major performance improvement for large files
     const visibleNotes = track.clips[0].notes.filter(n => 
-      n.tick + n.dur >= renderStartTick && n.tick <= renderEndTick && 
+      n.tick + n.dur >= startTick && n.tick <= endTick && 
       n.midi >= bottomMidi && n.midi <= topMidi
     );
     
-    // Limit number of notes rendered for very large files
-    const maxNotesPerTrack = 10000; // Prevent browser from hanging
-    const notesToRender = visibleNotes.length > maxNotesPerTrack ? 
-      visibleNotes.slice(0, maxNotesPerTrack) : visibleNotes;
-    
-    // Show warning for large files
-    if (visibleNotes.length > maxNotesPerTrack) {
-      seqStatus.textContent = `⚠️ Large file: Showing ${notesToRender.length}/${visibleNotes.length} notes in viewport`;
-    }
-    
-    notesToRender.forEach(n=>{
+    visibleNotes.forEach(n=>{
       const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
@@ -2024,7 +1821,7 @@ function drawPianoRoll(){
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
       
-      // Draw note with complete coloring - FIXED: Full note coloring
+      // Draw note with piano colors
       ctx.fillStyle = pianoColor;
       ctx.fillRect(x,y,w,cellH);
       
@@ -2033,16 +1830,10 @@ function drawPianoRoll(){
       ctx.lineWidth = 1;
       ctx.strokeRect(x,y,w,cellH);
       
-      // Add track color overlay for active track notes (more prominent)
+      // Add track color as small indicator on active track notes
       if(idx === activeTrack) {
         ctx.fillStyle = baseColor;
-        ctx.fillRect(x + 1, y + 1, w - 2, cellH - 2);
-        
-        // Redraw the note color on top with transparency
-        ctx.globalAlpha = 0.7;
-        ctx.fillStyle = pianoColor;
-        ctx.fillRect(x + 1, y + 1, w - 2, cellH - 2);
-        ctx.globalAlpha = 1.0;
+        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
       }
     });
   });
@@ -2077,155 +1868,6 @@ function drawPianoRoll(){
   pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
   gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
   for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
-  
-  // Draw velocity chart
-  drawVelocityChart();
-}
-
-// Draw velocity chart at the bottom
-function drawVelocityChart() {
-  const clip = song.tracks[activeTrack].clips[0];
-  const track = song.tracks[activeTrack];
-  const instrument = track.instrument;
-  
-  const totalSteps = clip.length / SIXTEENTH;
-  let cellW = 20 * ui.zoomX;
-  let totalWidth = totalSteps * cellW;
-  
-  // Handle large files same as piano roll
-  const maxBrowserWidth = 33554427;
-  if(totalWidth > maxBrowserWidth) {
-    const maxZoomX = maxBrowserWidth / (totalSteps * 20);
-    if(ui.zoomX > maxZoomX) {
-      cellW = 20 * maxZoomX;
-      totalWidth = totalSteps * cellW;
-    }
-    if(totalWidth > maxBrowserWidth) {
-      totalWidth = maxBrowserWidth;
-    }
-  }
-  
-  const scrollLeft = velocityChartScroll.scrollLeft;
-  const viewportWidth = velocityChartScroll.clientWidth;
-  const height = 80; // Fixed height for velocity chart
-  const dpr = window.devicePixelRatio||1;
-  
-  velocityChart.width = viewportWidth*dpr; 
-  velocityChart.height = height*dpr; 
-  velocityChart.style.width=viewportWidth+'px'; 
-  velocityChart.style.height=height+'px';
-  velocityChartSpacer.style.width = totalWidth+'px'; 
-  velocityChartSpacer.style.height = height+'px';
-  
-  const ctx = velocityChart.getContext('2d'); 
-  ctx.setTransform(dpr,0,0,dpr,0,0); 
-  ctx.clearRect(0,0,viewportWidth,height);
-  
-  // Background
-  ctx.fillStyle = '#1e293b';
-  ctx.fillRect(0,0,viewportWidth,height);
-  
-  // Grid lines
-  ctx.strokeStyle = '#334155';
-  ctx.lineWidth = 1;
-  
-  // Vertical grid (same as piano roll)
-  const startStep = Math.floor(scrollLeft / cellW);
-  const endStep = startStep + Math.ceil(viewportWidth / cellW) + 1;
-  for(let i=startStep;i<=endStep;i++){
-    const x=i*cellW - scrollLeft; 
-    if(i%(song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#475569'; 
-    if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#64748b'; 
-    ctx.beginPath(); 
-    ctx.moveTo(x,0); 
-    ctx.lineTo(x,height); 
-    ctx.stroke();
-    ctx.strokeStyle = '#334155';
-  }
-  
-  // Horizontal grid for velocity levels
-  for(let i=0;i<=10;i++){
-    const y = (height/10) * i;
-    ctx.strokeStyle = i % 5 === 0 ? '#475569' : '#334155';
-    ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(viewportWidth,y);
-    ctx.stroke();
-  }
-  
-  // Velocity labels
-  ctx.fillStyle = '#94a3b8';
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'right';
-  for(let i=0;i<=10;i++){
-    const y = (height/10) * i;
-    const vel = 100 - (i * 10);
-    ctx.fillText(vel.toString(), 55, y + 3);
-  }
-  
-  // Draw velocity bars for notes
-  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
-  const endTick = Math.ceil((scrollLeft + viewportWidth) / cellW) * SIXTEENTH;
-  const renderBuffer = 1000;
-  const renderStartTick = Math.max(0, startTick - renderBuffer);
-  const renderEndTick = endTick + renderBuffer;
-  
-  // Get visible notes
-  const visibleNotes = clip.notes.filter(n => 
-    n.tick + n.dur >= renderStartTick && n.tick <= renderEndTick
-  );
-  
-  // Instrument-specific velocity visualization
-  const getVelocityColor = (velocity, instrument) => {
-    const vel = velocity || 0.8;
-    const intensity = Math.min(1, vel * 1.2);
-    
-    switch(instrument) {
-      case 'Piano':
-        return `rgba(59, 130, 246, ${intensity})`; // Blue
-      case 'Guitar':
-        return `rgba(34, 197, 94, ${intensity})`; // Green
-      case 'Bass':
-        return `rgba(168, 85, 247, ${intensity})`; // Purple
-      case 'Violin':
-        return `rgba(236, 72, 153, ${intensity})`; // Pink
-      case 'Flute':
-        return `rgba(14, 165, 233, ${intensity})`; // Sky blue
-      case 'Trumpet':
-        return `rgba(245, 158, 11, ${intensity})`; // Amber
-      case 'Saxophone':
-        return `rgba(239, 68, 68, ${intensity})`; // Red
-      case 'Koto':
-        return `rgba(16, 185, 129, ${intensity})`; // Emerald
-      default:
-        return `rgba(156, 163, 175, ${intensity})`; // Gray
-    }
-  };
-  
-  visibleNotes.forEach(note => {
-    const x = note.tick/SIXTEENTH*cellW - scrollLeft;
-    const w = note.dur/SIXTEENTH*cellW;
-    const vel = note.vel || 0.8;
-    const barHeight = (vel * height);
-    const y = height - barHeight;
-    
-    // Draw velocity bar
-    ctx.fillStyle = getVelocityColor(vel, instrument);
-    ctx.fillRect(x, y, w, barHeight);
-    
-    // Add border
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, w, barHeight);
-    
-    // Add velocity text for longer notes
-    if(w > 30) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '9px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(Math.round(vel * 100), x + w/2, y + barHeight/2 + 3);
-    }
-  });
 }
 
 function cancelTrackSwitch(){
@@ -2242,7 +1884,6 @@ function startTrackSwitchTimer(idx){
     refreshActiveTrackHighlight();
     seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
     drawPianoRoll();
-    drawVelocityChart();
     cancelTrackSwitch();
   }, TRACK_SWITCH_DELAY);
   pianoRoll.addEventListener('pointerup', cancelTrackSwitch);
@@ -2265,19 +1906,13 @@ pianoRoll.addEventListener('contextmenu', ev => {
   
   const clip = song.tracks[activeTrack].clips[0];
   
-  // Find if we right-clicked on a note - FIXED: Improved hitbox detection
+  // Find if we right-clicked on a note
   let foundNote = null;
   for(let i = clip.notes.length - 1; i >= 0; i--) {
     const n = clip.notes[i];
     const noteX = n.tick / SIXTEENTH * cellW;
     const noteW = n.dur / SIXTEENTH * cellW;
-    const noteY = (MAX_MIDI - n.midi - 1) * cellH;
-    const noteH = cellH;
-    
-    // Check if click is within the note's full rectangle (including borders)
-    if(n.midi === midi && 
-       x >= noteX - 2 && x < noteX + noteW + 2 && 
-       y >= noteY - 2 && y < noteY + noteH + 2) {
+    if(n.midi === midi && x >= noteX && x < noteX + noteW) {
       foundNote = n;
       break;
     }
@@ -2289,7 +1924,6 @@ pianoRoll.addEventListener('contextmenu', ev => {
       selectedNotes.clear();
       selectedNotes.add(foundNote);
       drawPianoRoll();
-      drawVelocityChart();
     }
     
     // Show context menu at mouse position
@@ -2306,7 +1940,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
   const cellW = 20*ui.zoomX; const cellH = 20*ui.zoomY;
   const tick = Math.floor(x/cellW)*SIXTEENTH;
   const midi = MAX_MIDI-1-Math.floor(y/cellH);
-  // check notes from non-active tracks for potential track switch - FIXED: Improved hitbox detection
+  // check notes from non-active tracks for potential track switch
   for(let t=0;t<song.tracks.length;t++){
     if(t===activeTrack) continue;
     const oClip = song.tracks[t].clips[0];
@@ -2314,32 +1948,20 @@ pianoRoll.addEventListener('pointerdown', ev => {
       const n=oClip.notes[i];
       const noteX=n.tick/SIXTEENTH*cellW;
       const noteW=n.dur/SIXTEENTH*cellW;
-      const noteY=(MAX_MIDI-n.midi-1)*cellH;
-      const noteH=cellH;
-      
-      // Check if click is within the note's full rectangle (including borders)
-      if(n.midi===midi && 
-         x>=noteX-2 && x<noteX+noteW+2 && 
-         y>=noteY-2 && y<noteY+noteH+2){
+      if(n.midi===midi && x>=noteX && x<noteX+noteW){
         startTrackSwitchTimer(t);
         return;
       }
     }
   }
   const clip=song.tracks[activeTrack].clips[0];
-  // check existing notes first - FIXED: Improved hitbox detection
+  // check existing notes first
   let foundNote = null;
   for(let i=clip.notes.length-1;i>=0;i--){
     const n=clip.notes[i];
     const noteX=n.tick/SIXTEENTH*cellW;
     const noteW=n.dur/SIXTEENTH*cellW;
-    const noteY=(MAX_MIDI-n.midi-1)*cellH;
-    const noteH=cellH;
-    
-    // Check if click is within the note's full rectangle (including borders)
-    if(n.midi===midi && 
-       x>=noteX-2 && x<noteX+noteW+2 && 
-       y>=noteY-2 && y<noteY+noteH+2){
+    if(n.midi===midi && x>=noteX && x<noteX+noteW){
       foundNote = n;
       break;
     }
@@ -2352,7 +1974,6 @@ pianoRoll.addEventListener('pointerdown', ev => {
       clip.notes.splice(clip.notes.indexOf(foundNote), 1);
       selectedNotes.delete(foundNote);
       drawPianoRoll();
-      drawVelocityChart();
       if(Tone.Transport.state==='started') scheduleSong(activeTrack);
       return;
     } else if(ev.shiftKey) {
@@ -2363,20 +1984,17 @@ pianoRoll.addEventListener('pointerdown', ev => {
         selectedNotes.add(foundNote);
       }
       drawPianoRoll();
-      drawVelocityChart();
       return;
     } else if(ev.ctrlKey || ev.metaKey) {
       // Ctrl+Click = Add to selection
       selectedNotes.add(foundNote);
       drawPianoRoll();
-      drawVelocityChart();
       return;
     } else if(!selectedNotes.has(foundNote)) {
       // Regular click on unselected note = Select only this note
       selectedNotes.clear();
       selectedNotes.add(foundNote);
       drawPianoRoll();
-      drawVelocityChart();
     }
     
     // Start dragging if note is selected
@@ -2388,7 +2006,6 @@ pianoRoll.addEventListener('pointerdown', ev => {
       dragNote={note:foundNote, mode:nearRight?'resize':'move', offsetTick:tick-foundNote.tick, offsetMidi:midi-foundNote.midi};
       pianoRoll.setPointerCapture(ev.pointerId);
       drawPianoRoll();
-      drawVelocityChart();
       return;
     }
   } else {
@@ -2400,12 +2017,10 @@ pianoRoll.addEventListener('pointerdown', ev => {
       ui.selectEnd = {x, y};
       pianoRoll.setPointerCapture(ev.pointerId);
       drawPianoRoll();
-      drawVelocityChart();
       return;
     } else if(!ev.ctrlKey && !ev.metaKey) {
       selectedNotes.clear();
       drawPianoRoll();
-      drawVelocityChart();
     }
   }
   
@@ -2416,7 +2031,6 @@ pianoRoll.addEventListener('pointerdown', ev => {
     dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
     pianoRoll.setPointerCapture(ev.pointerId);
     drawPianoRoll();
-    drawVelocityChart();
   }
 });
 pianoRoll.addEventListener('pointermove', ev=>{
@@ -2467,7 +2081,6 @@ pianoRoll.addEventListener('pointermove', ev=>{
     const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.note.dur=Math.max(SIXTEENTH,endTick-dragNote.note.tick);
   }
   drawPianoRoll();
-  drawVelocityChart();
 });
 pianoRoll.addEventListener('pointerup', ev=>{
   const rect=pianoRoll.getBoundingClientRect();
@@ -2496,7 +2109,6 @@ pianoRoll.addEventListener('pointerup', ev=>{
     
     ui.selecting = false;
     drawPianoRoll();
-    drawVelocityChart();
     pianoRoll.releasePointerCapture(ev.pointerId);
     return;
   }
@@ -2514,13 +2126,13 @@ pianoRoll.addEventListener('pointerup', ev=>{
   }
   // keep notes ordered after edits
   track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
-  dragNote=null; drawPianoRoll(); drawVelocityChart(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
+  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
 });
-pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); drawVelocityChart(); });
+pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
 
 pianoRoll.addEventListener('wheel', ev=>{
-  if(ev.ctrlKey){ ev.preventDefault(); ui.zoomX=Math.min(8,Math.max(0.5,ui.zoomX*(ev.deltaY>0?0.9:1.1))); seqZoomX.value=ui.zoomX; drawPianoRoll(); drawVelocityChart(); }
-  else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); drawVelocityChart(); }
+  if(ev.ctrlKey){ ev.preventDefault(); ui.zoomX=Math.min(8,Math.max(0.5,ui.zoomX*(ev.deltaY>0?0.9:1.1))); seqZoomX.value=ui.zoomX; drawPianoRoll(); }
+  else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); }
   else if(ev.shiftKey){ pianoRollScroll.scrollLeft += ev.deltaY; ev.preventDefault(); }
 });
 
@@ -2529,13 +2141,9 @@ function startPlayhead(){
   function loop(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
-    if(seqAutoScroll.checked){ 
-      pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; 
-      velocityChartScroll.scrollLeft = x - velocityChartScroll.clientWidth/2;
-    }
+    if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
     updatePositionDisplay();
     drawPianoRoll();
-    drawVelocityChart();
     playheadReq=requestAnimationFrame(loop);
   }
   loop();
@@ -2545,7 +2153,6 @@ function stopPlayhead(){
   playheadReq=null; 
   updatePositionDisplay();
   drawPianoRoll(); 
-  drawVelocityChart();
 }
 
 function initSequencer(){
@@ -2602,13 +2209,11 @@ function initSequencer(){
       track.color = e.target.value;
       track.colorOverridden = true;
       drawPianoRoll();
-      drawVelocityChart();
     });
     clrReset.addEventListener('click', ()=>{
       track.colorOverridden = false;
       applySeqColorScheme(seqColorScheme.value);
       drawPianoRoll();
-      drawVelocityChart();
     });
     row.addEventListener('click', e=>{
       if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
@@ -2616,14 +2221,12 @@ function initSequencer(){
       refreshActiveTrackHighlight();
       seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
       drawPianoRoll();
-      drawVelocityChart();
     });
   });
   applySeqColorScheme('Classic');
   refreshActiveTrackHighlight();
   seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
   drawPianoRoll();
-  drawVelocityChart();
 }
 
 function updateSelButtons(){
@@ -2634,23 +2237,15 @@ function updateSelButtons(){
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
+fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
+fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
+fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
 function populateModeOptions(){
   fillSelect(selMode, MODE_SYSTEMS[system]);
   if(!MODE_SYSTEMS[system].includes(scaleMode)) scaleMode = MODE_SYSTEMS[system][0];
   selMode.value = scaleMode;
 }
-function populateDropdowns() {
-  fillSelect(selKey, KEYS); 
-  selKey.value = keyRoot; 
-  fillSelect(selInstr, INSTRUMENTS); 
-  selInstr.value=instrument; 
-  updateInstrumentIcon();
-  fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); 
-  selQuality.value=chordQuality;
-  fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); 
-  selSystem.value = system;
-  populateModeOptions();
-}
+populateModeOptions();
 
 function updateBadges(){
   badgeRoot.textContent = 'Root: '+toSharpName(keyRoot);
@@ -4471,21 +4066,15 @@ function updateInstrumentIcon(){
 }
 function refreshInstruments(){
   updateInstrumentIcon();
-  // Get current instrument value, default to 'Piano' if not set
-  const currentInstrument = selInstr.value || 'Piano';
-  const isPiano = currentInstrument === 'Piano';
-  const isGuitar = currentInstrument.startsWith('Guitar') || currentInstrument.startsWith('Oud');
-  const isBass = currentInstrument.startsWith('Bass');
-  const isViolin = currentInstrument.startsWith('Violin');
-  const isFlute = currentInstrument.startsWith('Flute');
-  const isRecorder = currentInstrument.startsWith('Recorder');
-  const isTrumpet = currentInstrument.startsWith('Trumpet');
-  const isSaxophone = currentInstrument.startsWith('Saxophone');
-  const isKoto = currentInstrument.startsWith('Koto');
-  const isNey = currentInstrument.startsWith('Ney');
-  
-  // Show/hide hosts based on current instrument
-  pianoHost.classList.toggle('hidden', !isPiano);
+  const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
+  const isBass = selInstr.value.startsWith('Bass');
+  const isViolin = selInstr.value.startsWith('Violin');
+  const isFlute = selInstr.value.startsWith('Flute');
+  const isRecorder = selInstr.value.startsWith('Recorder');
+  const isTrumpet = selInstr.value.startsWith('Trumpet');
+  const isSaxophone = selInstr.value.startsWith('Saxophone');
+  const isKoto = selInstr.value.startsWith('Koto');
+  const isNey = selInstr.value.startsWith('Ney');
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
   violinHost.classList.toggle('hidden', !isViolin);
@@ -4495,9 +4084,6 @@ function refreshInstruments(){
   saxophoneHost.classList.toggle('hidden', !isSaxophone);
   kotoHost.classList.toggle('hidden', !isKoto);
   neyHost.classList.toggle('hidden', !isNey);
-  
-  // Build the appropriate instrument visualization
-  if(!pianoHost.classList.contains('hidden')) buildPiano();
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
   if(!fluteHost.classList.contains('hidden')) buildFluteChart();
   if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
@@ -4510,8 +4096,6 @@ function refreshInstruments(){
 function updateAll(){
   renderHighlights();
   updateBadges();
-  if(!pianoHost.classList.contains('hidden'))
-    buildPiano();
   if(!guitarHost.classList.contains('hidden'))
     buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)');
   if(!bassHost.classList.contains('hidden'))
@@ -4532,194 +4116,50 @@ function updateAll(){
     buildNeyChart();
 }
 
-// MIDI Input Functions
-async function initMIDI() {
-  try {
-    if (navigator.requestMIDIAccess) {
-      midiAccess = await navigator.requestMIDIAccess();
-      midiInputs = Array.from(midiAccess.inputs.values());
-      
-      // Auto-select first MIDI input if available
-      if (midiInputs.length > 0) {
-        midiInput = midiInputs[0];
-        midiInput.onmidimessage = handleMIDIMessage;
-        console.log('MIDI input connected:', midiInput.name);
-        seqStatus.textContent = `MIDI: ${midiInput.name}`;
-      }
-      
-      // Listen for MIDI device changes
-      midiAccess.onstatechange = () => {
-        midiInputs = Array.from(midiAccess.inputs.values());
-        if (midiInputs.length > 0 && !midiInput) {
-          midiInput = midiInputs[0];
-          midiInput.onmidimessage = handleMIDIMessage;
-          seqStatus.textContent = `MIDI: ${midiInput.name}`;
-        }
-      };
-    }
-  } catch (error) {
-    console.warn('MIDI not available:', error);
-  }
-}
-
-function handleMIDIMessage(event) {
-  const [status, note, velocity] = event.data;
-  const messageType = status & 0xF0;
-  
-  if (messageType === 0x90 && velocity > 0) { // Note On
-    const midiNote = note;
-    const vel = velocity / 127;
-    
-    // Play the note
-    pressHeld(midiNote);
-    
-    // Highlight the corresponding key
-    const keyElement = pianoHost.querySelector(`[data-midi="${midiNote}"]`);
-    if (keyElement) {
-      keyElement.classList.add('key-pressed');
-    }
-    
-    // Record the note if recording
-    if (isRecording) {
-      const currentTime = Tone.Transport.ticks;
-      recordedNotes.push({
-        type: 'noteOn',
-        midi: midiNote,
-        velocity: vel,
-        time: currentTime
-      });
-    }
-    
-  } else if (messageType === 0x80 || (messageType === 0x90 && velocity === 0)) { // Note Off
-    const midiNote = note;
-    
-    // Release the note
-    releaseHeld(midiNote);
-    
-    // Remove highlight
-    const keyElement = pianoHost.querySelector(`[data-midi="${midiNote}"]`);
-    if (keyElement) {
-      keyElement.classList.remove('key-pressed');
-    }
-    
-    // Record the note off if recording
-    if (isRecording) {
-      const currentTime = Tone.Transport.ticks;
-      recordedNotes.push({
-        type: 'noteOff',
-        midi: midiNote,
-        time: currentTime
-      });
-    }
-  }
-}
-
-function startRecording() {
-  if (isRecording) return;
-  
-  isRecording = true;
-  recordedNotes = [];
-  recordingStartTime = Tone.Transport.ticks;
-  
-  // Start transport if not already playing
-  if (Tone.Transport.state !== 'started') {
-    Tone.Transport.start();
-    sequencerState = 'playing';
-    startPlayhead();
-  }
-  
-  seqStatus.textContent = '🔴 Recording...';
-}
-
-function stopRecording() {
-  if (!isRecording) return;
-  
-  isRecording = false;
-  const recordingEndTime = Tone.Transport.ticks;
-  
-  // Process recorded notes into the sequencer
-  const track = song.tracks[activeTrack];
-  const notes = [];
-  const noteOnMap = new Map();
-  
-  recordedNotes.forEach(event => {
-    if (event.type === 'noteOn') {
-      noteOnMap.set(event.midi, {
-        startTime: event.time,
-        velocity: event.velocity
-      });
-    } else if (event.type === 'noteOff' && noteOnMap.has(event.midi)) {
-      const noteOn = noteOnMap.get(event.midi);
-      const duration = event.time - noteOn.startTime;
-      
-      if (duration > 0) {
-        notes.push({
-          tick: noteOn.startTime - recordingStartTime,
-          dur: duration,
-          midi: event.midi,
-          vel: noteOn.velocity
-        });
-      }
-      
-      noteOnMap.delete(event.midi);
-    }
-  });
-  
-  // Add recorded notes to the track
-  if (notes.length > 0) {
-    saveState('Record MIDI');
-    track.clips[0].notes.push(...notes);
-    track.clips[0].notes.sort((a, b) => a.tick - b.tick);
-    drawPianoRoll();
-    drawVelocityChart();
-    if (Tone.Transport.state === 'started') {
-      scheduleSong(activeTrack);
-    }
-  }
-  
-  seqStatus.textContent = `✅ Recorded ${notes.length} notes`;
-}
-
-function showKeyboardLayout() {
-  const layout = `
-PC Keyboard Layout:
-┌─────────────────────────────────────────────────────────┐
-│ Lower Octave (C3-B3)                                    │
-│ 1 2   4 5 6                                             │
-│ Z X C V B N M                                           │
-│   C# D#   F# G# A#                                      │
-└─────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────┐
-│ Middle Octave (C4-F5)                                   │
-│ W E   T Y U   O P [                                     │
-│ A S D F G H J K L ; '                                   │
-│   C# D#   F# G# A#   C# D#   F#                        │
-└─────────────────────────────────────────────────────────┘
-  `;
-  
-  alert(layout);
-}
-
-// Build UI - ensure DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    populateDropdowns(); buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
-  });
-} else {
-  populateDropdowns(); buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
-}
-// === TAB: Sequencer wiring (now handled by section1_tabs.js) ===
-// Tab functionality moved to separate module for better organization
+// Build UI
+buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector();
+// === TAB: Sequencer wiring (non-destructive) ===
+btnModeChord.addEventListener('click', ()=>{
+  mode='Chord';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.remove('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.remove('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeScale.addEventListener('click', ()=>{
+  mode='Scale/Mode';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapScale.classList.remove('hidden');
+  wrapChord.classList.add('hidden');
+  listenScale.classList.remove('hidden');
+  listenChord.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeSequencer.addEventListener('click', ()=>{
+  mode='Sequencer';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.add('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.add('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.remove('hidden');
+  updateAll();
+});
 
 selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
 selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
-// Instrument change now handled by section2_instruments.js
-selInstr.addEventListener('change', (e)=>{ 
-  // Update global instrument variable for compatibility
-  instrument = e.target.value; 
-  // Let section2_instruments.js handle the switching
-});
+selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
 
 // Settings event listeners
@@ -4904,8 +4344,8 @@ skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(..
 tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
 seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
-seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); drawVelocityChart(); });
-seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); drawVelocityChart(); });
+seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
+seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
 
 // Quantization controls
 seqQuantize.addEventListener('change', ()=>{
@@ -4968,23 +4408,18 @@ function showVelocityEditor() {
       note.vel = newVel;
     });
     drawPianoRoll();
-    drawVelocityChart();
   }
   
   hideContextMenu();
 }
-seqColorScheme.addEventListener('change', e=>{
-  applySeqColorScheme(e.target.value);
-  drawVelocityChart();
-});
-seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); drawVelocityChart(); });
-seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); drawVelocityChart(); });
-seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); drawVelocityChart(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
+seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
+seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
+seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
+seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
 $('#btnSendToSeq').addEventListener('click', sendToSequencer);
-$('#btnShowKeyboard').addEventListener('click', showKeyboardLayout);
 patternCategory.addEventListener('change', refreshPatternSelector);
 patternKey.addEventListener('change', drawPatternPreview);
 btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
@@ -5077,26 +4512,6 @@ seqStop.addEventListener('click', ()=>{
   stopPlayhead();
   sequencerState = 'stopped';
   seqPlay.textContent = 'Play';
-  
-  // Stop recording if active
-  if (isRecording) {
-    stopRecording();
-    seqRecord.classList.remove('hidden');
-    seqStopRecord.classList.add('hidden');
-  }
-});
-
-// Recording event listeners
-seqRecord.addEventListener('click', ()=>{
-  startRecording();
-  seqRecord.classList.add('hidden');
-  seqStopRecord.classList.remove('hidden');
-});
-
-seqStopRecord.addEventListener('click', ()=>{
-  stopRecording();
-  seqRecord.classList.remove('hidden');
-  seqStopRecord.classList.add('hidden');
 });
 
 seqExportJson.addEventListener('click', ()=>{
