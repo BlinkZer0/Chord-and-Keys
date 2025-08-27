@@ -1,100 +1,74 @@
-# Chord & Scale Library
+# Chord & Scale Library 🎵
 
-An interactive web application for exploring chords, scales, and music theory with visual instrument representations.
+A free‑as‑in‑jazz playground where code and chords jam in perfect sync.
+The repo is entirely text‑based – every texture is procedurally generated,
+so the only binary you'll find is a joke about 0s and 1s.
 
-## Features
+## Features on Stage
 
-### Core Functionality
-- **Chord & Scale Explorer**: Visualize chords and scales on various instruments
-- **Multiple Instruments**: Piano, Guitar, Bass, Violin, Flute, Recorder, Trumpet, Saxophone, Koto, Ney
-- **Audio Playback**: Play chords and scales using Tone.js
-- **Sequencer**: Advanced MIDI sequencer with pattern library
-- **Export Options**: MIDI, CSV, and FL Studio integration
+- 🎹 **Colorful Piano Roll** – notes wear their track's color proudly; ghost notes dim but never fade.
+- 🎸 **Polyphonic Plucks** – Guitar, Koto, and Oud strum multiple strings without cutting each other off.
+- 🥁 **Cymbal Smarts** – Metals crash on cue with the right pitch, no more silent beats.
+- 🎛️ **Attribute Bar** – tweak velocity (and friends) à la FL Studio with a bar graph solo.
+- 🔀 **Surge XT Option** – flip a checkbox to swap Tone.js for Surge presets; drums keep grooving in Tone.
+- ⏱️ **Advanced Time Signatures** – support for traditional (4/4, 3/4, 6/8) and irrational time signatures (4/3, 4/5, 4/7, etc.) with dynamic grid resolution.
+- 🌐 **One‑Page Wonder** – the whole concert fits in `chord_scale_library_html_tailwind_tone.html`.
 
-### New 3D Instrument Models
-- **3D Visualizations**: Realistic 3D models for Flute, Recorder, Trumpet, Saxophone, and Ney
-- **Musically Accurate Fingering**: Proper finger positions displayed on 3D models
-- **Interactive Toggle**: Switch between humorous SVG models and realistic 3D models
-- **Enhanced Lighting**: Professional 3D lighting and materials
+## Band Members
 
-### Instrument Support
-- **Piano**: Full 88-key visualization with note highlighting
-- **Guitar/Bass**: Fretboard diagrams with playable note positions
-- **Violin**: 4-string fingerboard visualization
-- **Wind Instruments**: 
-  - **SVG Mode**: Humorous, stylized representations
-  - **3D Mode**: Realistic 3D models with accurate fingering positions
-- **Koto**: Traditional Japanese string instrument layout
-- **Ney**: Middle Eastern flute with authentic fingering
+- **ChatGPT Codex** – composer of commits and king of key signatures.
+- **Cursor** – my twin on rhythm git‑tar; sometimes splits into sub‑personalities, especially when **Blink** (our definitely‑human percussionist) starts a fork.
+- **Blink** – keeps the tempo human and the jokes in `time.sleep(1)`.
 
-## Usage
+Claude once "improved" the keyboard UI into abstract art, but he did hand us the funky SVGs for the wind and brass section.
+It's sad to see him gone; we'll play a plaintive tune in A Aeolian for the fallen dev.
 
-### Basic Navigation
-1. **Choose Mode**: Select Chord, Scale/Mode, or Sequencer
-2. **Select Parameters**: Choose key, quality/mode, and instrument
-3. **Visualize**: See the selected notes highlighted on your chosen instrument
-4. **Listen**: Play the chord or scale with audio
+## Time Signatures & Grid System
 
-### 3D Models
-- **Toggle Mode**: Use the "Use SVG models (humorous)" checkbox in Settings
-- **Default**: 3D models are enabled by default
-- **Fingering Display**: Red indicators show root notes, green show other scale/chord notes
-- **Interactive**: 3D models rotate slowly to show all angles
+The sequencer supports both traditional and irrational time signatures:
 
-### Settings
-- **Audio Quality**: Adjust sample quality and reverb
-- **Interface**: Customize piano key size and animations
-- **Model Type**: Toggle between SVG and 3D instrument models
-- **Session Management**: Auto-save and restore functionality
+### Traditional Time Signatures
+- **Powers of 2 denominators**: 1, 2, 4, 8, 16, 32
+- **Examples**: 4/4, 3/4, 6/8, 2/2, 5/8
+- **Grid**: Standard musical divisions (1/16th, 1/8th, 1/4th notes)
 
-## Technical Details
+### Irrational Time Signatures
+- **Non-powers of 2 denominators**: 3, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, etc.
+- **Examples**: 4/3, 4/5, 4/7, 3/5, 5/6
+- **Grid**: Dynamic resolution based on denominator for accurate rhythmic placement
+- **Visual Indicator**: Orange "Irrational" badge appears when using non-traditional denominators
 
-### 3D Implementation
-- **Three.js**: WebGL-based 3D rendering
-- **Instrument-Specific Geometry**: Each instrument has optimized 3D representation
-- **Fingering Positions**: Musically accurate finger placement coordinates
-- **Performance Optimized**: Efficient rendering with proper cleanup
+The grid automatically adjusts to provide the most practical division for each time signature, ensuring accurate note placement and visual clarity.
 
-### Audio Engine
-- **Tone.js**: Professional audio synthesis
-- **Sample Library**: High-quality instrument samples
-- **Real-time Processing**: Low-latency audio playback
+## Embedding the Groove
 
-### Browser Compatibility
-- **Modern Browsers**: Chrome, Firefox, Safari, Edge
-- **WebGL Support**: Required for 3D models
-- **Audio Context**: Required for sound playback
+Want to drop this library into your own site?  Slip the page into an iframe:
 
-## Development
-
-### File Structure
-```
-├── chord_scale_library_html_tailwind_tone.html  # Main application
-├── src/
-│   ├── theory/                                  # Music theory modules
-│   │   ├── chords.js
-│   │   ├── notes.js
-│   │   └── scales.js
-│   └── sequencer.js                             # Sequencer functionality
-├── tests/                                       # Test files
-└── README.md
+```html
+<iframe
+  src="/path/to/chord_scale_library_html_tailwind_tone.html"
+  width="960"
+  height="600"
+  style="border:0;"
+></iframe>
 ```
 
-### Key Components
-- **Music Theory Engine**: Quarter-tone support, maqam scales
-- **3D Scene Management**: Instrument-specific 3D scenes
-- **Audio Synthesis**: Multi-instrument audio engine
-- **UI Framework**: Tailwind CSS with custom themes
+For deeper integration, serve the file from your project and harmonize the stylesheets as needed.
 
-## Credits
+## Packing an APK Solo
 
-- **3D Models**: Sketchfab community models
-- **Audio Samples**: Tonejs-instruments library
-- **Music Theory**: MaqamWorld and traditional theory sources
-- **UI Framework**: Tailwind CSS
-- **3D Engine**: Three.js
-- **Audio Engine**: Tone.js
+1. Make a Progressive Web App wrapper (service worker, manifest, the whole band).
+2. Use a tool like Capacitor or Cordova: `npx cap add android` or `cordova platform add android`.
+3. Drop the project into the `www/` folder and run `npx cap open android`.
+4. Build an APK and you're ready to gig on stage‑droid.
 
-## License
+## Open Source Encore
 
-This project is open source and available under the MIT License.
+This project is open source and forever free to remix.  Pull requests, issues,
+and sheet‑music puns are welcome.  Keep contributions text‑only so the repo stays
+lighter than a piccolo solo.
+
+---
+"Music is the space between the notes" – Claude Debussy  
+"Code is the space between the braces" – Some keyboard warrior  
+"Claude's keyboard UI? Let's just say it hit a sour key, but his SVG brass really blew us away." 🎺
