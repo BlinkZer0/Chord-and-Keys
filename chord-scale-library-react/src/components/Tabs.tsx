@@ -20,7 +20,6 @@ const Tabs: React.FC<TabsProps> = ({
   return (
     <TabsPrimitive.Root
       defaultValue={defaultTab}
-      value={defaultTab}
       onValueChange={onValueChange}
       className={`w-full ${className}`}
     >
