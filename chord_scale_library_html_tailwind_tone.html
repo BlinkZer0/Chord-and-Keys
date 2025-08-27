@@ -2139,10 +2139,17 @@ pianoRoll.addEventListener('wheel', ev=>{
 
 let playheadReq=null;
 function startPlayhead(){
+  let skipScroll=false;
   function loop(){
     const cellW=20*ui.zoomX;
     const x=Tone.Transport.ticks/SIXTEENTH*cellW;
-    if(seqAutoScroll.checked){ pianoRollScroll.scrollLeft = x - pianoRollScroll.clientWidth/2; }
+    if(seqAutoScroll.checked){
+      const target = x - pianoRollScroll.clientWidth/2;
+      if(skipScroll){
+        pianoRollScroll.scrollLeft += (target - pianoRollScroll.scrollLeft) * 0.15;
+      }
+      skipScroll=!skipScroll;
+    }
     updatePositionDisplay();
     drawPianoRoll();
     playheadReq=requestAnimationFrame(loop);
