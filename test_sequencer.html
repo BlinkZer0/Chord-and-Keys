@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sequencer Test</title>
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+    <script src="sequencer.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        .warning { color: #fbbf24; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sequencer Engine Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Engine Loading Test</h2>
+        <div id="engine-test"></div>
+        <button onclick="testEngineLoading()">Test Engine Loading</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Instrument Creation Test</h2>
+        <div id="instrument-test"></div>
+        <button onclick="testInstrumentCreation()">Test Instrument Creation</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Audio Playback Test</h2>
+        <div id="audio-test"></div>
+        <button onclick="testAudioPlayback()">Test Audio Playback</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. Error Handling Test</h2>
+        <div id="error-test"></div>
+        <button onclick="testErrorHandling()">Test Error Handling</button>
+    </div>
+
+    <script>
+        // Test results container
+        function addResult(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            container.appendChild(div);
+        }
+
+        // Test 1: Engine Loading
+        async function testEngineLoading() {
+            const container = document.getElementById('engine-test');
+            container.innerHTML = '';
+            
+            try {
+                // Wait for Tone.js to be ready
+                await Tone.start();
+                addResult('engine-test', '✅ Tone.js initialized successfully');
+                
+                // Check if SequencerEngine is available
+                if (window.SequencerEngine) {
+                    addResult('engine-test', '✅ SequencerEngine loaded successfully');
+                    
+                    // Check for required functions
+                    const requiredFunctions = [
+                        'createSeqInstrument',
+                        'drawPianoRollEnhanced', 
+                        'scheduleSongEnhanced',
+                        'scheduleAheadEnhanced',
+                        'makeSynth'
+                    ];
+                    
+                    let allFunctionsPresent = true;
+                    requiredFunctions.forEach(func => {
+                        if (typeof window.SequencerEngine[func] === 'function') {
+                            addResult('engine-test', `✅ ${func} function available`);
+                        } else {
+                            addResult('engine-test', `❌ ${func} function missing`, 'error');
+                            allFunctionsPresent = false;
+                        }
+                    });
+                    
+                    if (allFunctionsPresent) {
+                        addResult('engine-test', '✅ All required functions present');
+                    }
+                } else {
+                    addResult('engine-test', '❌ SequencerEngine not found', 'error');
+                }
+            } catch (error) {
+                addResult('engine-test', `❌ Engine loading failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 2: Instrument Creation
+        async function testInstrumentCreation() {
+            const container = document.getElementById('instrument-test');
+            container.innerHTML = '';
+            
+            const instruments = ['Piano', 'Guitar', 'Bass', 'Violin', 'Flute', 'Trumpet'];
+            
+            for (const instrument of instruments) {
+                try {
+                    const player = window.SequencerEngine.createSeqInstrument(instrument);
+                    
+                    if (player && typeof player.trigger === 'function') {
+                        addResult('instrument-test', `✅ ${instrument} created successfully`);
+                        
+                        // Test basic methods
+                        if (typeof player.setVolume === 'function') {
+                            player.setVolume(0.5);
+                            addResult('instrument-test', `✅ ${instrument} volume control works`);
+                        }
+                        
+                        if (typeof player.setPan === 'function') {
+                            player.setPan(0);
+                            addResult('instrument-test', `✅ ${instrument} pan control works`);
+                        }
+                    } else {
+                        addResult('instrument-test', `❌ ${instrument} creation failed - invalid player object`, 'error');
+                    }
+                } catch (error) {
+                    addResult('instrument-test', `❌ ${instrument} creation failed: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Test 3: Audio Playback
+        async function testAudioPlayback() {
+            const container = document.getElementById('audio-test');
+            container.innerHTML = '';
+            
+            try {
+                // Create a simple piano instrument
+                const piano = window.SequencerEngine.createSeqInstrument('Piano');
+                
+                if (piano) {
+                    addResult('audio-test', '✅ Piano instrument created for playback test');
+                    
+                    // Test note triggering
+                    try {
+                        piano.trigger(60, Tone.now(), 0.8, '4n'); // Middle C
+                        addResult('audio-test', '✅ Note trigger successful');
+                        
+                        // Test multiple notes
+                        setTimeout(() => {
+                            piano.trigger(62, Tone.now(), 0.6, '4n'); // D
+                            addResult('audio-test', '✅ Second note trigger successful');
+                        }, 500);
+                        
+                        setTimeout(() => {
+                            piano.trigger(64, Tone.now(), 0.7, '4n'); // E
+                            addResult('audio-test', '✅ Third note trigger successful');
+                        }, 1000);
+                        
+                    } catch (error) {
+                        addResult('audio-test', `❌ Note triggering failed: ${error.message}`, 'error');
+                    }
+                } else {
+                    addResult('audio-test', '❌ Failed to create piano for playback test', 'error');
+                }
+            } catch (error) {
+                addResult('audio-test', `❌ Audio playback test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test 4: Error Handling
+        async function testErrorHandling() {
+            const container = document.getElementById('error-test');
+            container.innerHTML = '';
+            
+            // Test invalid instrument name
+            try {
+                const invalidPlayer = window.SequencerEngine.createSeqInstrument('InvalidInstrument');
+                if (invalidPlayer) {
+                    addResult('error-test', '✅ Invalid instrument handled gracefully - fallback created');
+                } else {
+                    addResult('error-test', '❌ Invalid instrument not handled properly', 'error');
+                }
+            } catch (error) {
+                addResult('error-test', `❌ Invalid instrument caused crash: ${error.message}`, 'error');
+            }
+            
+            // Test null/undefined parameters
+            try {
+                const nullPlayer = window.SequencerEngine.createSeqInstrument(null);
+                if (nullPlayer) {
+                    addResult('error-test', '✅ Null instrument name handled gracefully');
+                } else {
+                    addResult('error-test', '❌ Null instrument name not handled properly', 'error');
+                }
+            } catch (error) {
+                addResult('error-test', `❌ Null instrument name caused crash: ${error.message}`, 'error');
+            }
+            
+            // Test invalid note parameters
+            try {
+                const piano = window.SequencerEngine.createSeqInstrument('Piano');
+                if (piano) {
+                    // Test invalid MIDI note
+                    piano.trigger(-1, Tone.now(), 0.8, '4n');
+                    addResult('error-test', '✅ Invalid MIDI note handled gracefully');
+                    
+                    // Test invalid velocity
+                    piano.trigger(60, Tone.now(), 2.0, '4n');
+                    addResult('error-test', '✅ Invalid velocity handled gracefully');
+                }
+            } catch (error) {
+                addResult('error-test', `❌ Invalid parameters caused crash: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testEngineLoading();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
