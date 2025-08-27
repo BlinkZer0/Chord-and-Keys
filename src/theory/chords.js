@@ -1,4 +1,4 @@
-import { pcIndex, pcName, OCTAVE, PITCH_STEP, mod, midiFrom } from './notes.js';
+import { pcIndex, pcName, OCTAVE, PITCH_STEP, mod } from './notes.js';
 
 export const CHORD_QUALITIES = {
   Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8],
@@ -21,6 +21,7 @@ export function buildChord(root, quality) {
 }
 
 export async function chordToMidi(notes, root, baseOct = 4) {
+  const { midiFrom } = await import('./notes.js');
   const rootMidi = midiFrom(root, baseOct);
   if(rootMidi == null) return [];
   
