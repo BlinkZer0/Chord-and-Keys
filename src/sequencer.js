@@ -4020,22 +4020,24 @@ selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
 
-chkSurge.addEventListener('change', async (e)=>{
-  surgeEnabled = e.target.checked;
-  if(surgeEnabled){
-    await ensureTone(instrument);
-    try{
-      await SurgeLoader.init(Tone.context);
-    }catch(err){
-      console.error('Failed to init Surge XT', err);
-      surgeEnabled = false;
-      e.target.checked = false;
+if (chkSurge) {
+  chkSurge.addEventListener('change', async (e)=>{
+    surgeEnabled = e.target.checked;
+    if(surgeEnabled){
+      await ensureTone(instrument);
+      try{
+        await SurgeLoader.init(Tone.context);
+      }catch(err){
+        console.error('Failed to init Surge XT', err);
+        surgeEnabled = false;
+        e.target.checked = false;
+      }
     }
-  }
-  if(song && song.tracks){
-    song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
-  }
-});
+    if(song && song.tracks){
+      song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
+    }
+  });
+}
 
 // Settings event listeners
 const reverbAmountSlider = $('#reverbAmount');
