@@ -514,15 +514,15 @@ function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—"
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
   Piano:{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
-  Guitar:{a:.005,d:.25,s:.3,r:1.5,osc:'sawtooth',filter:{frequency:3000,Q:0.8},vibrato:{rate:6,depth:0.02},maxSustain:3},
+  Guitar:{a:.005,d:.3,s:0,r:1.5,osc:'sawtooth',filter:{frequency:3500,Q:0.9},vibrato:{rate:6,depth:0.02},maxSustain:3},
   Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2},maxSustain:3},
   Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
   Flute:{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5},maxSustain:4},
   Recorder:{a:.06,d:.12,s:.85,r:.4,osc:'sine',filter:{frequency:3500,Q:0.7},maxSustain:3},
   Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
   Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1},maxSustain:4},
-  Koto:{a:.002,d:.3,s:0,r:1.6,osc:'triangle',filter:{frequency:4500,Q:0.8},maxSustain:3},
-  Oud:{a:.002,d:.35,s:0,r:1.8,osc:'triangle',filter:{frequency:3800,Q:0.9},maxSustain:3},
+  Koto:{a:.002,d:.25,s:0,r:1.6,osc:'triangle',filter:{frequency:4000,Q:0.8},maxSustain:3},
+  Oud:{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
   Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
   'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
 };
@@ -684,15 +684,15 @@ async function initSampleLibrary() {
 
 const SEQ_INSTR = {
   Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
-  Guitar: () => makeSampler('guitar') || makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
+  Guitar: () => makeSampler('guitar') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
   Bass: () => makeSynth('MonoSynth', ENV.Bass),
   Violin: () => makeSampler('violin') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
   Flute: () => makeSampler('flute') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
   Recorder: () => makeSynth('PolySynth', ENV.Recorder),
   Trumpet: () => makeSampler('trumpet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
   Saxophone: () => makeSampler('saxophone') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
-  Koto: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
-  Oud: () => makeSynth('PluckSynth', {}, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
+  Koto: () => makeSynth('PluckSynth', ENV.Koto, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
+  Oud: () => makeSynth('PluckSynth', ENV.Oud, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
   Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
   'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
 };
