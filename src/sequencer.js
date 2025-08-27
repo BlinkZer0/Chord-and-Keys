@@ -1,14 +1,20 @@
+// Import theory modules
+import { 
+  NOTES_SHARP, PITCH_STEP, OCTAVE, ENHARMONIC_MAP, KEYS,
+  toSharpName, pcIndex, pcName, midiFrom, mod 
+} from './theory/notes.js';
+
+import { 
+  CHORD_QUALITIES, buildChord, chordToMidi, chordNameFromNotes 
+} from './theory/chords.js';
+
+import { 
+  MODES, MODE_SYSTEMS, buildScale, scaleToMidi 
+} from './theory/scales.js';
+
+
+
 // ========================= UTIL: THEORY =========================
-// Quarter‑tone pitch map (0.5‑semitone steps = 24 pitch classes)
-const NOTES_SHARP = [
-  "C","C+","C#","C#+","D","D+","D#","D#+",
-  "E","E+","F","F+","F#","F#+","G","G+",
-  "G#","G#+","A","A+","A#","A#+","B","B+"
-];
-const PITCH_STEP = 0.5; // smallest interval in semitones
-const OCTAVE = 12;      // semitones per octave
-const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
-const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
 const INSTRUMENTS = [
   "Piano",
   "Guitar",
@@ -47,129 +53,10 @@ const SURGE_PRESETS = {
   'Hammond Organ': 'organ.fxp'
 };
 
-// Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
-const MODES = {
-  Ionian: [0,2,4,5,7,9,11],
-  Dorian: [0,2,3,5,7,9,10],
-  Phrygian: [0,1,3,5,7,8,10],
-  Lydian: [0,2,4,6,7,9,11],
-  Mixolydian: [0,2,4,5,7,9,10],
-  Aeolian: [0,2,3,5,7,8,10],
-  Locrian: [0,1,3,5,6,8,10],
-  "Major Pentatonic": [0,2,4,7,9],
-  "Minor Pentatonic": [0,3,5,7,10],
-  Blues: [0,3,5,6,7,10],
-  "Harmonic Minor": [0,2,3,5,7,8,11],
-  "Melodic Minor (Asc)": [0,2,3,5,7,9,11],
-  "Melodic Minor (Desc)": [0,2,3,5,7,8,10],
-  "Whole Tone": [0,2,4,6,8,10],
-  "Diminished (Half-Whole)": [0,1,3,4,6,7,9,10],
-  "Diminished (Whole-Half)": [0,2,3,5,6,8,9,11],
-  // Common maqamat using 24-TET intervals (0.5 = quarter-tone)
-  "Maqam Rast": [0,2,3.5,5,7,9,10.5],      // Rast: E half-flat, B half-flat
-  "Maqam Bayati": [0,1.5,3,5,7,8.5,10],    // Bayati: D half-flat, B half-flat
-  "Maqam Hijaz": [0,1,4,5,7,8,11],         // Hijaz: augmented second between 2nd & 3rd
-  "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
-  "Maqam Nahawand": [0,2,3,5,7,8,10],       // Nahawand: natural minor
-  "Maqam Kurd": [0,1,3,5,7,8,10],          // Kurd: Phrygian base
-  "Maqam Huzam": [0,1.5,4,5,7,8.5,10],     // Huzam: tonic half-flat, sixth half-flat
-  "Maqam Hijazkar": [0,1,4,6,7,8,11]       // Hijazkar: raised fourth
-};
-// Group modes by musical system for UI filtering
-const MODE_SYSTEMS = {
-  Western: [
-    "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian",
-    "Major Pentatonic","Minor Pentatonic","Blues","Harmonic Minor",
-    "Melodic Minor (Asc)","Melodic Minor (Desc)","Whole Tone",
-    "Diminished (Half-Whole)","Diminished (Whole-Half)"
-  ],
-  Maqam: [
-    "Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand",
-    "Maqam Kurd","Maqam Huzam","Maqam Hijazkar"
-  ]
-};
-const CHORD_QUALITIES = {
-  Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8],
-  Sus2:[0,2,7], Sus4:[0,5,7],
-  "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10],
-  m7b5:[0,3,6,10], Dim7:[0,3,6,9],
-  "9":[0,4,7,10,14], Maj9:[0,4,7,11,14], Min9:[0,3,7,10,14],
-  "11":[0,4,7,10,14,17], Maj11:[0,4,7,11,14,17], Min11:[0,3,7,10,14,17],
-  "13":[0,4,7,10,14,17,21], Maj13:[0,4,7,11,14,17,21], Min13:[0,3,7,10,14,17,21],
-  "7b5":[0,4,6,10], "7#5":[0,4,8,10],
-  "7b9":[0,4,7,10,13], "7#9":[0,4,7,10,15],
-  "7#11":[0,4,7,10,18], "7b13":[0,4,7,10,20]
-};
-function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
-function pcIndex(note){
-  const n = String(note).trim();
-  const m = n.match(/^([A-G])([#b+-]*)/);
-  if(!m) return null;
-  const BASE = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
-  let val = BASE[m[1]];
-  for(const ch of (m[2]||"")){
-    if(ch==="#") val += 1;
-    else if(ch==="b") val -= 1;
-    else if(ch==="+") val += PITCH_STEP;
-    else if(ch==="-") val -= PITCH_STEP;
-  }
-  return val;
-}
-function pcName(i){
-  const norm = ((i % OCTAVE) + OCTAVE) % OCTAVE;
-  const idx = Math.round(norm / PITCH_STEP) % NOTES_SHARP.length;
-  return NOTES_SHARP[idx];
-}
-function midiFrom(note, octave=4){
-  const i = pcIndex(note);
-  if(i==null) return null;
-  return OCTAVE*(octave+1)+i;
-}
-function buildScale(tonic, modeName){ const rootPc=pcIndex(tonic); const pattern = MODES[modeName]||MODES.Ionian; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
-function buildChord(root, quality){ const rootPc=pcIndex(root); const pattern = CHORD_QUALITIES[quality]||CHORD_QUALITIES.Maj; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
-function makePcSet(notes){ return new Set(notes.map(pcIndex).filter(x=>x!=null)); }
-function mod(n,m){ return ((n % m) + m) % m; }
-function chordToMidi(notes, root, baseOct=4){
-  const rootMidi = midiFrom(root, baseOct);
-  if(rootMidi==null) return [];
-  const rootPc = pcIndex(root);
-  if(rootPc==null) return [];
-  const pcs = notes.map(pcIndex).filter(x=>x!=null);
-  const ordered = pcs.map(pc=>{
-    let best = rootMidi - mod(rootPc - pc, OCTAVE);
-    while(best < rootMidi-5) best += OCTAVE;
-    while(best > rootMidi+OCTAVE) best -= OCTAVE;
-    return best;
-  }).sort((a,b)=>a-b);
-  return Array.from(new Set(ordered));
-}
-function scaleToMidi(scaleNotes, tonic, startOct=4){
-  const pcs = scaleNotes.map(pcIndex).filter(x=>x!=null);
-  const tonicPc = pcIndex(tonic);
-  if(tonicPc==null) return [];
-  const seq = [];
-  for(let o=startOct; o<=startOct+1; o++){
-    for(const pc of pcs){ seq.push(OCTAVE*(o+1)+pc); }
-  }
-  const startIdx = pcs.indexOf(tonicPc);
-  if(startIdx>0){
-    const perOct = pcs.length;
-    const out=[];
-    for(let i=0;i<seq.length;i+=perOct){
-      const chunk=seq.slice(i,i+perOct);
-      out.push(...chunk.slice(startIdx), ...chunk.slice(0,startIdx));
-    }
-    return out;
-  }
-  return seq;
-}
 
-// Identify chord from selection
-const CHORD_DICT = CHORD_QUALITIES; // reuse
-function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
-function intersection(a,b){ return a.filter(x=>b.includes(x)); }
-function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
-function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+
+
+
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
@@ -2107,23 +1994,78 @@ function _triggerLick(){
 }
 
 // ========================= PIANO =========================
-// === HELD-SUSTAIN: Piano pointer handlers ===
-function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
+// === IMPROVED PIANO WITH BETTER HIGHLIGHTING ===
+function buildPiano(){ 
+  if (!pianoHost) {
+    console.error('pianoHost is null');
+    return;
+  }
+  
+  pianoHost.innerHTML=''; 
+  const container=document.createElement('div'); 
+  container.className='relative mx-auto select-none'; 
+  const shell=document.createElement('div'); 
+  shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; 
+  container.appendChild(shell);
+  
   // White keys row
-  const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
-  const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
-  whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
-    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
-    const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
-    k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
-    whiteRow.appendChild(k); });
-  // Black overlay with realistic piano spacing
-  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
-  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); 
-    // Much simpler approach: map each black key to its position between white keys
-    // Pattern: C C# D D# E - F F# G G# A A# B (repeating every octave)
-    // In whites array: C D E F G A B positions: 0,1,2,3,4,5,6 per octave
+  const startMidi=midiFrom('C',3); 
+  const endMidi=midiFrom('F',5); 
+  const keys=[]; 
+  for(let m=startMidi;m<=endMidi;m++) keys.push(m); 
+  const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
+  const whiteRow=document.createElement('div'); 
+  whiteRow.className='flex h-full'; 
+  shell.appendChild(whiteRow);
+  
+  whites.forEach(m=>{ 
+    const pc=mod(m,OCTAVE); 
+    const k=document.createElement('div'); 
+    k.dataset.midi=String(m); 
+    k.dataset.pc=String(pc); 
+    k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400 transition-colors duration-150'; 
+    const lbl=document.createElement('div'); 
+    lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; 
+    lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
+    k.appendChild(lbl);
     
+    k.addEventListener('pointerdown', (ev)=>{
+      if(ev.shiftKey){ 
+        toggleSelect(m); 
+      } else { 
+        _registerKey(m); 
+        pressHeld(m); 
+        k.setPointerCapture(ev.pointerId); 
+        k.dataset.held='1'; 
+        // Add pressed state styling
+        k.classList.add('key-pressed');
+      } 
+    });
+    
+    const end=(ev)=>{ 
+      if(!k.dataset.held) return; 
+      releaseHeld(m); 
+      delete k.dataset.held; 
+      // Remove pressed state styling
+      k.classList.remove('key-pressed');
+      updateBadges(); 
+      renderHighlights(); 
+    };
+    
+    k.addEventListener('pointerup', end); 
+    k.addEventListener('pointercancel', end);
+    whiteRow.appendChild(k); 
+  });
+  
+  // Black overlay with realistic piano spacing
+  const overlay=document.createElement('div'); 
+  overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; 
+  shell.appendChild(overlay);
+  
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ 
+    const pc=mod(m,OCTAVE); 
+    
+    // Much simpler approach: map each black key to its position between white keys
     const octave = Math.floor(m / 12);
     const baseOctaveStart = whites.findIndex(w => Math.floor(w/12) === octave);
     
@@ -2158,28 +2100,116 @@ function buildPiano(){ pianoHost.innerHTML=''; const container=document.createEl
     const blk=document.createElement('div'); 
     blk.dataset.midi=String(m); 
     blk.dataset.pc=String(pc); 
-    blk.className='black-key w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto'; 
+    blk.className='black-key w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto transition-colors duration-150'; 
     blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
     const lbl=document.createElement('div'); 
     lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; 
     lbl.textContent=''; 
     blk.appendChild(lbl);
-    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
-    const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
-    blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
-    wrap.appendChild(blk); overlay.appendChild(wrap); });
+    
+    blk.addEventListener('pointerdown', (ev)=>{
+      if(ev.shiftKey){ 
+        toggleSelect(m); 
+      } else { 
+        _registerKey(m); 
+        pressHeld(m); 
+        blk.setPointerCapture(ev.pointerId); 
+        blk.dataset.held='1'; 
+        // Add pressed state styling
+        blk.classList.add('key-pressed');
+      } 
+    });
+    
+    const end=(ev)=>{ 
+      if(!blk.dataset.held) return; 
+      releaseHeld(m); 
+      delete blk.dataset.held; 
+      // Remove pressed state styling
+      blk.classList.remove('key-pressed');
+      updateBadges(); 
+      renderHighlights(); 
+    };
+    
+    blk.addEventListener('pointerup', end); 
+    blk.addEventListener('pointercancel', end);
+    wrap.appendChild(blk); 
+    overlay.appendChild(wrap); 
+  });
+  
   pianoHost.appendChild(container);
 }
 function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); updateBadges(); renderHighlights(); }
 function clearSelection(){ selection.clear(); updateBadges(); renderHighlights(); }
-function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
+function renderHighlights(){ 
+  const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
+  
   // Whites (robust selector — no Tailwind arbitrary value in query)
-  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
-    const rootBadge = el.querySelector('.rootbadge'); if(rootBadge) rootBadge.remove(); if(rootPc===pc){ const b=document.createElement('div'); b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; b.textContent='ROOT'; el.appendChild(b); } });
+  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ 
+    const m=Number(el.dataset.midi); 
+    const pc=mod(m,OCTAVE); 
+    const active=pcset.has(pc); 
+    const isPressed = el.classList.contains('key-pressed');
+    const isSelected = selection.has(m);
+    
+    // Base classes
+    let baseClasses = 'white-key relative flex-1 mx-0.5 rounded-b-xl border transition-colors duration-150';
+    
+    // Determine styling based on state priority: pressed > selected > active > default
+    if (isPressed) {
+      baseClasses += ' bg-blue-300 border-blue-500 shadow-lg';
+    } else if (isSelected) {
+      baseClasses += ' bg-emerald-200 border-emerald-500 shadow-md';
+    } else if (active) {
+      baseClasses += ' bg-amber-200 border-amber-500';
+    } else {
+      baseClasses += ' bg-white border-slate-400';
+    }
+    
+    el.className = baseClasses;
+    
+    const rootBadge = el.querySelector('.rootbadge'); 
+    if(rootBadge) rootBadge.remove(); 
+    if(rootPc===pc){ 
+      const b=document.createElement('div'); 
+      b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; 
+      b.textContent='ROOT'; 
+      el.appendChild(b); 
+    } 
+  });
+  
   // Blacks (robust selector)
-  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key w-full h-full rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
-  // Selection highlights
-  selection.forEach((m)=>{ const el = pianoHost.querySelector(`[data-midi="${m}"]`); if(el) el.classList.add('key-selected'); });
+  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ 
+    const m=Number(el.dataset.midi); 
+    const pc=mod(m,OCTAVE); 
+    const active=pcset.has(pc); 
+    const isPressed = el.classList.contains('key-pressed');
+    const isSelected = selection.has(m);
+    
+    // Base classes
+    let baseClasses = 'black-key w-full h-full rounded-b-lg border pointer-events-auto transition-colors duration-150';
+    
+    // Determine styling based on state priority: pressed > selected > active > default
+    if (isPressed) {
+      baseClasses += ' bg-blue-600 border-blue-700 shadow-lg';
+    } else if (isSelected) {
+      baseClasses += ' bg-emerald-600 border-emerald-700 shadow-md';
+    } else if (active) {
+      baseClasses += ' bg-indigo-400 border-indigo-600';
+    } else {
+      baseClasses += ' bg-black border-black';
+    }
+    
+    el.className = baseClasses;
+    
+    const r=el.querySelector('.rootchar'); 
+    if(r) r.remove(); 
+    if(rootPc===pc){ 
+      const rr=document.createElement('div'); 
+      rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; 
+      rr.textContent='R'; 
+      el.appendChild(rr); 
+    } 
+  });
 }
 
 // ========================= FRETBOARDS =========================
@@ -3919,17 +3949,33 @@ function updateAll(){
 
 // Build UI
 function setupUI() {
-  buildPiano();
-  refreshInstruments();
-  updateAll();
-  runTests();
-  initSequencer();
-  generatePatternLibrary();
-  refreshPatternSelector();
-  loadSettings();
-  setTimeout(initSessionManagement, 500);
+  try {
+    // Check if required DOM elements exist
+    if (!pianoHost) {
+      console.error('pianoHost element not found');
+      return;
+    }
+    
+    buildPiano();
+    refreshInstruments();
+    updateAll();
+    runTests();
+    initSequencer();
+    generatePatternLibrary();
+    refreshPatternSelector();
+    loadSettings();
+    setTimeout(initSessionManagement, 500);
+  } catch (error) {
+    console.error('Error setting up UI:', error);
+  }
 }
-setupUI();
+
+// Wait for DOM to be ready before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupUI);
+} else {
+  setupUI();
+}
 // === TAB: Sequencer wiring (non-destructive) ===
 btnModeChord.addEventListener('click', ()=>{
   mode='Chord';
@@ -4503,5 +4549,48 @@ if(devTests){
   devTests.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',devTests.open));
 
 }
-Object.assign(window, { copySelected, cutSelected, deleteSelected, quantizeSelected, showVelocityEditor });
-export { drawPianoRoll, makeSynth, setupUI };
+// Make all functions and constants available globally for the HTML file
+Object.assign(window, { 
+  copySelected, cutSelected, deleteSelected, quantizeSelected, showVelocityEditor,
+  
+  // Theory functions and constants
+  NOTES_SHARP, PITCH_STEP, OCTAVE, ENHARMONIC_MAP, KEYS,
+  toSharpName, pcIndex, pcName, midiFrom, mod,
+  CHORD_QUALITIES, buildChord, chordToMidi, chordNameFromNotes,
+  MODES, MODE_SYSTEMS, buildScale, scaleToMidi,
+  INSTRUMENTS, INSTRUMENT_ICONS, SURGE_PRESETS,
+  
+  // Main functions
+  drawPianoRoll, makeSynth, setupUI
+});
+
+
+
+// Initialize the UI when the module loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setupUI();
+  });
+} else {
+  // DOM is already loaded
+  setupUI();
+}
+
+// Export all theory functions and constants for use in the main HTML file
+export {
+  // From notes.js
+  NOTES_SHARP, PITCH_STEP, OCTAVE, ENHARMONIC_MAP, KEYS,
+  toSharpName, pcIndex, pcName, midiFrom, mod,
+  
+  // From chords.js
+  CHORD_QUALITIES, buildChord, chordToMidi, chordNameFromNotes,
+  
+  // From scales.js
+  MODES, MODE_SYSTEMS, buildScale, scaleToMidi,
+  
+  // Local constants
+  INSTRUMENTS, INSTRUMENT_ICONS, SURGE_PRESETS,
+  
+  // Main functions
+  drawPianoRoll, makeSynth, setupUI
+};

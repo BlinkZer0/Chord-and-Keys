@@ -1,4 +1,4 @@
-import { pcIndex, pcName } from './notes.js';
+import { pcIndex, pcName, OCTAVE } from './notes.js';
 
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
 export const MODES = {
@@ -51,7 +51,6 @@ export function buildScale(tonic, modeName) {
 }
 
 export async function scaleToMidi(scaleNotes, tonic, startOct = 4) {
-  const { OCTAVE } = await import('./notes.js');
   const pcs = scaleNotes.map(pcIndex).filter(x => x != null);
   const tonicPc = pcIndex(tonic);
   if(tonicPc == null) return [];
