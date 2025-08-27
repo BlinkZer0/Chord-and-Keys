@@ -1877,8 +1877,14 @@ function drawPianoRoll(){
   // background lanes
   for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
   // grid vertical
+  const stepsPerBeat = 16 / song.ts.den;
+  const stepsPerMeasure = song.ts.num * stepsPerBeat;
   for(let i=startStep;i<=endStep;i++){
-    const x=i*cellW - scrollLeft; ctx.strokeStyle='#2d3c4a'; if(i%(song.ppq/ SIXTEENTH)===0) ctx.strokeStyle='#395063'; if(i%(song.ts.num*song.ppq/SIXTEENTH)===0) ctx.strokeStyle='#4a6379'; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+    const x = i*cellW - scrollLeft;
+    ctx.strokeStyle = '#2d3c4a';
+    if(i % stepsPerBeat === 0) ctx.strokeStyle = '#395063';
+    if(i % stepsPerMeasure === 0) ctx.strokeStyle = '#4a6379';
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
   }
   // horizontal lines
   for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
