@@ -8,10 +8,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-  <!-- Tonejs-instruments for high-quality sampled instruments -->
-  <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
-  <!-- Surge XT loader (worklet + wasm fetched remotely) -->
-  <script src="surge-loader.js"></script>
+      <!-- Tonejs-instruments for high-quality sampled instruments -->
+    <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
@@ -94,10 +92,6 @@
             <img id="instrIcon" alt="" class="w-6 h-6 hidden" />
             <label class="text-sm text-slate-300">Tempo</label>
             <input id="tempo" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
-            <label class="flex items-center gap-2 text-sm text-slate-300">
-              <input id="useSurge" type="checkbox" class="h-4 w-4">
-              Use Surge XT
-            </label>
           </div>
         </div>
       </div>
@@ -398,26 +392,11 @@ const INSTRUMENTS = [
 ];
 const INSTRUMENT_ICONS = {
   Flute: 'assets/instruments/flute_openmoji.svg',
-    Recorder: 'assets/instruments/recorder_openmoji.svg',
+  Recorder: 'assets/instruments/recorder_openmoji.svg',
   Ney: 'assets/instruments/ney_openmoji.svg',
   Saxophone: 'assets/instruments/saxophone_openmoji.svg',
   Trumpet: 'assets/instruments/trumpet_openmoji.svg',
   Koto: 'assets/instruments/koto_openmoji.svg',
-};
-
-const SURGE_PRESETS = {
-  'Piano': 'piano.fxp',
-  'Guitar': 'guitar.fxp',
-  'Bass': 'bass.fxp',
-  'Violin': 'violin.fxp',
-  'Flute': 'flute.fxp',
-  'Recorder': 'recorder.fxp',
-  'Trumpet': 'trumpet.fxp',
-  'Saxophone': 'saxophone.fxp',
-  'Koto': 'koto.fxp',
-  'Oud': 'oud.fxp',
-  'Ney': 'ney.fxp',
-  'Hammond Organ': 'organ.fxp'
 };
 
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
@@ -714,13 +693,6 @@ const SEQ_INSTR = {
 };
 
 function createSeqInstrument(name){
-  if(surgeEnabled && SURGE_PRESETS[name] && window.SurgeLoader){
-    try {
-      return SurgeLoader.createInstrument(SURGE_PRESETS[name]);
-    } catch(err){
-      console.error('Surge creation failed, falling back to Tone', err);
-    }
-  }
   try {
     const factory = SEQ_INSTR[name];
     if(factory) {
@@ -780,22 +752,11 @@ function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 // [fix] press/hold piano
 function pressHeld(midi){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    const player = createSeqInstrument(instrument);
-    player.loaded.then(()=>{
-      player.trigger(midi, Tone.now(), 0.8, 1);
-    });
-    return;
-  }
   ensureTone(instrument).then(()=>{
     _synth.triggerAttack(midiToFreq(midi));
   });
 }
 function releaseHeld(midi){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    // noteOff handled automatically in trigger duration
-    return;
-  }
   ensureTone(instrument).then(()=>{
     const now=Tone.now();
     const beat=60/tempo;
@@ -1238,32 +1199,6 @@ const DRUM_NAMES = Object.keys(DRUMS);
 // use `asChord` to trigger them simultaneously or `strum` for a quick
 // guitar-style roll.
 async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false, noteDur}={}){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    const player = createSeqInstrument(instrument);
-    await player.loaded;
-    const beat=60/tempo;
-    const now=Tone.now();
-    if(asChord){
-      list.forEach(m=>player.trigger(m, now, 0.8, beat*2));
-      return;
-    }
-    if(strum){
-      list.forEach((m,i)=>{
-        const t=now + i*(beat/6);
-        player.trigger(m, t, 0.8, beat*1.2);
-      });
-      return;
-    }
-    if(noteDur!==undefined && list.length===1){
-      player.trigger(list[0], now, 0.8, noteDur);
-      return;
-    }
-    list.forEach((m,i)=>{
-      const t=now + i*(beat*0.6);
-      player.trigger(m, t, 0.8, beat*0.9);
-    });
-    return;
-  }
   await ensureTone(instrument);
   const beat=60/tempo;
   const now=Tone.now();
@@ -1308,7 +1243,6 @@ const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); co
 const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
-const chkSurge = $('#useSurge');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
@@ -1354,7 +1288,6 @@ window.addEventListener('resize', drawPianoRoll);
 
 let mode = 'Chord';
 let instrument = 'Piano';
-let surgeEnabled = false;
 let keyRoot = 'C';
 let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
@@ -4335,23 +4268,6 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
-
-chkSurge.addEventListener('change', async (e)=>{
-  surgeEnabled = e.target.checked;
-  if(surgeEnabled){
-    await ensureTone(instrument);
-    try{
-      await SurgeLoader.init(Tone.context);
-    }catch(err){
-      console.error('Failed to init Surge XT', err);
-      surgeEnabled = false;
-      e.target.checked = false;
-    }
-  }
-  if(song && song.tracks){
-    song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
-  }
-});
 
 // Settings event listeners
 const reverbAmountSlider = $('#reverbAmount');

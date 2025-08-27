@@ -228,13 +228,6 @@ const SEQ_INSTR = {
 };
 
 function createSeqInstrument(name){
-  if(surgeEnabled && SURGE_PRESETS[name] && window.SurgeLoader){
-    try {
-      return SurgeLoader.createInstrument(SURGE_PRESETS[name]);
-    } catch(err){
-      console.error('Surge creation failed, falling back to Tone', err);
-    }
-  }
   try {
     const factory = SEQ_INSTR[name];
     if(factory) {
@@ -242,12 +235,12 @@ function createSeqInstrument(name){
     }
 
     // Fallback to makePoly with appropriate envelope
-    const env = ENV[name] || ENV.Piano;
+    const env = ENV[name] || ENV["Piano"];
     return makeSynth('PolySynth', env);
   } catch(error) {
     console.error(`Failed to create instrument ${name}:`, error);
     // Ultimate fallback
-    return makeSynth('PolySynth', ENV.Piano);
+    return makeSynth('PolySynth', ENV["Piano"]);
   }
 }
 
@@ -294,22 +287,11 @@ function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
 
 // [fix] press/hold piano
 function pressHeld(midi){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    const player = createSeqInstrument(instrument);
-    player.loaded.then(()=>{
-      player.trigger(midi, Tone.now(), 0.8, 1);
-    });
-    return;
-  }
   ensureTone(instrument).then(()=>{
     _synth.triggerAttack(midiToFreq(midi));
   });
 }
 function releaseHeld(midi){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    // noteOff handled automatically in trigger duration
-    return;
-  }
   ensureTone(instrument).then(()=>{
     const now=Tone.now();
     const beat=60/tempo;
@@ -752,32 +734,6 @@ const DRUM_NAMES = Object.keys(DRUMS);
 // use `asChord` to trigger them simultaneously or `strum` for a quick
 // guitar-style roll.
 async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false, noteDur}={}){
-  if(surgeEnabled && SURGE_PRESETS[instrument]){
-    const player = createSeqInstrument(instrument);
-    await player.loaded;
-    const beat=60/tempo;
-    const now=Tone.now();
-    if(asChord){
-      list.forEach(m=>player.trigger(m, now, 0.8, beat*2));
-      return;
-    }
-    if(strum){
-      list.forEach((m,i)=>{
-        const t=now + i*(beat/6);
-        player.trigger(m, t, 0.8, beat*1.2);
-      });
-      return;
-    }
-    if(noteDur!==undefined && list.length===1){
-      player.trigger(list[0], now, 0.8, noteDur);
-      return;
-    }
-    list.forEach((m,i)=>{
-      const t=now + i*(beat*0.6);
-      player.trigger(m, t, 0.8, beat*0.9);
-    });
-    return;
-  }
   await ensureTone(instrument);
   const beat=60/tempo;
   const now=Tone.now();
@@ -822,7 +778,6 @@ const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); co
 const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
-const chkSurge = $('#useSurge');
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
@@ -868,7 +823,6 @@ window.addEventListener('resize', drawPianoRoll);
 
 let mode = 'Chord';
 let instrument = 'Piano';
-let surgeEnabled = false;
 let keyRoot = 'C';
 let chordQuality = 'Maj';
 let scaleMode = 'Ionian';
@@ -4131,25 +4085,6 @@ selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; upda
 selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
 selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
 selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
-
-if (chkSurge) {
-  chkSurge.addEventListener('change', async (e)=>{
-    surgeEnabled = e.target.checked;
-    if(surgeEnabled){
-      await ensureTone(instrument);
-      try{
-        await SurgeLoader.init(Tone.context);
-      }catch(err){
-        console.error('Failed to init Surge XT', err);
-        surgeEnabled = false;
-        e.target.checked = false;
-      }
-    }
-    if(song && song.tracks){
-      song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
-    }
-  });
-}
 
 // Settings event listeners
 const reverbAmountSlider = $('#reverbAmount');
