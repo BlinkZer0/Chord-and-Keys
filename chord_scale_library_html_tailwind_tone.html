@@ -637,344 +637,8 @@ function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mo
 function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
 
 // ========================= 3D MODELS =========================
-// 3D model URLs from Sketchfab
-const MODEL_URLS = {
-  ney: 'https://sketchfab.com/3d-models/ney-0661b44e756c49abb5bde6991b084de0',
-  sax: 'https://sketchfab.com/3d-models/sax-f137c64c274d46ba8a7157450541ed0b',
-  flute: 'https://sketchfab.com/3d-models/concert-flute-3a9cd128f61f4d9090eb76e43462aa4c',
-  recorder: 'https://sketchfab.com/3d-models/recorder-70091cb4e22244b78919ecc6843a1d4b',
-  trumpet: 'https://sketchfab.com/3d-models/trumpet-3f2d4f5b962340b2933012e1bc634d88'
-};
-
-// 3D scene management
-const threeScenes = {};
-const threeRenderers = {};
-const threeCameras = {};
-const threeModels = {};
-
-// Fingering positions for 3D models (normalized coordinates)
-const FINGERING_POSITIONS = {
-  flute: {
-    C: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    'C#': [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    D: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    'D#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, 
-           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    E: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    F: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    'F#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    G: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-        {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
-    'G#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.55, y: 0.2, z: 0.1}],
-    A: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, 
-        {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
-    'A#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, 
-           {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 1.0, y: 0.2, z: 0.1}],
-    B: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}]
-  },
-  recorder: {
-    C: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
-        {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
-    'C#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
-           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.85, y: 0.3, z: 0.1}],
-    D: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
-        {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
-    'D#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.65, y: 0.3, z: 0.1}, 
-           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
-    E: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
-    F: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.45, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
-    'F#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-           {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
-    G: [{x: 0.15, y: 0.3, z: 0.1}, {x: 0.25, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-        {x: 0.45, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.65, y: 0.3, z: 0.1}, 
-        {x: 0.75, y: 0.3, z: 0.1}, {x: 0.85, y: 0.3, z: 0.1}],
-    'G#': [{x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
-           {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, 
-           {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}],
-    A: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}, 
-        {x: 1.0, y: 0.3, z: 0.1}, {x: 1.1, y: 0.3, z: 0.1}],
-    'A#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-           {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
-    B: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
-        {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, 
-        {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}]
-  },
-  trumpet: {
-    C: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
-    'C#': [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
-    D: [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
-    'D#': [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
-    E: [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
-    F: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
-    'F#': [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
-    G: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
-    'G#': [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
-    A: [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
-    'A#': [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
-    B: [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}]
-  },
-  saxophone: {
-    C: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    'C#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    D: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    'D#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, 
-           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    E: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    F: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    'F#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    G: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-        {x: 0.4, y: 0.3, z: 0.1}, {x: 0.45, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
-    'G#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
-           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.45, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}],
-    A: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
-        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
-    'A#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
-           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}],
-    B: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
-        {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}]
-  },
-  ney: {
-    C: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
-    'C#': [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
-    D: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    'D#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, 
-           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
-    E: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    F: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    'F#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    G: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-        {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    'G#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
-           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.55, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
-    A: [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, 
-        {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 0.95, y: 0.2, z: 0.1}],
-    'A#': [{x: 0.2, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, 
-           {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 1.0, y: 0.2, z: 0.1}, {x: 1.05, y: 0.2, z: 0.1}],
-    B: [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
-        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}]
-  }
-};
-
-// Initialize 3D scene for an instrument
-function init3DScene(instrumentType, canvasId) {
-  try {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) {
-      console.warn(`Canvas ${canvasId} not found for ${instrumentType}`);
-      return;
-    }
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-    
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    renderer.setClearColor(0x000000, 0);
-    
-    // Enhanced lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(10, 10, 5);
-    scene.add(directionalLight);
-    
-    const pointLight = new THREE.PointLight(0xffffff, 0.3);
-    pointLight.position.set(-5, 5, 5);
-    scene.add(pointLight);
-    
-    // Create instrument-specific geometry
-    let geometry, material;
-    
-    switch(instrumentType) {
-      case 'flute':
-        geometry = new THREE.CylinderGeometry(0.3, 0.3, 3, 12);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0xC0C0C0, 
-          transparent: true, 
-          opacity: 0.9,
-          shininess: 100
-        });
-        break;
-      case 'recorder':
-        geometry = new THREE.CylinderGeometry(0.4, 0.3, 2.5, 12);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0x8B4513, 
-          transparent: true, 
-          opacity: 0.8
-        });
-        break;
-      case 'trumpet':
-        geometry = new THREE.CylinderGeometry(0.2, 0.6, 2, 12);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0xFFD700, 
-          transparent: true, 
-          opacity: 0.9,
-          shininess: 150
-        });
-        break;
-      case 'saxophone':
-        geometry = new THREE.CylinderGeometry(0.3, 0.4, 2.5, 12);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0xFFD700, 
-          transparent: true, 
-          opacity: 0.9,
-          shininess: 150
-        });
-        break;
-      case 'ney':
-        geometry = new THREE.CylinderGeometry(0.2, 0.2, 2.8, 12);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0xD2B48C, 
-          transparent: true, 
-          opacity: 0.8
-        });
-        break;
-      default:
-        geometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 8);
-        material = new THREE.MeshPhongMaterial({ 
-          color: 0x8B4513, 
-          transparent: true, 
-          opacity: 0.8 
-        });
-    }
-    
-    const instrument = new THREE.Mesh(geometry, material);
-    scene.add(instrument);
-    
-    // Position camera based on instrument type
-    switch(instrumentType) {
-      case 'flute':
-      case 'recorder':
-        camera.position.set(0, 1, 4);
-        break;
-      case 'trumpet':
-        camera.position.set(0, 0.5, 3);
-        break;
-      case 'saxophone':
-        camera.position.set(0, 1, 3.5);
-        break;
-      case 'ney':
-        camera.position.set(0, 1, 4);
-        break;
-      default:
-        camera.position.set(0, 2, 5);
-    }
-    camera.lookAt(0, 0, 0);
-    
-    // Store references
-    threeScenes[instrumentType] = scene;
-    threeRenderers[instrumentType] = renderer;
-    threeCameras[instrumentType] = camera;
-    threeModels[instrumentType] = instrument;
-    
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      instrument.rotation.y += 0.005; // Slower rotation
-      renderer.render(scene, camera);
-    }
-    animate();
-    
-    return { scene, renderer, camera, instrument };
-  } catch (error) {
-    console.error(`Failed to initialize 3D scene for ${instrumentType}:`, error);
-    return null;
-  }
-}
-
-// Update fingering indicators on 3D model
-function update3DFingering(instrumentType, note) {
-  try {
-    const scene = threeScenes[instrumentType];
-    if (!scene) {
-      console.warn(`No 3D scene found for ${instrumentType}`);
-      return;
-    }
-    
-    // Remove existing fingering indicators (keep lights and main instrument)
-    scene.children = scene.children.filter(child => 
-      child.type === 'DirectionalLight' || 
-      child.type === 'AmbientLight' || 
-      child.type === 'PointLight' ||
-      (child.type === 'Mesh' && child === threeModels[instrumentType])
-    );
-    
-    const positions = FINGERING_POSITIONS[instrumentType]?.[note];
-    if (!positions) {
-      console.warn(`No fingering positions found for ${instrumentType} note ${note}`);
-      return;
-    }
-    
-    const { rootPc } = computeSelected();
-    const notePc = pcIndex(note);
-    
-    positions.forEach((pos, index) => {
-      const geometry = new THREE.SphereGeometry(0.08, 12, 12);
-      const material = new THREE.MeshPhongMaterial({ 
-        color: notePc === rootPc ? 0xff4444 : 0x44ff44,
-        transparent: true,
-        opacity: 0.9,
-        shininess: 50
-      });
-      const indicator = new THREE.Mesh(geometry, material);
-      
-      // Position the indicator relative to the instrument
-      const scale = instrumentType === 'trumpet' ? 2 : 3;
-      indicator.position.set(
-        (pos.x - 0.5) * scale,
-        (pos.y - 0.5) * 2,
-        (pos.z - 0.5) * 1
-      );
-      
-      // Add a subtle glow effect
-      const glowGeometry = new THREE.SphereGeometry(0.12, 12, 12);
-      const glowMaterial = new THREE.MeshPhongMaterial({ 
-        color: notePc === rootPc ? 0xff6666 : 0x66ff66,
-        transparent: true,
-        opacity: 0.3
-      });
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      glow.position.copy(indicator.position);
-      scene.add(glow);
-      
-      scene.add(indicator);
-    });
-  } catch (error) {
-    console.error(`Failed to update 3D fingering for ${instrumentType}:`, error);
-  }
-}
+// Note: 3D model functionality is now handled by the imported modules
+// See src/instruments/3d-models.js for implementation
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
@@ -4282,37 +3946,44 @@ function refreshInstruments(){
   if (saxophoneHost3d) saxophoneHost3d.classList.toggle('hidden', !isSaxophone || useSvg);
   if (neyHost3d) neyHost3d.classList.toggle('hidden', !isNey || useSvg);
   
-  // Initialize 3D scenes if needed
-  if (isFlute && !useSvg) {
-    if (!threeScenes.flute) {
-      init3DScene('flute', 'flute3dCanvas');
+  // Initialize 3D scenes if needed (async)
+  async function init3DScenes() {
+    if (isFlute && !useSvg) {
+      if (!threeScenes.flute) {
+        await init3DScene('flute', 'flute3dCanvas');
+      }
+      update3DFingering('flute', pcName(computeSelected().rootPc));
     }
-    update3DFingering('flute', pcName(computeSelected().rootPc));
-  }
-  if (isRecorder && !useSvg) {
-    if (!threeScenes.recorder) {
-      init3DScene('recorder', 'recorder3dCanvas');
+    if (isRecorder && !useSvg) {
+      if (!threeScenes.recorder) {
+        await init3DScene('recorder', 'recorder3dCanvas');
+      }
+      update3DFingering('recorder', pcName(computeSelected().rootPc));
     }
-    update3DFingering('recorder', pcName(computeSelected().rootPc));
-  }
-  if (isTrumpet && !useSvg) {
-    if (!threeScenes.trumpet) {
-      init3DScene('trumpet', 'trumpet3dCanvas');
+    if (isTrumpet && !useSvg) {
+      if (!threeScenes.trumpet) {
+        await init3DScene('trumpet', 'trumpet3dCanvas');
+      }
+      update3DFingering('trumpet', pcName(computeSelected().rootPc));
     }
-    update3DFingering('trumpet', pcName(computeSelected().rootPc));
-  }
-  if (isSaxophone && !useSvg) {
-    if (!threeScenes.saxophone) {
-      init3DScene('saxophone', 'saxophone3dCanvas');
+    if (isSaxophone && !useSvg) {
+      if (!threeScenes.saxophone) {
+        await init3DScene('saxophone', 'saxophone3dCanvas');
+      }
+      update3DFingering('saxophone', pcName(computeSelected().rootPc));
     }
-    update3DFingering('saxophone', pcName(computeSelected().rootPc));
-  }
-  if (isNey && !useSvg) {
-    if (!threeScenes.ney) {
-      init3DScene('ney', 'ney3dCanvas');
+    if (isNey && !useSvg) {
+      if (!threeScenes.ney) {
+        await init3DScene('ney', 'ney3dCanvas');
+      }
+      update3DFingering('ney', pcName(computeSelected().rootPc));
     }
-    update3DFingering('ney', pcName(computeSelected().rootPc));
   }
+  
+  // Call the async function
+  init3DScenes().catch(error => {
+    console.error('Failed to initialize 3D scenes:', error);
+  });
   
   // Build SVG charts if using SVG mode
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
