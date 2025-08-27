@@ -648,11 +648,12 @@ function makeSampler(instrumentName) {
     },
     setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
-    dispose() { 
+    dispose() {
       if (sampler) sampler.disconnect();
-      gain.dispose(); 
-      panner.dispose(); 
-    }
+      gain.dispose();
+      panner.dispose();
+    },
+    loaded: sampler.loaded
   };
 }
 
@@ -1509,44 +1510,52 @@ let scheduledUntil = 0;
 let rescheduleId = null;
 let songEndTick = 0;
 
-function scheduleSong(){
-  const anySolo = song.tracks.some(t => t.solo);
-  song.tracks.forEach(track => {
-    const active = anySolo ? track.solo : !track.mute;
-    if(!active){
-      track.player?.dispose?.();
-      track.player = null;
-      return;
-    }
-    if(!track.player){
-      try {
-        const drumFactory = DRUMS[track.instrument];
-        track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
-        track.player?.setVolume?.(track.volume ?? 0.8);
-        track.player?.setPan?.(track.pan ?? 0);
-      } catch(err){
-        console.error(`Failed to create player for ${track.instrument}:`, err);
-        track.player = createSeqInstrument('Piano');
-        track.player?.setVolume?.(track.volume ?? 0.8);
-        track.player?.setPan?.(track.pan ?? 0);
+async function scheduleSong(trackIdx){
+  try{
+    const anySolo = song.tracks.some(t => t.solo);
+    const loadPromises = [];
+    for(const track of song.tracks){
+      const active = anySolo ? track.solo : !track.mute;
+      if(!active){
+        track.player?.dispose?.();
+        track.player = null;
+        continue;
       }
+      if(!track.player){
+        try{
+          await ensureTone(track.instrument);
+          const drumFactory = DRUMS[track.instrument];
+          track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }catch(err){
+          console.error(`Failed to create player for ${track.instrument}:`, err);
+          track.player = createSeqInstrument('Piano');
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }
+      }
+      if(track.player?.loaded) loadPromises.push(track.player.loaded);
     }
-  });
+    await Promise.all(loadPromises);
 
-  // Determine song length and dynamic scheduling window
-  const ticksPerBeat = song.ppq * (4 / song.ts.den);
-  const ticksPerBar = ticksPerBeat * song.ts.num;
-  songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
-    t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
-  ));
-  const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
-  scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
+    // Determine song length and dynamic scheduling window
+    const ticksPerBeat = song.ppq * (4 / song.ts.den);
+    const ticksPerBar = ticksPerBeat * song.ts.num;
+    songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
+      t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+    ));
+    const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
+    scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
 
-  Tone.Transport.cancel();
-  scheduledUntil = Tone.Transport.ticks;
-  scheduleAhead();
-  if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
-  rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+    Tone.Transport.cancel();
+    scheduledUntil = Tone.Transport.ticks;
+    scheduleAhead();
+    if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
+    rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+  }catch(err){
+    console.error('scheduleSong error:', err);
+  }
 }
 
 function scheduleAhead(){
@@ -4455,8 +4464,11 @@ $('#btnPlaySelArp').addEventListener('click', ()=>{
 
 seqPlay.addEventListener('click', async ()=>{
   try {
-    await ensureTone('Piano');
-    
+    const instruments = Array.from(new Set(song.tracks.map(t => t.instrument)));
+    for (const instr of instruments) {
+      await ensureTone(instr);
+    }
+
     if(sequencerState === 'paused') {
       // Resume from pause
       Tone.Transport.start();
@@ -4465,13 +4477,13 @@ seqPlay.addEventListener('click', async ()=>{
       seqPlay.textContent = 'Play';
       return;
     }
-    
+
     // Fresh start
     if(sequencerState === 'playing') {
       return; // Already playing
     }
-    
-    scheduleSong();
+
+    await scheduleSong();
     
     if(seqClick.checked){
       clickId = Tone.Transport.scheduleRepeat(time => {
