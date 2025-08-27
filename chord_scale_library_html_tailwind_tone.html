@@ -1159,7 +1159,7 @@ function makeMetal(opts){
   const synth = new Tone.MetalSynth(opts).connect(gain);
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
-      synth.triggerAttackRelease(duration, time, velocity);
+      synth.triggerAttackRelease(midiToFreq(note), duration, time, velocity);
     },
     setVolume(v){ gain.gain.value = v; },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
