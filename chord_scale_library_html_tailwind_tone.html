@@ -589,26 +589,9 @@ function makeSynth(type, env, options = {}) {
       try {
         const freq = midiToFreq(midi);
         const vel = Math.max(0.1, Math.min(1, velocity));
-        if (type !== 'PluckSynth') {
-            synth.triggerAttackRelease(freq, dur, time, vel);
-        } else {
-            synth.triggerAttack(freq, time, vel);
-            const durSec = Tone.Time(dur).toSeconds();
-            gain.gain.cancelScheduledValues(time);
-            gain.gain.setValueAtTime(1, time);
-            gain.gain.setValueAtTime(0, time + durSec);
-        }
+        synth.triggerAttackRelease(freq, dur, time, vel);
       } catch(e) {
         console.warn(`${type} trigger error:`, e);
-      }
-    },
-    release(midi,time=Tone.now()){
-      // PluckSynth needs explicit gain drop, others use release.
-      if (type !== 'PluckSynth') {
-        synth.triggerRelease(midiToFreq(midi), time);
-      } else {
-        gain.gain.cancelScheduledValues(time);
-        gain.gain.setValueAtTime(0, time);
       }
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
