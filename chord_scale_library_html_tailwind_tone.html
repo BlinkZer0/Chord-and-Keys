@@ -1201,6 +1201,7 @@ function jumpToStart() {
   Tone.Transport.position = 0;
   updatePositionDisplay();
   drawPianoRoll();
+  drawVelocityChart();
 }
 
 function jumpToEnd() {
@@ -1211,6 +1212,7 @@ function jumpToEnd() {
   Tone.Transport.ticks = lastTick;
   updatePositionDisplay();
   drawPianoRoll();
+  drawVelocityChart();
 }
 
 // Simple Tone.js drum recipes
@@ -1738,6 +1740,7 @@ function loadSong(data){
   updateLoop();
   initSequencer();
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
 }
 
@@ -1834,6 +1837,7 @@ function importSongMidi(buffer){
   updateLoop();
   initSequencer();
   drawPianoRoll();
+  drawVelocityChart();
   if(Tone.Transport.state==='started') scheduleSong();
   const bars = MAX_SONG_BARS.toLocaleString();
   seqStatus.textContent = truncated ? `⚠️ MIDI truncated to ${bars} bars` : '✅ Imported MIDI';
@@ -2253,6 +2257,7 @@ pianoRoll.addEventListener('contextmenu', ev => {
       selectedNotes.clear();
       selectedNotes.add(foundNote);
       drawPianoRoll();
+      drawVelocityChart();
     }
     
     // Show context menu at mouse position
@@ -2315,6 +2320,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
       clip.notes.splice(clip.notes.indexOf(foundNote), 1);
       selectedNotes.delete(foundNote);
       drawPianoRoll();
+      drawVelocityChart();
       if(Tone.Transport.state==='started') scheduleSong(activeTrack);
       return;
     } else if(ev.shiftKey) {
@@ -2350,6 +2356,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
       dragNote={note:foundNote, mode:nearRight?'resize':'move', offsetTick:tick-foundNote.tick, offsetMidi:midi-foundNote.midi};
       pianoRoll.setPointerCapture(ev.pointerId);
       drawPianoRoll();
+      drawVelocityChart();
       return;
     }
   } else {
@@ -2361,6 +2368,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
       ui.selectEnd = {x, y};
       pianoRoll.setPointerCapture(ev.pointerId);
       drawPianoRoll();
+      drawVelocityChart();
       return;
     } else if(!ev.ctrlKey && !ev.metaKey) {
       selectedNotes.clear();
@@ -2376,6 +2384,7 @@ pianoRoll.addEventListener('pointerdown', ev => {
     dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
     pianoRoll.setPointerCapture(ev.pointerId);
     drawPianoRoll();
+    drawVelocityChart();
   }
 });
 pianoRoll.addEventListener('pointermove', ev=>{
@@ -2426,6 +2435,7 @@ pianoRoll.addEventListener('pointermove', ev=>{
     const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.note.dur=Math.max(SIXTEENTH,endTick-dragNote.note.tick);
   }
   drawPianoRoll();
+  drawVelocityChart();
 });
 pianoRoll.addEventListener('pointerup', ev=>{
   const rect=pianoRoll.getBoundingClientRect();
@@ -4610,6 +4620,7 @@ function stopRecording() {
     track.clips[0].notes.push(...notes);
     track.clips[0].notes.sort((a, b) => a.tick - b.tick);
     drawPianoRoll();
+    drawVelocityChart();
     if (Tone.Transport.state === 'started') {
       scheduleSong(activeTrack);
     }
@@ -4930,6 +4941,7 @@ function showVelocityEditor() {
       note.vel = newVel;
     });
     drawPianoRoll();
+    drawVelocityChart();
   }
   
   hideContextMenu();
