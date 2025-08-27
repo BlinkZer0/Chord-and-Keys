@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the music app */
+body {
+  background: var(--bg-body, #020617);
+  color: var(--text-body, #f1f5f9);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+/* Theme variables */
+body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
+body.skin-solarized { --bg-body: #002b36; --text-body: #eee8d5; }
+body.skin-mono { --bg-body: #000000; --text-body: #ffffff; }
+body.skin-spring { --bg-body: linear-gradient(180deg, #d4fc79 0%, #96e6a1 100%); --text-body: #064e3b; }
+body.skin-summer { --bg-body: linear-gradient(180deg, #fceabb 0%, #f8b500 100%); --text-body: #78350f; }
+body.skin-autumn { --bg-body: linear-gradient(180deg, #f6d365 0%, #fda085 100%); --text-body: #7c2d12; }
+body.skin-winter { --bg-body: linear-gradient(180deg, #e0eafc 0%, #cfdef3 100%); --text-body: #1e3a8a; }
+body.skin-forest { --bg-body: radial-gradient(circle at center, #2e8b57 0%, #006400 100%); --text-body: #f0fff0; }
+body.skin-ocean { --bg-body: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%); --text-body: #e0f7fa; }
+body.skin-desert { --bg-body: linear-gradient(180deg, #eacda3 0%, #d6ae7b 100%); --text-body: #654321; }
+body.skin-mountain { --bg-body: linear-gradient(180deg, #bdc3c7 0%, #2c3e50 100%); --text-body: #1f2937; }
+body.skin-sunrise { --bg-body: radial-gradient(circle at center, #ff5f6d 0%, #ffc371 100%); --text-body: #7c2d12; }
+body.skin-sunset { --bg-body: linear-gradient(180deg, #0b486b 0%, #f56217 100%); --text-body: #fef3c7; }
+
+/* Piano key styles */
+.piano-key {
+  @apply relative border border-gray-600 transition-all duration-100 cursor-pointer;
+}
+
+.piano-key.white {
+  @apply bg-white text-black w-12 h-32;
+}
+
+.piano-key.black {
+  @apply bg-black text-white w-8 h-20 absolute z-10;
+}
+
+.piano-key.selected {
+  @apply bg-green-500 shadow-lg shadow-green-500/50;
+}
+
+.piano-key.pressed {
+  @apply bg-blue-500 shadow-lg shadow-blue-500/50 animate-key-press;
+}
+
+/* Particle effects */
+.particle {
+  @apply absolute pointer-events-none rounded-full animate-particle-fade;
+}
+
+/* Tab styles */
+.tab-trigger {
+  @apply px-4 py-2 rounded-lg transition-colors duration-200;
+}
+
+.tab-trigger[data-state="active"] {
+  @apply bg-blue-600 text-white;
+}
+
+.tab-trigger[data-state="inactive"] {
+  @apply bg-gray-700 text-gray-300 hover:bg-gray-600;
+}
+
+/* Dropdown styles */
+.dropdown-content {
+  @apply bg-gray-800 border border-gray-600 rounded-lg shadow-lg p-1;
+}
+
+.dropdown-item {
+  @apply px-3 py-2 rounded text-sm hover:bg-gray-700 cursor-pointer transition-colors;
+}

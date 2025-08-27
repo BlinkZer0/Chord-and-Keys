@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord & Scale Library - Embed Example</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .description {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            background: #667eea;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .embed-container {
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            overflow: hidden;
+            min-height: 600px;
+        }
+        
+        .api-example {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        
+        .api-example h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .api-example code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Chord & Scale Library</h1>
+        <p class="description">
+            This is an example of how to embed the Chord & Scale Library in your website. 
+            The app below is fully functional and interactive!
+        </p>
+        
+        <div class="controls">
+            <button onclick="ChordScaleLibrary.setTheme('skin-default')">Default Theme</button>
+            <button onclick="ChordScaleLibrary.setTheme('skin-spring')">Spring Theme</button>
+            <button onclick="ChordScaleLibrary.setTheme('skin-ocean')">Ocean Theme</button>
+            <button onclick="ChordScaleLibrary.loadScale('C', 'Ionian')">C Major Scale</button>
+            <button onclick="ChordScaleLibrary.loadChord('G', 'Maj')">G Major Chord</button>
+            <button onclick="ChordScaleLibrary.resize('100%', '800px')">Make Taller</button>
+            <button onclick="ChordScaleLibrary.resize('100%', '600px')">Reset Size</button>
+        </div>
+        
+        <div class="embed-container" id="chord-scale-library">
+            <!-- The app will be embedded here -->
+        </div>
+        
+        <div class="api-example">
+            <h3>📚 API Examples</h3>
+            <p>You can control the embedded app programmatically:</p>
+            
+            <h4>Change Theme:</h4>
+            <pre><code>ChordScaleLibrary.setTheme('skin-spring');</code></pre>
+            
+            <h4>Load a Scale:</h4>
+            <pre><code>ChordScaleLibrary.loadScale('D', 'Dorian');</code></pre>
+            
+            <h4>Load a Chord:</h4>
+            <pre><code>ChordScaleLibrary.loadChord('A', 'Min7');</code></pre>
+            
+            <h4>Resize Container:</h4>
+            <pre><code>ChordScaleLibrary.resize('800px', '500px');</code></pre>
+        </div>
+    </div>
+    
+    <!-- Include the embed script -->
+    <script src="embed.js"></script>
+</body>
+</html>

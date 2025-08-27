@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Interactive Chord & Scale Library - Learn music theory with visual instruments" />
+    <meta name="keywords" content="music theory, chords, scales, piano, guitar, interactive" />
+    <title>Chord & Scale Library</title>
+    <style>
+      /* Prevent body margin/padding when embedded */
+      body {
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+      }
+      
+      /* Ensure the app takes full height when embedded */
+      #root {
+        min-height: 100vh;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
