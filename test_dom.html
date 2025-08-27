@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DOM Test</title>
+</head>
+<body>
+    <div id="testElement">Test Element</div>
+    <button id="testButton">Test Button</button>
+    
+    <script>
+        const $ = (sel) => document.querySelector(sel);
+        
+        function testDOM() {
+            alert('DOM Test - DOMContentLoaded fired');
+            console.log('DOM Test - DOMContentLoaded fired');
+            
+            const testElement = $('#testElement');
+            const testButton = $('#testButton');
+            
+            console.log('Test elements found:', {
+                testElement: !!testElement,
+                testButton: !!testButton
+            });
+            
+            if (testButton) {
+                testButton.addEventListener('click', () => {
+                    alert('Button clicked!');
+                });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', testDOM);
+        } else {
+            testDOM();
+        }
+    </script>
+</body>
+</html>

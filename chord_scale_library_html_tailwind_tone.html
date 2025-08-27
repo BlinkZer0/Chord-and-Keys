@@ -2970,7 +2970,18 @@ function _triggerLick(){
 
 // ========================= PIANO =========================
 // === HELD-SUSTAIN: Piano pointer handlers ===
-function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
+function buildPiano(){ 
+  console.log('buildPiano called, pianoHost:', pianoHost);
+  if (!pianoHost) {
+    console.error('pianoHost is null or undefined!');
+    return;
+  }
+  pianoHost.innerHTML=''; 
+  const container=document.createElement('div'); 
+  container.className='relative mx-auto select-none'; 
+  const shell=document.createElement('div'); 
+  shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; 
+  container.appendChild(shell);
   // White keys row
   const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
   const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
@@ -4955,11 +4966,26 @@ function initApp() {
   console.log('DOM fully loaded, initializing application...');
   
   // Initialize DOM element references
+  console.log('$ function available:', typeof $);
+  console.log('document.querySelector available:', typeof document.querySelector);
+  
   pianoHost = $('#pianoHost'); guitarHost = $('#guitarHost'); bassHost = $('#bassHost'); violinHost = $('#violinHost'); fluteHost = $('#fluteHost'); recorderHost = $('#recorderHost'); trumpetHost = $('#trumpetHost'); saxophoneHost = $('#saxophoneHost'); kotoHost = $('#kotoHost'); neyHost = $('#neyHost'); instrIcon = $('#instrIcon');
   selKey = $('#selKey'); selQuality = $('#selQuality'); selMode = $('#selMode'); selInstr = $('#selInstr'); selSystem = $('#selSystem'); skinSelector = $('#skinSelector');
   badgeRoot = $('#badgeRoot'); badgeChordNotes = $('#badgeChordNotes'); badgeScaleNotes = $('#badgeScaleNotes');
   badgeId = $('#badgeId'); badgeSelNotes = $('#badgeSelNotes');
   btnModeChord = $('#btnModeChord'); btnModeScale = $('#btnModeScale'); btnModeSequencer = $('#btnModeSequencer');
+  
+  // Debug: Check if key elements are found
+  console.log('DOM Elements found:', {
+    pianoHost: !!pianoHost,
+    btnModeChord: !!btnModeChord,
+    btnModeScale: !!btnModeScale,
+    btnModeSequencer: !!btnModeSequencer,
+    selKey: !!selKey,
+    selQuality: !!selQuality,
+    selMode: !!selMode,
+    selInstr: !!selInstr
+  });
   wrapChord = $('#wrapChord'); wrapScale = $('#wrapScale');
   listenChord = $('#listenChord'); listenScale = $('#listenScale'); btnPlayStrum = $('#btnPlayStrum');
   btnPlaySelChord = $('#btnPlaySelChord'); btnPlaySelArp = $('#btnPlaySelArp'); btnSendToSeq = $('#btnSendToSeq'); btnShowKeyboard = $('#btnShowKeyboard');
@@ -5010,7 +5036,23 @@ function initApp() {
   window.addEventListener('resize', drawPianoRoll);
   
   // Build UI
-  buildPiano(); refreshInstruments(); updateAll(); runTests(); initSequencer(); generatePatternLibrary(); refreshPatternSelector(); initMIDI();
+  console.log('Starting UI build...');
+  buildPiano(); 
+  console.log('Piano built');
+  refreshInstruments(); 
+  console.log('Instruments refreshed');
+  updateAll(); 
+  console.log('All updated');
+  runTests(); 
+  console.log('Tests run');
+  initSequencer(); 
+  console.log('Sequencer initialized');
+  generatePatternLibrary(); 
+  console.log('Pattern library generated');
+  refreshPatternSelector(); 
+  console.log('Pattern selector refreshed');
+  initMIDI(); 
+  console.log('MIDI initialized');
 
   // Initialize enhanced features
   if (typeof particleSystem !== 'undefined') {
