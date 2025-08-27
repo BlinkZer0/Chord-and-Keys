@@ -1826,50 +1826,37 @@ function drawPianoRoll(){
   song.tracks.forEach((track,idx)=>{
     const baseColor = hexToRgba(track.color||'#60a5fa', idx===activeTrack?1:0.3);
     // Pre-filter notes for viewport culling - major performance improvement for large files
-    const visibleNotes = track.clips[0].notes.filter(n => 
-      n.tick + n.dur >= startTick && n.tick <= endTick && 
+    const visibleNotes = track.clips[0].notes.filter(n =>
+      n.tick + n.dur >= startTick && n.tick <= endTick &&
       n.midi >= bottomMidi && n.midi <= topMidi
     );
-    
+
     visibleNotes.forEach(n=>{
       const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
-      
-      // Piano-style coloring: black keys (sharps) vs white keys (naturals)
-      const pc = n.midi % 12;
-      const isBlackKey = [1,3,6,8,10].includes(pc); // C#, D#, F#, G#, A#
-      const pianoColor = isBlackKey ? '#1f2937' : '#f9fafb'; // Dark gray for sharps, light for naturals
-      const borderColor = isBlackKey ? '#374151' : '#d1d5db';
-      
+
       // Highlight selected notes
       if(idx === activeTrack && selectedNotes.has(n)) {
         ctx.fillStyle = '#ff6b9d';
         ctx.fillRect(x-2, y-2, w+4, cellH+4);
       }
-      
-      // Draw note with piano colors
-      ctx.fillStyle = pianoColor;
+
+      // Draw note using track color
+      ctx.fillStyle = baseColor;
       ctx.fillRect(x,y,w,cellH);
-      
-      // Add border to distinguish notes
-      ctx.strokeStyle = borderColor;
+
+      // Add subtle border for clarity
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
       ctx.lineWidth = 1;
       ctx.strokeRect(x,y,w,cellH);
-      
-      // Add track color as small indicator on active track notes
-      if(idx === activeTrack) {
-        ctx.fillStyle = baseColor;
-        ctx.fillRect(x + 2, y + 2, Math.max(4, w * 0.15), cellH - 4);
-      }
     });
   });
   if(dragNote){
-    const pc = dragNote.midi % 12;
-    const isBlackKey = [1,3,6,8,10].includes(pc);
-    ctx.fillStyle = isBlackKey ? 'rgba(31,41,55,0.8)' : 'rgba(249,250,251,0.8)';
-    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH; 
+    const dragColor = hexToRgba(song.tracks[activeTrack].color||'#60a5fa',0.8);
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
     if(x+w>=0 && x<=width) {
+      ctx.fillStyle = dragColor;
       ctx.fillRect(x,y,w,cellH);
       // Add pink border for drag preview
       ctx.strokeStyle = 'rgba(236,72,153,0.8)';
