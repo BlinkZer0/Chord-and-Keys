@@ -8,8 +8,72 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Tone.js for audio playback -->
   <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
-      <!-- Tonejs-instruments for high-quality sampled instruments -->
-    <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+            <!-- Tonejs-instruments for high-quality sampled instruments -->
+      <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+      <!-- Three.js for 3D models -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <!-- GLTFLoader for 3D model loading -->
+      <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+      <!-- Instrument modules -->
+      <script type="module">
+        import { 
+          buildFluteChart, 
+          buildRecorderChart, 
+          buildTrumpetChart, 
+          buildSaxophoneChart, 
+          buildNeyChart,
+          SVG_FINGERINGS,
+          fluteLeftToRight,
+          fluteOrientation,
+          recorderLeftToRight,
+          recorderOrientation,
+          trumpetLeftToRight,
+          trumpetOrientation,
+          saxophoneLeftToRight,
+          saxophoneOrientation,
+          neyLeftToRight,
+          neyOrientation
+        } from './src/instruments/svg-models.js';
+        
+        import {
+          init3DScene,
+          update3DFingering,
+          cleanup3DScene,
+          threeScenes,
+          threeRenderers,
+          threeCameras,
+          threeModels,
+          FINGERING_POSITIONS,
+          MODEL_URLS
+        } from './src/instruments/3d-models.js';
+        
+        // Make functions globally available
+        window.buildFluteChart = buildFluteChart;
+        window.buildRecorderChart = buildRecorderChart;
+        window.buildTrumpetChart = buildTrumpetChart;
+        window.buildSaxophoneChart = buildSaxophoneChart;
+        window.buildNeyChart = buildNeyChart;
+        window.SVG_FINGERINGS = SVG_FINGERINGS;
+        window.fluteLeftToRight = fluteLeftToRight;
+        window.fluteOrientation = fluteOrientation;
+        window.recorderLeftToRight = recorderLeftToRight;
+        window.recorderOrientation = recorderOrientation;
+        window.trumpetLeftToRight = trumpetLeftToRight;
+        window.trumpetOrientation = trumpetOrientation;
+        window.saxophoneLeftToRight = saxophoneLeftToRight;
+        window.saxophoneOrientation = saxophoneOrientation;
+        window.neyLeftToRight = neyLeftToRight;
+        window.neyOrientation = neyOrientation;
+        window.init3DScene = init3DScene;
+        window.update3DFingering = update3DFingering;
+        window.cleanup3DScene = cleanup3DScene;
+        window.threeScenes = threeScenes;
+        window.threeRenderers = threeRenderers;
+        window.threeCameras = threeCameras;
+        window.threeModels = threeModels;
+        window.FINGERING_POSITIONS = FINGERING_POSITIONS;
+        window.MODEL_URLS = MODEL_URLS;
+      </script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
@@ -27,7 +91,26 @@
     body.skin-sunset { --bg-body: linear-gradient(180deg, #0b486b 0%, #f56217 100%); --text-body: #fef3c7; }
     #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
     #devTests[open] .chevron { transform: rotate(0deg); }
+    #settings .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
+    #settings[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
+    .instrument-3d-container { width: 100%; height: 300px; position: relative; }
+    .instrument-3d-canvas { width: 100%; height: 100%; }
+    .fingering-indicator { 
+      position: absolute; 
+      width: 20px; 
+      height: 20px; 
+      background: rgba(34, 197, 94, 0.8); 
+      border: 2px solid #22c55e; 
+      border-radius: 50%; 
+      pointer-events: none; 
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    .fingering-indicator.root { 
+      background: rgba(239, 68, 68, 0.8); 
+      border-color: #ef4444; 
+    }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -106,11 +189,36 @@
         <div id="bassHost" class="hidden"></div>
         <div id="violinHost" class="hidden"></div>
         <div id="fluteHost" class="hidden"></div>
+        <div id="fluteHost3d" class="hidden">
+          <div class="instrument-3d-container">
+            <canvas id="flute3dCanvas" class="instrument-3d-canvas"></canvas>
+          </div>
+        </div>
         <div id="recorderHost" class="hidden"></div>
+        <div id="recorderHost3d" class="hidden">
+          <div class="instrument-3d-container">
+            <canvas id="recorder3dCanvas" class="instrument-3d-canvas"></canvas>
+          </div>
+        </div>
         <div id="trumpetHost" class="hidden"></div>
+        <div id="trumpetHost3d" class="hidden">
+          <div class="instrument-3d-container">
+            <canvas id="trumpet3dCanvas" class="instrument-3d-canvas"></canvas>
+          </div>
+        </div>
         <div id="saxophoneHost" class="hidden"></div>
+        <div id="saxophoneHost3d" class="hidden">
+          <div class="instrument-3d-container">
+            <canvas id="saxophone3dCanvas" class="instrument-3d-canvas"></canvas>
+          </div>
+        </div>
         <div id="kotoHost" class="hidden"></div>
         <div id="neyHost" class="hidden"></div>
+        <div id="neyHost3d" class="hidden">
+          <div class="instrument-3d-container">
+            <canvas id="ney3dCanvas" class="instrument-3d-canvas"></canvas>
+          </div>
+        </div>
 
         <div class="flex items-center gap-2 pt-1">
           <span id="badgeId" class="px-2 py-0.5 rounded-full text-xs font-semibold border bg-slate-700/40 text-slate-300 border-slate-600">Selection: —</span>
@@ -272,7 +380,7 @@
             <button id="btnCopyFL" aria-label="Copy for FL Paste (Score)" title="Copy for FL Paste (Score)" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy for FL Paste (Score)</button>
             <button id="btnCopyCSV" aria-label="Copy CSV" title="Copy CSV" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Copy CSV</button>
             <button id="btnMid" aria-label="Download .MID" title="Download .MID" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold">Download .MID</button>
-          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL’s Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
+          <div class="text-xs text-slate-400">Browsers often block non‑text clipboard formats. If FL's Paste is disabled after copying, use <span class="font-semibold">Download .MID</span> and drag into Piano Roll.</div>
         </div>
         <div id="copyStatus" class="text-xs text-slate-300 mt-2"></div>
       </div>
@@ -333,6 +441,11 @@
             <div class="flex items-center gap-2">
               <input type="checkbox" id="enableAnimations" checked class="rounded">
               <label for="enableAnimations" class="text-xs text-slate-400">Enable animations</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="useSvgModels" class="rounded">
+              <label for="useSvgModels" class="text-xs text-slate-400">Use SVG models (humorous)</label>
             </div>
 
             <!-- Session Management -->
@@ -522,6 +635,346 @@ function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
 function intersection(a,b){ return a.filter(x=>b.includes(x)); }
 function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
 function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+
+// ========================= 3D MODELS =========================
+// 3D model URLs from Sketchfab
+const MODEL_URLS = {
+  ney: 'https://sketchfab.com/3d-models/ney-0661b44e756c49abb5bde6991b084de0',
+  sax: 'https://sketchfab.com/3d-models/sax-f137c64c274d46ba8a7157450541ed0b',
+  flute: 'https://sketchfab.com/3d-models/concert-flute-3a9cd128f61f4d9090eb76e43462aa4c',
+  recorder: 'https://sketchfab.com/3d-models/recorder-70091cb4e22244b78919ecc6843a1d4b',
+  trumpet: 'https://sketchfab.com/3d-models/trumpet-3f2d4f5b962340b2933012e1bc634d88'
+};
+
+// 3D scene management
+const threeScenes = {};
+const threeRenderers = {};
+const threeCameras = {};
+const threeModels = {};
+
+// Fingering positions for 3D models (normalized coordinates)
+const FINGERING_POSITIONS = {
+  flute: {
+    C: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    'C#': [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    D: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    'D#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, 
+           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    E: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    F: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    'F#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    G: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+        {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}],
+    'G#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.55, y: 0.2, z: 0.1}],
+    A: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, 
+        {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
+    'A#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, 
+           {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 1.0, y: 0.2, z: 0.1}],
+    B: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}]
+  },
+  recorder: {
+    C: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
+        {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
+    'C#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
+           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.85, y: 0.3, z: 0.1}],
+    D: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
+        {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
+    'D#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.65, y: 0.3, z: 0.1}, 
+           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
+    E: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
+    F: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.45, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
+    'F#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+           {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
+    G: [{x: 0.15, y: 0.3, z: 0.1}, {x: 0.25, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+        {x: 0.45, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.65, y: 0.3, z: 0.1}, 
+        {x: 0.75, y: 0.3, z: 0.1}, {x: 0.85, y: 0.3, z: 0.1}],
+    'G#': [{x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
+           {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, 
+           {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}],
+    A: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}, 
+        {x: 1.0, y: 0.3, z: 0.1}, {x: 1.1, y: 0.3, z: 0.1}],
+    'A#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.55, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+           {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}],
+    B: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
+        {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, 
+        {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}]
+  },
+  trumpet: {
+    C: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
+    'C#': [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
+    D: [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
+    'D#': [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
+    E: [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
+    F: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
+    'F#': [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
+    G: [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
+    'G#': [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}],
+    A: [{x: 0.2, y: 0.4, z: 0.2}, {x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}],
+    'A#': [{x: 0.3, y: 0.4, z: 0.2}, {x: 0.5, y: 0.4, z: 0.2}, {x: 0.7, y: 0.4, z: 0.2}],
+    B: [{x: 0.4, y: 0.4, z: 0.2}, {x: 0.6, y: 0.4, z: 0.2}, {x: 0.8, y: 0.4, z: 0.2}]
+  },
+  saxophone: {
+    C: [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    'C#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    D: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    'D#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, 
+           {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    E: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    F: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+        {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    'F#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    G: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+        {x: 0.4, y: 0.3, z: 0.1}, {x: 0.45, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}],
+    'G#': [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.3, y: 0.3, z: 0.1}, {x: 0.35, y: 0.3, z: 0.1}, 
+           {x: 0.4, y: 0.3, z: 0.1}, {x: 0.45, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}],
+    A: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, 
+        {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}],
+    'A#': [{x: 0.2, y: 0.3, z: 0.1}, {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, 
+           {x: 0.8, y: 0.3, z: 0.1}, {x: 0.9, y: 0.3, z: 0.1}, {x: 1.0, y: 0.3, z: 0.1}],
+    B: [{x: 0.25, y: 0.3, z: 0.1}, {x: 0.4, y: 0.3, z: 0.1}, {x: 0.5, y: 0.3, z: 0.1}, 
+        {x: 0.6, y: 0.3, z: 0.1}, {x: 0.7, y: 0.3, z: 0.1}, {x: 0.8, y: 0.3, z: 0.1}]
+  },
+  ney: {
+    C: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
+    'C#': [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
+    D: [{x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    'D#': [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, 
+           {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}],
+    E: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    F: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    'F#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    G: [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+        {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    'G#': [{x: 0.3, y: 0.2, z: 0.1}, {x: 0.35, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, 
+           {x: 0.45, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.55, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}],
+    A: [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, 
+        {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 0.95, y: 0.2, z: 0.1}],
+    'A#': [{x: 0.2, y: 0.2, z: 0.1}, {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, 
+           {x: 0.8, y: 0.2, z: 0.1}, {x: 0.9, y: 0.2, z: 0.1}, {x: 1.0, y: 0.2, z: 0.1}, {x: 1.05, y: 0.2, z: 0.1}],
+    B: [{x: 0.25, y: 0.2, z: 0.1}, {x: 0.4, y: 0.2, z: 0.1}, {x: 0.5, y: 0.2, z: 0.1}, 
+        {x: 0.6, y: 0.2, z: 0.1}, {x: 0.7, y: 0.2, z: 0.1}, {x: 0.8, y: 0.2, z: 0.1}, {x: 0.85, y: 0.2, z: 0.1}]
+  }
+};
+
+// Initialize 3D scene for an instrument
+function init3DScene(instrumentType, canvasId) {
+  try {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.warn(`Canvas ${canvasId} not found for ${instrumentType}`);
+      return;
+    }
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+    
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.setClearColor(0x000000, 0);
+    
+    // Enhanced lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 10, 5);
+    scene.add(directionalLight);
+    
+    const pointLight = new THREE.PointLight(0xffffff, 0.3);
+    pointLight.position.set(-5, 5, 5);
+    scene.add(pointLight);
+    
+    // Create instrument-specific geometry
+    let geometry, material;
+    
+    switch(instrumentType) {
+      case 'flute':
+        geometry = new THREE.CylinderGeometry(0.3, 0.3, 3, 12);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0xC0C0C0, 
+          transparent: true, 
+          opacity: 0.9,
+          shininess: 100
+        });
+        break;
+      case 'recorder':
+        geometry = new THREE.CylinderGeometry(0.4, 0.3, 2.5, 12);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0x8B4513, 
+          transparent: true, 
+          opacity: 0.8
+        });
+        break;
+      case 'trumpet':
+        geometry = new THREE.CylinderGeometry(0.2, 0.6, 2, 12);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0xFFD700, 
+          transparent: true, 
+          opacity: 0.9,
+          shininess: 150
+        });
+        break;
+      case 'saxophone':
+        geometry = new THREE.CylinderGeometry(0.3, 0.4, 2.5, 12);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0xFFD700, 
+          transparent: true, 
+          opacity: 0.9,
+          shininess: 150
+        });
+        break;
+      case 'ney':
+        geometry = new THREE.CylinderGeometry(0.2, 0.2, 2.8, 12);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0xD2B48C, 
+          transparent: true, 
+          opacity: 0.8
+        });
+        break;
+      default:
+        geometry = new THREE.CylinderGeometry(0.5, 0.5, 4, 8);
+        material = new THREE.MeshPhongMaterial({ 
+          color: 0x8B4513, 
+          transparent: true, 
+          opacity: 0.8 
+        });
+    }
+    
+    const instrument = new THREE.Mesh(geometry, material);
+    scene.add(instrument);
+    
+    // Position camera based on instrument type
+    switch(instrumentType) {
+      case 'flute':
+      case 'recorder':
+        camera.position.set(0, 1, 4);
+        break;
+      case 'trumpet':
+        camera.position.set(0, 0.5, 3);
+        break;
+      case 'saxophone':
+        camera.position.set(0, 1, 3.5);
+        break;
+      case 'ney':
+        camera.position.set(0, 1, 4);
+        break;
+      default:
+        camera.position.set(0, 2, 5);
+    }
+    camera.lookAt(0, 0, 0);
+    
+    // Store references
+    threeScenes[instrumentType] = scene;
+    threeRenderers[instrumentType] = renderer;
+    threeCameras[instrumentType] = camera;
+    threeModels[instrumentType] = instrument;
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      instrument.rotation.y += 0.005; // Slower rotation
+      renderer.render(scene, camera);
+    }
+    animate();
+    
+    return { scene, renderer, camera, instrument };
+  } catch (error) {
+    console.error(`Failed to initialize 3D scene for ${instrumentType}:`, error);
+    return null;
+  }
+}
+
+// Update fingering indicators on 3D model
+function update3DFingering(instrumentType, note) {
+  try {
+    const scene = threeScenes[instrumentType];
+    if (!scene) {
+      console.warn(`No 3D scene found for ${instrumentType}`);
+      return;
+    }
+    
+    // Remove existing fingering indicators (keep lights and main instrument)
+    scene.children = scene.children.filter(child => 
+      child.type === 'DirectionalLight' || 
+      child.type === 'AmbientLight' || 
+      child.type === 'PointLight' ||
+      (child.type === 'Mesh' && child === threeModels[instrumentType])
+    );
+    
+    const positions = FINGERING_POSITIONS[instrumentType]?.[note];
+    if (!positions) {
+      console.warn(`No fingering positions found for ${instrumentType} note ${note}`);
+      return;
+    }
+    
+    const { rootPc } = computeSelected();
+    const notePc = pcIndex(note);
+    
+    positions.forEach((pos, index) => {
+      const geometry = new THREE.SphereGeometry(0.08, 12, 12);
+      const material = new THREE.MeshPhongMaterial({ 
+        color: notePc === rootPc ? 0xff4444 : 0x44ff44,
+        transparent: true,
+        opacity: 0.9,
+        shininess: 50
+      });
+      const indicator = new THREE.Mesh(geometry, material);
+      
+      // Position the indicator relative to the instrument
+      const scale = instrumentType === 'trumpet' ? 2 : 3;
+      indicator.position.set(
+        (pos.x - 0.5) * scale,
+        (pos.y - 0.5) * 2,
+        (pos.z - 0.5) * 1
+      );
+      
+      // Add a subtle glow effect
+      const glowGeometry = new THREE.SphereGeometry(0.12, 12, 12);
+      const glowMaterial = new THREE.MeshPhongMaterial({ 
+        color: notePc === rootPc ? 0xff6666 : 0x66ff66,
+        transparent: true,
+        opacity: 0.3
+      });
+      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+      glow.position.copy(indicator.position);
+      scene.add(glow);
+      
+      scene.add(indicator);
+    });
+  } catch (error) {
+    console.error(`Failed to update 3D fingering for ${instrumentType}:`, error);
+  }
+}
 
 // ========================= AUDIO (Tone.js) =========================
 let _synth=null; let _started=false; const ENV={
@@ -2511,97 +2964,7 @@ function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=doc
 
 function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent='Koto • Tuning: '+KOTO_TUNING.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const board=document.createElement('div'); board.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const {pcset, rootPc} = computeSelected(); const note=pcName(rootPc); const sharp=ENHARMONIC_MAP[note] || note; const fing=KOTO_FINGERINGS[sharp] || Array(KOTO_TUNING.length).fill(0); KOTO_TUNING.forEach((m,i)=>{ const pc=mod(m,OCTAVE); const pressed=fing[i]; const row=document.createElement('div'); row.className='relative h-5 my-1 flex items-center'; const line=document.createElement('div'); line.className='w-full h-0.5'; line.style.backgroundColor = pressed? '#374151' : (pcset.has(pc)? (rootPc===pc? '#f43f5e':'#4ade80') : '#cbd5e1'); row.appendChild(line); const lab=document.createElement('div'); lab.className='absolute -left-2 -translate-x-full text-xs text-slate-400'; lab.textContent=pcName(pc)+(Math.floor(m/OCTAVE)-1); row.appendChild(lab); if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className='absolute right-0 top-1/2 -translate-y-1/2 px-1 text-[10px] font-semibold rounded '+(rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.textContent = rootPc===pc? 'R': pcName(pc); row.appendChild(dot); } board.appendChild(row); }); outer.appendChild(board); kotoHost.appendChild(outer); }
 
-// ========================= FLUTE CHART =========================
-const FLUTE_FINGERINGS = {
-  C:[1,1,1,1,1,1],
-  'C#':[0,1,1,1,1,1],
-  D:[0,1,1,1,1,1],
-  'D#':[1,0,0,1,1,1],
-  E:[0,0,1,1,1,1],
-  F:[0,0,0,1,1,1],
-  'F#':[0,0,0,0,1,1],
-  G:[0,0,0,0,0,1],
-  'G#':[0,0,0,0,0,0],
-  A:[0,1,0,0,0,0],
-  'A#':[1,0,0,0,0,0],
-  B:[0,1,1,0,0,0]
-};
-/*
-  Flute chart layout
-  - ViewBox: 0 0 160 60 (overall diagram size)
-  - Hole spacing: i*22 (horizontal positioning)
-  - Hole radius: r=10
-  Change these numbers to resize the chart or adjust hole placement for custom layouts.
-*/
-function buildFluteChart(){
-  const {rootPc} = computeSelected();
-  const note = pcName(rootPc);
-  const sharp = ENHARMONIC_MAP[note] || note;
-  const fing = FLUTE_FINGERINGS[sharp] || [0,0,0,0,0,0];
-  fluteHost.innerHTML='';
-  const svgNS='http://www.w3.org/2000/svg';
-  const svg=document.createElementNS(svgNS,'svg');
-  const isHoriz = fluteOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 320 80' : '0 0 80 320');
-  svg.setAttribute('class','mx-auto');
-  
-  // Realistic flute body with sections and proper proportions
-  if(isHoriz){
-    // Main tube body (cylindrical appearance with gradient)
-    const grad = document.createElementNS(svgNS,'defs');
-    const gradDef = document.createElementNS(svgNS,'linearGradient');
-    gradDef.setAttribute('id','fluteGrad');
-    gradDef.setAttribute('x1','0%');
-    gradDef.setAttribute('y1','0%');
-    gradDef.setAttribute('x2','0%');
-    gradDef.setAttribute('y2','100%');
-    const stop1 = document.createElementNS(svgNS,'stop');
-    stop1.setAttribute('offset','0%');
-    stop1.setAttribute('stop-color','#e2e8f0');
-    const stop2 = document.createElementNS(svgNS,'stop');
-    stop2.setAttribute('offset','50%');
-    stop2.setAttribute('stop-color','#f8fafc');
-    const stop3 = document.createElementNS(svgNS,'stop');
-    stop3.setAttribute('offset','100%');
-    stop3.setAttribute('stop-color','#cbd5e1');
-    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
-    grad.appendChild(gradDef);
-    svg.appendChild(grad);
-    
-    // Head joint with embouchure
-    const headJoint = document.createElementNS(svgNS,'rect');
-    headJoint.setAttribute('x', fluteLeftToRight ? '10' : '250');
-    headJoint.setAttribute('y','25');
-    headJoint.setAttribute('width','60');
-    headJoint.setAttribute('height','30');
-    headJoint.setAttribute('rx','15');
-    headJoint.setAttribute('fill','url(#fluteGrad)');
-    headJoint.setAttribute('stroke','#64748b');
-    headJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(headJoint);
-    
-    // Embouchure hole
-    const embHole = document.createElementNS(svgNS,'ellipse');
-    embHole.setAttribute('cx', fluteLeftToRight ? '40' : '280');
-    embHole.setAttribute('cy','40');
-    embHole.setAttribute('rx','8');
-    embHole.setAttribute('ry','4');
-    embHole.setAttribute('fill','#1e293b');
-    embHole.setAttribute('stroke','#475569');
-    embHole.setAttribute('stroke-width','1');
-    svg.appendChild(embHole);
-    
-    // Body joint
-    const bodyJoint = document.createElementNS(svgNS,'rect');
-    bodyJoint.setAttribute('x', fluteLeftToRight ? '75' : '145');
-    bodyJoint.setAttribute('y','27');
-    bodyJoint.setAttribute('width','100');
-    bodyJoint.setAttribute('height','26');
-    bodyJoint.setAttribute('rx','13');
-    bodyJoint.setAttribute('fill','url(#fluteGrad)');
-    bodyJoint.setAttribute('stroke','#64748b');
-    bodyJoint.setAttribute('stroke-width','1.5');
-    svg.appendChild(bodyJoint);
+// ========================= EXPORT HELPERS =========================
     
     // Foot joint
     const footJoint = document.createElementNS(svgNS,'rect');
@@ -2965,296 +3328,6 @@ function buildRecorderChart(){
     thumbHole.setAttribute('stroke','#78350f');
     thumbHole.setAttribute('stroke-width','1');
     svg.appendChild(thumbHole);
-    
-  } else {
-    // Vertical orientation - similar detailed structure
-    const grad = document.createElementNS(svgNS,'defs');
-    const gradDef = document.createElementNS(svgNS,'linearGradient');
-    gradDef.setAttribute('id','woodGradV');
-    gradDef.setAttribute('x1','0%');
-    gradDef.setAttribute('y1','0%');
-    gradDef.setAttribute('x2','100%');
-    gradDef.setAttribute('y2','0%');
-    const stop1 = document.createElementNS(svgNS,'stop');
-    stop1.setAttribute('offset','0%');
-    stop1.setAttribute('stop-color','#d97706');
-    const stop2 = document.createElementNS(svgNS,'stop');
-    stop2.setAttribute('offset','25%');
-    stop2.setAttribute('stop-color','#b45309');
-    const stop3 = document.createElementNS(svgNS,'stop');
-    stop3.setAttribute('offset','75%');
-    stop3.setAttribute('stop-color','#92400e');
-    const stop4 = document.createElementNS(svgNS,'stop');
-    stop4.setAttribute('offset','100%');
-    stop4.setAttribute('stop-color','#78350f');
-    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
-    grad.appendChild(gradDef);
-    svg.appendChild(grad);
-    
-    // Head section vertical
-    const headSection = document.createElementNS(svgNS,'rect');
-    headSection.setAttribute('x','35');
-    headSection.setAttribute('y', recorderLeftToRight ? '10' : '270');
-    headSection.setAttribute('width','30');
-    headSection.setAttribute('height','60');
-    headSection.setAttribute('rx','15');
-    headSection.setAttribute('fill','url(#woodGradV)');
-    headSection.setAttribute('stroke','#92400e');
-    headSection.setAttribute('stroke-width','2');
-    svg.appendChild(headSection);
-    
-    // Beak vertical
-    const beak = document.createElementNS(svgNS,'polygon');
-    const beakPoints = recorderLeftToRight ? 
-      '45,10 40,25 60,25 55,10' : 
-      '45,330 40,315 60,315 55,330';
-    beak.setAttribute('points', beakPoints);
-    beak.setAttribute('fill','#78350f');
-    beak.setAttribute('stroke','#451a03');
-    beak.setAttribute('stroke-width','1.5');
-    svg.appendChild(beak);
-    
-    // Joints vertical
-    const upperJoint = document.createElementNS(svgNS,'rect');
-    upperJoint.setAttribute('x','37');
-    upperJoint.setAttribute('y', recorderLeftToRight ? '75' : '205');
-    upperJoint.setAttribute('width','26');
-    upperJoint.setAttribute('height','60');
-    upperJoint.setAttribute('rx','13');
-    upperJoint.setAttribute('fill','url(#woodGradV)');
-    upperJoint.setAttribute('stroke','#92400e');
-    upperJoint.setAttribute('stroke-width','2');
-    svg.appendChild(upperJoint);
-    
-    const lowerJoint = document.createElementNS(svgNS,'rect');
-    lowerJoint.setAttribute('x','38');
-    lowerJoint.setAttribute('y','140');
-    lowerJoint.setAttribute('width','24');
-    lowerJoint.setAttribute('height','60');
-    lowerJoint.setAttribute('rx','12');
-    lowerJoint.setAttribute('fill','url(#woodGradV)');
-    lowerJoint.setAttribute('stroke','#92400e');
-    lowerJoint.setAttribute('stroke-width','2');
-    svg.appendChild(lowerJoint);
-    
-    const footJoint = document.createElementNS(svgNS,'rect');
-    footJoint.setAttribute('x','39');
-    footJoint.setAttribute('y', recorderLeftToRight ? '205' : '75');
-    footJoint.setAttribute('width','22');
-    footJoint.setAttribute('height','60');
-    footJoint.setAttribute('rx','11');
-    footJoint.setAttribute('fill','url(#woodGradV)');
-    footJoint.setAttribute('stroke','#92400e');
-    footJoint.setAttribute('stroke-width','2');
-    svg.appendChild(footJoint);
-    
-    // Joint rings vertical
-    const rings = recorderLeftToRight ? [70, 135, 200] : [270, 205, 140];
-    rings.forEach(y => {
-      const ring = document.createElementNS(svgNS,'line');
-      ring.setAttribute('x1','35');
-      ring.setAttribute('y1', String(y));
-      ring.setAttribute('x2','65');
-      ring.setAttribute('y2', String(y));
-      ring.setAttribute('stroke','#451a03');
-      ring.setAttribute('stroke-width','2');
-      svg.appendChild(ring);
-    });
-    
-    // Tone holes vertical
-    const holePositions = recorderLeftToRight ? 
-      [85, 100, 115, 130, 150, 170, 190, 210] : 
-      [255, 240, 225, 210, 190, 170, 150, 130];
-    
-    fing.forEach((closed,i)=>{
-      const holeY = holePositions[i];
-      
-      const hole = document.createElementNS(svgNS,'circle');
-      hole.setAttribute('cx','50');
-      hole.setAttribute('cy', String(holeY));
-      hole.setAttribute('r','6');
-      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
-      hole.setAttribute('stroke','#78350f');
-      hole.setAttribute('stroke-width','1.5');
-      svg.appendChild(hole);
-      
-      if(closed) {
-        const finger = document.createElementNS(svgNS,'circle');
-        finger.setAttribute('cx','50');
-        finger.setAttribute('cy', String(holeY));
-        finger.setAttribute('r','9');
-        finger.setAttribute('fill','rgba(251, 191, 36, 0.7)');
-        finger.setAttribute('stroke','#f59e0b');
-        finger.setAttribute('stroke-width','2');
-        svg.appendChild(finger);
-      }
-    });
-    
-    // Thumb hole vertical
-    const thumbHole = document.createElementNS(svgNS,'ellipse');
-    thumbHole.setAttribute('cx','68');
-    thumbHole.setAttribute('cy', recorderLeftToRight ? '95' : '245');
-    thumbHole.setAttribute('rx','2');
-    thumbHole.setAttribute('ry','3');
-    thumbHole.setAttribute('fill','#1c1917');
-    thumbHole.setAttribute('stroke','#78350f');
-    thumbHole.setAttribute('stroke-width','1');
-    svg.appendChild(thumbHole);
-  }
-  recorderHost.appendChild(svg);
-  const flip=document.createElement('button');
-  flip.id='recorderFlip';
-  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
-  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
-  recorderHost.appendChild(flip);
-  const orient=document.createElement('button');
-  orient.id='recorderOrient';
-  orient.textContent = recorderOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
-  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
-  recorderHost.appendChild(orient);
-  const lbl=document.createElement('div');
-  lbl.className='mt-2 text-center text-xs text-slate-400';
-  lbl.textContent=`Fingering for ${sharp}`;
-  recorderHost.appendChild(lbl);
-  document.getElementById('recorderFlip').onclick = () => {
-    recorderLeftToRight = !recorderLeftToRight;
-    buildRecorderChart();
-  };
-  document.getElementById('recorderOrient').onclick = () => {
-    recorderOrientation = recorderOrientation === 'horizontal' ? 'vertical' : 'horizontal';
-    buildRecorderChart();
-  };
-}
-
-// ========================= TRUMPET CHART =========================
-const TRUMPET_FINGERINGS = {
-  C:[0,0,0],
-  'C#':[1,1,1],
-  D:[1,0,1],
-  'D#':[0,1,1],
-  E:[1,1,0],
-  F:[1,0,0],
-  'F#':[0,1,0],
-  G:[0,0,0],
-  'G#':[1,0,1],
-  A:[1,1,0],
-  'A#':[1,0,0],
-  B:[0,1,0]
-};
-/*
-  Trumpet chart layout
-  - ViewBox: 0 0 120 60 (overall diagram size)
-  - Valve spacing: i*40 (positioning)
-  - Valve radius: r=12
-  Adjust these numbers to resize the chart or reposition valves.
-*/
-function buildTrumpetChart(){
-  const {rootPc} = computeSelected();
-  const note = pcName(rootPc);
-  const sharp = ENHARMONIC_MAP[note] || note;
-  const fing = TRUMPET_FINGERINGS[sharp] || [0,0,0];
-  trumpetHost.innerHTML='';
-  const svgNS='http://www.w3.org/2000/svg';
-  const svg=document.createElementNS(svgNS,'svg');
-  const isHoriz = trumpetOrientation === 'horizontal';
-  svg.setAttribute('viewBox', isHoriz ? '0 0 280 120' : '0 0 120 280');
-  svg.setAttribute('class','mx-auto');
-  
-  // Realistic trumpet with proper brass instrument details
-  if(isHoriz){
-    // Brass gradient for realistic metallic look
-    const grad = document.createElementNS(svgNS,'defs');
-    const gradDef = document.createElementNS(svgNS,'linearGradient');
-    gradDef.setAttribute('id','brassGrad');
-    gradDef.setAttribute('x1','0%');
-    gradDef.setAttribute('y1','0%');
-    gradDef.setAttribute('x2','0%');
-    gradDef.setAttribute('y2','100%');
-    const stop1 = document.createElementNS(svgNS,'stop');
-    stop1.setAttribute('offset','0%');
-    stop1.setAttribute('stop-color','#fbbf24');
-    const stop2 = document.createElementNS(svgNS,'stop');
-    stop2.setAttribute('offset','30%');
-    stop2.setAttribute('stop-color','#f59e0b');
-    const stop3 = document.createElementNS(svgNS,'stop');
-    stop3.setAttribute('offset','70%');
-    stop3.setAttribute('stop-color','#d97706');
-    const stop4 = document.createElementNS(svgNS,'stop');
-    stop4.setAttribute('offset','100%');
-    stop4.setAttribute('stop-color','#92400e');
-    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
-    grad.appendChild(gradDef);
-    svg.appendChild(grad);
-    
-    // Mouthpiece
-    const mouthpiece = document.createElementNS(svgNS,'ellipse');
-    mouthpiece.setAttribute('cx', trumpetLeftToRight ? '15' : '265');
-    mouthpiece.setAttribute('cy','60');
-    mouthpiece.setAttribute('rx','12');
-    mouthpiece.setAttribute('ry','8');
-    mouthpiece.setAttribute('fill','url(#brassGrad)');
-    mouthpiece.setAttribute('stroke','#92400e');
-    mouthpiece.setAttribute('stroke-width','1.5');
-    svg.appendChild(mouthpiece);
-    
-    // Lead pipe
-    const leadPipe = document.createElementNS(svgNS,'rect');
-    leadPipe.setAttribute('x', trumpetLeftToRight ? '25' : '215');
-    leadPipe.setAttribute('y','54');
-    leadPipe.setAttribute('width','40');
-    leadPipe.setAttribute('height','12');
-    leadPipe.setAttribute('rx','6');
-    leadPipe.setAttribute('fill','url(#brassGrad)');
-    leadPipe.setAttribute('stroke','#92400e');
-    leadPipe.setAttribute('stroke-width','1.5');
-    svg.appendChild(leadPipe);
-    
-    // Main tubing with curves (simplified representation of the wrap-around)
-    const mainTube1 = document.createElementNS(svgNS,'rect');
-    mainTube1.setAttribute('x', trumpetLeftToRight ? '70' : '150');
-    mainTube1.setAttribute('y','50');
-    mainTube1.setAttribute('width','60');
-    mainTube1.setAttribute('height','10');
-    mainTube1.setAttribute('rx','5');
-    mainTube1.setAttribute('fill','url(#brassGrad)');
-    mainTube1.setAttribute('stroke','#92400e');
-    mainTube1.setAttribute('stroke-width','1.5');
-    svg.appendChild(mainTube1);
-    
-    // Valve section
-    const valveSection = document.createElementNS(svgNS,'rect');
-    valveSection.setAttribute('x', trumpetLeftToRight ? '130' : '90');
-    valveSection.setAttribute('y','45');
-    valveSection.setAttribute('width','60');
-    valveSection.setAttribute('height','20');
-    valveSection.setAttribute('rx','4');
-    valveSection.setAttribute('fill','url(#brassGrad)');
-    valveSection.setAttribute('stroke','#92400e');
-    valveSection.setAttribute('stroke-width','2');
-    svg.appendChild(valveSection);
-    
-    // Second tubing section
-    const mainTube2 = document.createElementNS(svgNS,'rect');
-    mainTube2.setAttribute('x', trumpetLeftToRight ? '190' : '50');
-    mainTube2.setAttribute('y','52');
-    mainTube2.setAttribute('width','40');
-    mainTube2.setAttribute('height','8');
-    mainTube2.setAttribute('rx','4');
-    mainTube2.setAttribute('fill','url(#brassGrad)');
-    mainTube2.setAttribute('stroke','#92400e');
-    mainTube2.setAttribute('stroke-width','1.5');
-    svg.appendChild(mainTube2);
-    
-    // Bell section - realistic trumpet bell shape
-    const bellPath = document.createElementNS(svgNS,'path');
-    const bellD = trumpetLeftToRight ? 
-      'M 230 56 Q 250 45, 270 35 Q 275 50, 270 60 Q 275 70, 270 85 Q 250 75, 230 64 Z' :
-      'M 50 56 Q 30 45, 10 35 Q 5 50, 10 60 Q 5 70, 10 85 Q 30 75, 50 64 Z';
-    bellPath.setAttribute('d', bellD);
-    bellPath.setAttribute('fill','url(#brassGrad)');
-    bellPath.setAttribute('stroke','#92400e');
-    bellPath.setAttribute('stroke-width','2');
-    svg.appendChild(bellPath);
     
     // Valve pistons in correct positions
     const valvePositions = trumpetLeftToRight ? [140, 155, 170] : [170, 155, 140];
@@ -4111,7 +4184,7 @@ function buildNeyChart(){
 }
 
 // ========================= EXPORT HELPERS =========================
-function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
+function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5,dur:0.45,midi:m,vel:100})); }
 function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
 function downloadMID(){ const bytes=buildMidi(buildNoteEvents(),96,130); const blob=new Blob([bytes],{type:'audio/midi'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${keyRoot}-${mode==='chord'?chordQuality:scaleMode}.mid`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500); }
 
@@ -4173,6 +4246,8 @@ function updateInstrumentIcon(){
 }
 function refreshInstruments(){
   updateInstrumentIcon();
+  const useSvg = document.getElementById('useSvgModels')?.checked || false;
+  
   const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
   const isBass = selInstr.value.startsWith('Bass');
   const isViolin = selInstr.value.startsWith('Violin');
@@ -4182,15 +4257,64 @@ function refreshInstruments(){
   const isSaxophone = selInstr.value.startsWith('Saxophone');
   const isKoto = selInstr.value.startsWith('Koto');
   const isNey = selInstr.value.startsWith('Ney');
+  
+  // Show/hide SVG hosts
   guitarHost.classList.toggle('hidden', !isGuitar);
   bassHost.classList.toggle('hidden', !isBass);
   violinHost.classList.toggle('hidden', !isViolin);
-  fluteHost.classList.toggle('hidden', !isFlute);
-  recorderHost.classList.toggle('hidden', !isRecorder);
-  trumpetHost.classList.toggle('hidden', !isTrumpet);
-  saxophoneHost.classList.toggle('hidden', !isSaxophone);
+  fluteHost.classList.toggle('hidden', !isFlute || !useSvg);
+  recorderHost.classList.toggle('hidden', !isRecorder || !useSvg);
+  trumpetHost.classList.toggle('hidden', !isTrumpet || !useSvg);
+  saxophoneHost.classList.toggle('hidden', !isSaxophone || !useSvg);
   kotoHost.classList.toggle('hidden', !isKoto);
-  neyHost.classList.toggle('hidden', !isNey);
+  neyHost.classList.toggle('hidden', !isNey || !useSvg);
+  
+  // Show/hide 3D hosts
+  const fluteHost3d = document.getElementById('fluteHost3d');
+  const recorderHost3d = document.getElementById('recorderHost3d');
+  const trumpetHost3d = document.getElementById('trumpetHost3d');
+  const saxophoneHost3d = document.getElementById('saxophoneHost3d');
+  const neyHost3d = document.getElementById('neyHost3d');
+  
+  if (fluteHost3d) fluteHost3d.classList.toggle('hidden', !isFlute || useSvg);
+  if (recorderHost3d) recorderHost3d.classList.toggle('hidden', !isRecorder || useSvg);
+  if (trumpetHost3d) trumpetHost3d.classList.toggle('hidden', !isTrumpet || useSvg);
+  if (saxophoneHost3d) saxophoneHost3d.classList.toggle('hidden', !isSaxophone || useSvg);
+  if (neyHost3d) neyHost3d.classList.toggle('hidden', !isNey || useSvg);
+  
+  // Initialize 3D scenes if needed
+  if (isFlute && !useSvg) {
+    if (!threeScenes.flute) {
+      init3DScene('flute', 'flute3dCanvas');
+    }
+    update3DFingering('flute', pcName(computeSelected().rootPc));
+  }
+  if (isRecorder && !useSvg) {
+    if (!threeScenes.recorder) {
+      init3DScene('recorder', 'recorder3dCanvas');
+    }
+    update3DFingering('recorder', pcName(computeSelected().rootPc));
+  }
+  if (isTrumpet && !useSvg) {
+    if (!threeScenes.trumpet) {
+      init3DScene('trumpet', 'trumpet3dCanvas');
+    }
+    update3DFingering('trumpet', pcName(computeSelected().rootPc));
+  }
+  if (isSaxophone && !useSvg) {
+    if (!threeScenes.saxophone) {
+      init3DScene('saxophone', 'saxophone3dCanvas');
+    }
+    update3DFingering('saxophone', pcName(computeSelected().rootPc));
+  }
+  if (isNey && !useSvg) {
+    if (!threeScenes.ney) {
+      init3DScene('ney', 'ney3dCanvas');
+    }
+    update3DFingering('ney', pcName(computeSelected().rootPc));
+  }
+  
+  // Build SVG charts if using SVG mode
   if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
   if(!fluteHost.classList.contains('hidden')) buildFluteChart();
   if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
@@ -4198,6 +4322,7 @@ function refreshInstruments(){
   if(!saxophoneHost.classList.contains('hidden')) buildSaxophoneChart();
   if(!kotoHost.classList.contains('hidden')) buildKotoBoard();
   if(!neyHost.classList.contains('hidden')) buildNeyChart();
+  
   btnPlayStrum.classList.toggle('hidden', !isGuitar);
 }
 function updateAll(){
@@ -4221,6 +4346,19 @@ function updateAll(){
     buildKotoBoard();
   if(!neyHost.classList.contains('hidden'))
     buildNeyChart();
+    
+  // Update 3D fingering if using 3D models
+  const useSvg = document.getElementById('useSvgModels')?.checked || false;
+  if (!useSvg) {
+    const { rootPc } = computeSelected();
+    const note = pcName(rootPc);
+    
+    if (threeScenes.flute) update3DFingering('flute', note);
+    if (threeScenes.recorder) update3DFingering('recorder', note);
+    if (threeScenes.trumpet) update3DFingering('trumpet', note);
+    if (threeScenes.saxophone) update3DFingering('saxophone', note);
+    if (threeScenes.ney) update3DFingering('ney', note);
+  }
 }
 
 // Build UI
@@ -4296,11 +4434,21 @@ sampleQualitySelect?.addEventListener('change', (e) => {
   localStorage.setItem('sampleQuality', quality);
 });
 
+// SVG/3D toggle event listener
+const useSvgModelsCheckbox = $('#useSvgModels');
+useSvgModelsCheckbox?.addEventListener('change', (e) => {
+  const useSvg = e.target.checked;
+  localStorage.setItem('useSvgModels', useSvg);
+  refreshInstruments();
+  updateAll();
+});
+
 // Load settings from localStorage
 function loadSettings() {
   const reverbAmount = localStorage.getItem('reverbAmount') || '15';
   const enableSamples = localStorage.getItem('enableSamples') !== 'false';
   const sampleQuality = localStorage.getItem('sampleQuality') || 'medium';
+  const useSvgModels = localStorage.getItem('useSvgModels') === 'true';
   
   if (reverbAmountSlider) {
     reverbAmountSlider.value = reverbAmount;
@@ -4311,6 +4459,9 @@ function loadSettings() {
   }
   if (sampleQualitySelect) {
     sampleQualitySelect.value = sampleQuality;
+  }
+  if (useSvgModelsCheckbox) {
+    useSvgModelsCheckbox.checked = useSvgModels;
   }
 }
 
@@ -4801,7 +4952,12 @@ const devTests=document.getElementById('devTests');
 if(devTests){
   const summary=devTests.querySelector('summary');
   devTests.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',devTests.open));
+}
 
+const settings=document.getElementById('settings');
+if(settings){
+  const summary=settings.querySelector('summary');
+  settings.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',settings.open));
 }
 </script>
 
