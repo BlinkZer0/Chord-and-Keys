@@ -1,0 +1,4516 @@
+// ========================= UTIL: THEORY =========================
+// Quarter‑tone pitch map (0.5‑semitone steps = 24 pitch classes)
+const NOTES_SHARP = [
+  "C","C+","C#","C#+","D","D+","D#","D#+",
+  "E","E+","F","F+","F#","F#+","G","G+",
+  "G#","G#+","A","A+","A#","A#+","B","B+"
+];
+const PITCH_STEP = 0.5; // smallest interval in semitones
+const OCTAVE = 12;      // semitones per octave
+const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
+const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
+const INSTRUMENTS = [
+  "Piano",
+  "Guitar",
+  "Bass",
+  "Violin",
+  "Flute",
+  "Recorder",
+  "Trumpet",
+  "Saxophone",
+  "Koto",
+  "Oud",
+  "Ney",
+  "Hammond Organ"
+];
+const INSTRUMENT_ICONS = {
+  Flute: 'assets/instruments/flute_openmoji.svg',
+    Recorder: 'assets/instruments/recorder_openmoji.svg',
+  Ney: 'assets/instruments/ney_openmoji.svg',
+  Saxophone: 'assets/instruments/saxophone_openmoji.svg',
+  Trumpet: 'assets/instruments/trumpet_openmoji.svg',
+  Koto: 'assets/instruments/koto_openmoji.svg',
+};
+
+const SURGE_PRESETS = {
+  'Piano': 'piano.fxp',
+  'Guitar': 'guitar.fxp',
+  'Bass': 'bass.fxp',
+  'Violin': 'violin.fxp',
+  'Flute': 'flute.fxp',
+  'Recorder': 'recorder.fxp',
+  'Trumpet': 'trumpet.fxp',
+  'Saxophone': 'saxophone.fxp',
+  'Koto': 'koto.fxp',
+  'Oud': 'oud.fxp',
+  'Ney': 'ney.fxp',
+  'Hammond Organ': 'organ.fxp'
+};
+
+// Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
+const MODES = {
+  Ionian: [0,2,4,5,7,9,11],
+  Dorian: [0,2,3,5,7,9,10],
+  Phrygian: [0,1,3,5,7,8,10],
+  Lydian: [0,2,4,6,7,9,11],
+  Mixolydian: [0,2,4,5,7,9,10],
+  Aeolian: [0,2,3,5,7,8,10],
+  Locrian: [0,1,3,5,6,8,10],
+  "Major Pentatonic": [0,2,4,7,9],
+  "Minor Pentatonic": [0,3,5,7,10],
+  Blues: [0,3,5,6,7,10],
+  "Harmonic Minor": [0,2,3,5,7,8,11],
+  "Melodic Minor (Asc)": [0,2,3,5,7,9,11],
+  "Melodic Minor (Desc)": [0,2,3,5,7,8,10],
+  "Whole Tone": [0,2,4,6,8,10],
+  "Diminished (Half-Whole)": [0,1,3,4,6,7,9,10],
+  "Diminished (Whole-Half)": [0,2,3,5,6,8,9,11],
+  // Common maqamat using 24-TET intervals (0.5 = quarter-tone)
+  "Maqam Rast": [0,2,3.5,5,7,9,10.5],      // Rast: E half-flat, B half-flat
+  "Maqam Bayati": [0,1.5,3,5,7,8.5,10],    // Bayati: D half-flat, B half-flat
+  "Maqam Hijaz": [0,1,4,5,7,8,11],         // Hijaz: augmented second between 2nd & 3rd
+  "Maqam Saba": [0,1.5,3,4.5,7,8.5,10],    // Saba: D & F half-flat
+  "Maqam Nahawand": [0,2,3,5,7,8,10],       // Nahawand: natural minor
+  "Maqam Kurd": [0,1,3,5,7,8,10],          // Kurd: Phrygian base
+  "Maqam Huzam": [0,1.5,4,5,7,8.5,10],     // Huzam: tonic half-flat, sixth half-flat
+  "Maqam Hijazkar": [0,1,4,6,7,8,11]       // Hijazkar: raised fourth
+};
+// Group modes by musical system for UI filtering
+const MODE_SYSTEMS = {
+  Western: [
+    "Ionian","Dorian","Phrygian","Lydian","Mixolydian","Aeolian","Locrian",
+    "Major Pentatonic","Minor Pentatonic","Blues","Harmonic Minor",
+    "Melodic Minor (Asc)","Melodic Minor (Desc)","Whole Tone",
+    "Diminished (Half-Whole)","Diminished (Whole-Half)"
+  ],
+  Maqam: [
+    "Maqam Rast","Maqam Bayati","Maqam Hijaz","Maqam Saba","Maqam Nahawand",
+    "Maqam Kurd","Maqam Huzam","Maqam Hijazkar"
+  ]
+};
+const CHORD_QUALITIES = {
+  Maj:[0,4,7], Min:[0,3,7], Dim:[0,3,6], Aug:[0,4,8],
+  Sus2:[0,2,7], Sus4:[0,5,7],
+  "7":[0,4,7,10], Maj7:[0,4,7,11], Min7:[0,3,7,10],
+  m7b5:[0,3,6,10], Dim7:[0,3,6,9],
+  "9":[0,4,7,10,14], Maj9:[0,4,7,11,14], Min9:[0,3,7,10,14],
+  "11":[0,4,7,10,14,17], Maj11:[0,4,7,11,14,17], Min11:[0,3,7,10,14,17],
+  "13":[0,4,7,10,14,17,21], Maj13:[0,4,7,11,14,17,21], Min13:[0,3,7,10,14,17,21],
+  "7b5":[0,4,6,10], "7#5":[0,4,8,10],
+  "7b9":[0,4,7,10,13], "7#9":[0,4,7,10,15],
+  "7#11":[0,4,7,10,18], "7b13":[0,4,7,10,20]
+};
+function toSharpName(n){ return ENHARMONIC_MAP[n]||n; }
+function pcIndex(note){
+  const n = String(note).trim();
+  const m = n.match(/^([A-G])([#b+-]*)/);
+  if(!m) return null;
+  const BASE = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  let val = BASE[m[1]];
+  for(const ch of (m[2]||"")){
+    if(ch==="#") val += 1;
+    else if(ch==="b") val -= 1;
+    else if(ch==="+") val += PITCH_STEP;
+    else if(ch==="-") val -= PITCH_STEP;
+  }
+  return val;
+}
+function pcName(i){
+  const norm = ((i % OCTAVE) + OCTAVE) % OCTAVE;
+  const idx = Math.round(norm / PITCH_STEP) % NOTES_SHARP.length;
+  return NOTES_SHARP[idx];
+}
+function midiFrom(note, octave=4){
+  const i = pcIndex(note);
+  if(i==null) return null;
+  return OCTAVE*(octave+1)+i;
+}
+function buildScale(tonic, modeName){ const rootPc=pcIndex(tonic); const pattern = MODES[modeName]||MODES.Ionian; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
+function buildChord(root, quality){ const rootPc=pcIndex(root); const pattern = CHORD_QUALITIES[quality]||CHORD_QUALITIES.Maj; if(rootPc==null) return []; return pattern.map(iv=> pcName(rootPc + iv)); }
+function makePcSet(notes){ return new Set(notes.map(pcIndex).filter(x=>x!=null)); }
+function mod(n,m){ return ((n % m) + m) % m; }
+function chordToMidi(notes, root, baseOct=4){
+  const rootMidi = midiFrom(root, baseOct);
+  if(rootMidi==null) return [];
+  const rootPc = pcIndex(root);
+  if(rootPc==null) return [];
+  const pcs = notes.map(pcIndex).filter(x=>x!=null);
+  const ordered = pcs.map(pc=>{
+    let best = rootMidi - mod(rootPc - pc, OCTAVE);
+    while(best < rootMidi-5) best += OCTAVE;
+    while(best > rootMidi+OCTAVE) best -= OCTAVE;
+    return best;
+  }).sort((a,b)=>a-b);
+  return Array.from(new Set(ordered));
+}
+function scaleToMidi(scaleNotes, tonic, startOct=4){
+  const pcs = scaleNotes.map(pcIndex).filter(x=>x!=null);
+  const tonicPc = pcIndex(tonic);
+  if(tonicPc==null) return [];
+  const seq = [];
+  for(let o=startOct; o<=startOct+1; o++){
+    for(const pc of pcs){ seq.push(OCTAVE*(o+1)+pc); }
+  }
+  const startIdx = pcs.indexOf(tonicPc);
+  if(startIdx>0){
+    const perOct = pcs.length;
+    const out=[];
+    for(let i=0;i<seq.length;i+=perOct){
+      const chunk=seq.slice(i,i+perOct);
+      out.push(...chunk.slice(startIdx), ...chunk.slice(0,startIdx));
+    }
+    return out;
+  }
+  return seq;
+}
+
+// Identify chord from selection
+const CHORD_DICT = CHORD_QUALITIES; // reuse
+function eqArr(a,b){ return a.length===b.length && a.every((v,i)=>v===b[i]); }
+function intersection(a,b){ return a.filter(x=>b.includes(x)); }
+function invOf(midiNotes, rootPc){ const bass=Math.min(...midiNotes); const d=mod((bass%OCTAVE)-rootPc,OCTAVE); if(Math.abs(d)<PITCH_STEP/2) return "root position"; if(Math.abs(d-3)<PITCH_STEP/2 || Math.abs(d-4)<PITCH_STEP/2) return "1st inv"; if(Math.abs(d-7)<PITCH_STEP/2 || Math.abs(d-8)<PITCH_STEP/2 || Math.abs(d-6)<PITCH_STEP/2) return "2nd inv"; return "inversion"; }
+function chordNameFromNotes(midiNotes){ if(!midiNotes.length) return {name:"—",detail:""}; const pcs=[...new Set(midiNotes.map(n=>mod(n,OCTAVE)))].sort((a,b)=>a-b); let best=null; for(const root of pcs){ const trans=pcs.map(pc=> mod(pc-root,OCTAVE)).sort((a,b)=>a-b); for(const [qual,pat] of Object.entries(CHORD_DICT)){ const reduced=[...new Set(pat.map(x=>mod(x,OCTAVE)))].sort((a,b)=>a-b); const score=intersection(trans,reduced).length; const exact=eqArr(trans,reduced); if(!best || exact || score>best.score){ best={score,name: pcName(root)+" "+qual, root, inv: invOf(midiNotes, root), exact}; if(exact) return {...best, detail: best.inv?`(${best.inv})`:""}; } } } return best? {...best, detail: (best.inv?`(${best.inv}) `:"")+"~approx"} : {name:"?", detail:""}; }
+
+// ========================= AUDIO (Tone.js) =========================
+let _synth=null; let _started=false; const ENV={
+  Piano:{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
+  Guitar:{a:.005,d:.3,s:0,r:1.5,osc:'sawtooth',filter:{frequency:3500,Q:0.9},vibrato:{rate:6,depth:0.02},maxSustain:3},
+  Bass:{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2},maxSustain:3},
+  Violin:{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
+  Flute:{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5},maxSustain:4},
+  Recorder:{a:.06,d:.12,s:.85,r:.4,osc:'sine',filter:{frequency:3500,Q:0.7},maxSustain:3},
+  Trumpet:{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  Saxophone:{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1},maxSustain:4},
+  Koto:{a:.002,d:.25,s:0,r:1.6,osc:'triangle',filter:{frequency:4000,Q:0.8},maxSustain:3},
+  Oud:{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
+  Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
+  'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
+};
+
+const masterLim = new Tone.Limiter(-1).toDestination();
+// === SEQUENCER: Audio Engine (melodic & drum registries) ===
+function makeSynth(type, env, options = {}) {
+  const panner = new Tone.Panner(0).connect(masterLim);
+  let destination = panner;
+  let vib=null, trem=null, filter=null;
+
+  // Add filter if specified in env
+  if(env.filter){
+    filter = new Tone.Filter(env.filter.frequency, env.filter.type || 'lowpass', env.filter.rolloff || -12).connect(destination);
+    filter.Q.value = env.filter.Q;
+    destination = filter;
+  }
+
+  // Use env settings for vibrato/tremolo if available
+  if(env.vibrato || options.vibrato){
+    const vRate = env.vibrato?.rate || options.vibratoRate || 5;
+    const vDepth = env.vibrato?.depth || options.vibratoDepth || 0.1;
+    vib = new Tone.Vibrato(vRate, vDepth).connect(destination);
+    destination = vib;
+  }
+  if(env.tremolo || options.tremolo){
+    const tRate = env.tremolo?.rate || options.tremoloRate || 5;
+    const tDepth = env.tremolo?.depth || options.tremoloDepth || 0.5;
+    trem = new Tone.Tremolo(tRate, tDepth).start().connect(destination);
+    destination = trem;
+  }
+
+  const gain = new Tone.Gain(1).connect(destination);
+  let synth;
+
+  const synthOptions = {
+      envelope: { attack: env.a, decay: env.d, sustain: env.s, release: env.r },
+      oscillator: { type: env.osc }
+  };
+
+  switch(type) {
+    case 'PolySynth':
+      synth = new Tone.PolySynth(Tone.Synth, synthOptions).connect(gain);
+      break;
+    case 'MonoSynth':
+      synth = new Tone.MonoSynth(synthOptions).connect(gain);
+      break;
+    case 'DuoSynth':
+      synth = new Tone.DuoSynth({ ...synthOptions, ...options.duoOptions }).connect(gain);
+      break;
+    case 'AMSynth':
+      synth = new Tone.AMSynth({ ...synthOptions, ...options.amOptions }).connect(gain);
+      break;
+    case 'PluckSynth':
+      synth = new Tone.PolySynth(Tone.PluckSynth, options.pluckOptions).connect(gain);
+      break;
+    default:
+      console.warn(`Unknown synth type: ${type}. Defaulting to PolySynth.`);
+      synth = new Tone.PolySynth(Tone.Synth, synthOptions).connect(gain);
+  }
+
+  return {
+    trigger(midi,time=Tone.now(),velocity=1,dur='8n'){
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn(`${type} trigger error:`, e);
+      }
+    },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
+    setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
+    dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); if(filter) filter.dispose(); panner.dispose(); }
+  };
+}
+
+// ========================= SAMPLE-BASED INSTRUMENTS =========================
+let sampleLibrary = null;
+const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar-acoustic', 'flute'];
+
+function makeSampler(instrumentName) {
+  if (!sampleLibrary || !sampleLibrary[instrumentName]) {
+    console.warn(`Sample library not loaded for ${instrumentName}, falling back to synthesis`);
+    return null;
+  }
+  
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const sampler = sampleLibrary[instrumentName];
+  
+  if (sampler) {
+    sampler.disconnect();
+    sampler.connect(gain);
+  }
+  
+  return {
+    trigger(midi, time = Tone.now(), velocity = 1, dur = '8n') {
+      try {
+        const freq = midiToFreq(midi);
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        sampler.triggerAttackRelease(freq, dur, time, vel);
+      } catch(e) {
+        console.warn(`Sampler trigger error for ${instrumentName}:`, e);
+      }
+    },
+    release(midi, time = Tone.now()) {
+      try {
+        sampler.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors for samplers
+      }
+    },
+    setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose() {
+      if (sampler) sampler.disconnect();
+      gain.dispose();
+      panner.dispose();
+    },
+    loaded: sampler.loaded
+  };
+}
+
+// Initialize the sample library
+async function initSampleLibrary() {
+  try {
+    if (typeof SampleLibrary !== 'undefined') {
+      console.log('Loading sample library...');
+      sampleLibrary = SampleLibrary.load({
+        instruments: SAMPLED_INSTRUMENTS,
+        baseUrl: "https://nbrosowsky.github.io/tonejs-instruments/samples/"
+      });
+      console.log('Sample library loaded successfully');
+    }
+  } catch(e) {
+    console.warn('Failed to load sample library:', e);
+  }
+}
+
+const SEQ_INSTR = {
+  Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  Guitar: () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
+  Bass: () => makeSynth('MonoSynth', ENV.Bass),
+  Violin: () => makeSampler('violin') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  Flute: () => makeSampler('flute') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  Recorder: () => makeSynth('PolySynth', ENV.Recorder),
+  Trumpet: () => makeSampler('trumpet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  Saxophone: () => makeSampler('saxophone') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  Koto: () => makeSynth('PluckSynth', ENV.Koto, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
+  Oud: () => makeSynth('PluckSynth', ENV.Oud, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
+  Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
+  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
+};
+
+function createSeqInstrument(name){
+  if(surgeEnabled && SURGE_PRESETS[name] && window.SurgeLoader){
+    try {
+      return SurgeLoader.createInstrument(SURGE_PRESETS[name]);
+    } catch(err){
+      console.error('Surge creation failed, falling back to Tone', err);
+    }
+  }
+  try {
+    const factory = SEQ_INSTR[name];
+    if(factory) {
+      return factory();
+    }
+
+    // Fallback to makePoly with appropriate envelope
+    const env = ENV[name] || ENV.Piano;
+    return makeSynth('PolySynth', env);
+  } catch(error) {
+    console.error(`Failed to create instrument ${name}:`, error);
+    // Ultimate fallback
+    return makeSynth('PolySynth', ENV.Piano);
+  }
+}
+
+async function ensureTone(instr){ 
+  if(!_started){ 
+    try{ 
+      await Tone.start(); 
+      // Initialize sample library after Tone.js is started
+      initSampleLibrary();
+    }catch{} 
+    _started=true; 
+  } 
+  if(!_synth){ 
+    _synth = new Tone.PolySynth(Tone.Synth);
+    
+    // Add filter chain for enhanced sound
+    const filter = new Tone.Filter({
+      frequency: 2500,
+      Q: 1,
+      type: 'lowpass'
+    });
+    
+    _synth.connect(filter).connect(masterLim);
+    _synth._filter = filter; // Store reference for updates
+  } 
+  
+  const p = ENV[instr] || ENV.Piano; 
+  
+  // Update synth parameters
+  _synth.set({ 
+    envelope: {attack:p.a, decay:p.d, sustain:p.s, release:p.r}, 
+    oscillator: {type:p.osc} 
+  });
+  
+  // Update filter if instrument has filter settings
+  if(p.filter && _synth._filter) {
+    _synth._filter.frequency.value = p.filter.frequency;
+    _synth._filter.Q.value = p.filter.Q;
+  }
+}
+function midiName(m){ const pc=mod(m,OCTAVE), oct=Math.floor(m/OCTAVE)-1; return pcName(pc)+oct; }
+// Convert (possibly fractional) MIDI note numbers to Hz
+function midiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+// [fix] press/hold piano
+function pressHeld(midi){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    const player = createSeqInstrument(instrument);
+    player.loaded.then(()=>{
+      player.trigger(midi, Tone.now(), 0.8, 1);
+    });
+    return;
+  }
+  ensureTone(instrument).then(()=>{
+    _synth.triggerAttack(midiToFreq(midi));
+  });
+}
+function releaseHeld(midi){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    // noteOff handled automatically in trigger duration
+    return;
+  }
+  ensureTone(instrument).then(()=>{
+    const now=Tone.now();
+    const beat=60/tempo;
+    const sixteenth=beat/4;
+    const t=heldSustainSnap.checked? Math.ceil(now/sixteenth)*sixteenth : now;
+    _synth.triggerRelease(midiToFreq(midi), t);
+  });
+}
+function allNotesOff(){ _synth?.releaseAll(); }
+window.addEventListener('blur', allNotesOff);
+
+// Global keyboard shortcuts
+document.addEventListener('keydown', (ev) => {
+  // Don't interfere with input fields
+  if(ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
+  
+  const ctrl = ev.ctrlKey || ev.metaKey;
+  
+  switch(ev.code) {
+    case 'Space':
+      ev.preventDefault();
+      if(sequencerState === 'playing') {
+        seqPause.click();
+      } else {
+        seqPlay.click();
+      }
+      break;
+      
+    case 'Escape':
+      ev.preventDefault();
+      seqStop.click();
+      break;
+      
+    case 'Delete':
+    case 'Backspace':
+      ev.preventDefault();
+      deleteSelected();
+      break;
+      
+    case 'KeyA':
+      if(ctrl) {
+        ev.preventDefault();
+        selectAll();
+      }
+      break;
+      
+    case 'KeyC':
+      if(ctrl) {
+        ev.preventDefault();
+        copySelected();
+      }
+      break;
+      
+    case 'KeyX':
+      if(ctrl) {
+        ev.preventDefault();
+        cutSelected();
+      }
+      break;
+      
+    case 'KeyV':
+      if(ctrl) {
+        ev.preventDefault();
+        pasteNotes();
+      }
+      break;
+      
+    case 'KeyZ':
+      if(ctrl && !ev.shiftKey) {
+        ev.preventDefault();
+        undo();
+      }
+      break;
+      
+    case 'KeyY':
+      if(ctrl) {
+        ev.preventDefault();
+        redo();
+      }
+      break;
+      
+    case 'KeyZ':
+      if(ctrl && ev.shiftKey) {
+        ev.preventDefault();
+        redo();
+      }
+      break;
+      
+    case 'KeyQ':
+      if(ctrl) {
+        ev.preventDefault();
+        quantizeSelected();
+      }
+      break;
+  }
+});
+
+// Undo/Redo system
+function saveState(description) {
+  const state = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description
+  };
+  undoStack.push(state);
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack.length = 0; // Clear redo stack
+}
+
+function undo() {
+  if(undoStack.length === 0) return;
+  const currentState = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description: 'current'
+  };
+  redoStack.push(currentState);
+  
+  const prevState = undoStack.pop();
+  song.tracks = prevState.tracks;
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+}
+
+function redo() {
+  if(redoStack.length === 0) return;
+  const currentState = {
+    tracks: song.tracks.map(t => ({
+      ...t,
+      clips: t.clips.map(c => ({
+        ...c,
+        notes: c.notes.map(n => ({...n}))
+      }))
+    })),
+    description: 'current'
+  };
+  undoStack.push(currentState);
+  
+  const nextState = redoStack.pop();
+  song.tracks = nextState.tracks;
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+}
+
+// Selection helpers
+function selectAll() {
+  selectedNotes.clear();
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes.forEach(note => selectedNotes.add(note));
+  drawPianoRoll();
+}
+
+function deleteSelected() {
+  if(selectedNotes.size === 0) return;
+  saveState('Delete notes');
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes = track.clips[0].notes.filter(note => !selectedNotes.has(note));
+  selectedNotes.clear();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+}
+
+function copySelected() {
+  if(selectedNotes.size === 0) return;
+  clipboard = Array.from(selectedNotes).map(note => ({...note}));
+}
+
+function cutSelected() {
+  copySelected();
+  deleteSelected();
+}
+
+  function pasteNotes() {
+    if(clipboard.length === 0) return;
+    saveState('Paste notes');
+  
+  const track = song.tracks[activeTrack];
+  const minTick = Math.min(...clipboard.map(n => n.tick));
+  const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+  
+  selectedNotes.clear();
+  clipboard.forEach(note => {
+    const newNote = {
+      ...note,
+      tick: playheadTick + (note.tick - minTick)
+    };
+    track.clips[0].notes.push(newNote);
+    selectedNotes.add(newNote);
+  });
+  
+  track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
+
+  function pastePattern(patternKey) {
+    const [cat, name] = patternKey.split('.');
+    const pattern = PATTERN_LIBRARY[cat]?.[name];
+    if(!pattern) return;
+    saveState(`Paste pattern: ${name}`);
+
+    const track = song.tracks[activeTrack];
+    const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+    const scale = song.ppq / PATTERN_PPQ;
+
+    selectedNotes.clear();
+    const newNotes = [];
+    pattern.forEach(ev => {
+      const tick = playheadTick + Math.round(ev.tick * scale / quantizeSnap) * quantizeSnap;
+      const dur = Math.max(quantizeSnap, Math.round(ev.dur * scale / quantizeSnap) * quantizeSnap);
+      const note = { tick, dur, midi: ev.midi, vel: ev.vel };
+      track.clips[0].notes.push(note);
+      selectedNotes.add(note);
+      newNotes.push(note);
+    });
+
+    clipboard = newNotes.map(n => ({...n}));
+    track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
+
+  function sendToSequencer() {
+    const track = song.tracks[activeTrack];
+    const playheadTick = Math.round(Tone.Transport.ticks / quantizeSnap) * quantizeSnap;
+    selectedNotes.clear();
+    let events = [];
+    if(selection.size > 0) {
+      events = [...selection].sort((a,b)=>a-b).map(m=>({tick: playheadTick, dur: quantizeSnap, midi: m, vel: 100}));
+    } else {
+      events = buildNoteEvents().map(ev => {
+        const tick = playheadTick + Math.round(ev.start * song.ppq / quantizeSnap) * quantizeSnap;
+        const dur = Math.max(quantizeSnap, Math.round(ev.dur * song.ppq / quantizeSnap) * quantizeSnap);
+        return { tick, dur, midi: ev.midi, vel: ev.vel };
+      });
+    }
+    events.forEach(n=>{ track.clips[0].notes.push(n); selectedNotes.add(n); });
+    track.clips[0].notes.sort((a,b)=>a.tick - b.tick);
+    drawPianoRoll();
+    if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  }
+
+  function drawPatternPreview() {
+    const ctx = patternPreview.getContext('2d');
+    ctx.clearRect(0,0,patternPreview.width, patternPreview.height);
+    const pattern = PATTERN_LIBRARY[patternCategory.value]?.[patternKey.value];
+    if(!pattern) return;
+    const maxTick = Math.max(...pattern.map(n=>n.tick+n.dur));
+    const minMidi = Math.min(...pattern.map(n=>n.midi));
+    const maxMidi = Math.max(...pattern.map(n=>n.midi));
+    const scaleX = patternPreview.width / maxTick;
+    const scaleY = patternPreview.height / (maxMidi - minMidi + 1);
+    ctx.fillStyle = '#4ade80';
+    pattern.forEach(n=>{
+      const x = n.tick * scaleX;
+      const w = n.dur * scaleX;
+      const y = patternPreview.height - (n.midi - minMidi + 1) * scaleY;
+      const h = scaleY;
+      ctx.fillRect(x, y, w, h);
+    });
+  }
+
+  function refreshPatternSelector() {
+    const selectedCat = patternCategory.value;
+    patternCategory.innerHTML = '';
+    Object.keys(PATTERN_LIBRARY).forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat[0].toUpperCase() + cat.slice(1);
+      patternCategory.appendChild(opt);
+    });
+    if (selectedCat && PATTERN_LIBRARY[selectedCat])
+      patternCategory.value = selectedCat;
+
+    const cat = patternCategory.value;
+    const selectedPattern = patternKey.value;
+    patternKey.innerHTML = '';
+    Object.keys(PATTERN_LIBRARY[cat] || {}).forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      patternKey.appendChild(opt);
+    });
+    if (selectedPattern && PATTERN_LIBRARY[cat] && PATTERN_LIBRARY[cat][selectedPattern])
+      patternKey.value = selectedPattern;
+
+    drawPatternPreview();
+  }
+
+  // Quantization
+  function quantizeSelected() {
+  if(selectedNotes.size === 0) return;
+  saveState('Quantize notes');
+  
+  selectedNotes.forEach(note => {
+    note.tick = Math.round(note.tick / quantizeSnap) * quantizeSnap;
+  });
+  
+  const track = song.tracks[activeTrack];
+  track.clips[0].notes.sort((a,b) => a.tick - b.tick);
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+}
+
+// Transport position display
+function ticksToBarsBeatsTicks(ticks) {
+  const ppq = song.ppq;
+  const beatsPerBar = song.ts.num;
+  const ticksPerBeat = ppq;
+  const ticksPerBar = beatsPerBar * ticksPerBeat;
+  
+  const bars = Math.floor(ticks / ticksPerBar);
+  const beats = Math.floor((ticks % ticksPerBar) / ticksPerBeat);
+  const ticksRemainder = ticks % ticksPerBeat;
+  
+  return `${bars + 1}:${beats + 1}:${ticksRemainder.toString().padStart(3, '0')}`;
+}
+
+function updatePositionDisplay() {
+  if(seqPosition) {
+    const currentTicks = Tone.Transport.ticks;
+    seqPosition.textContent = ticksToBarsBeatsTicks(currentTicks);
+  }
+}
+
+function jumpToStart() {
+  Tone.Transport.position = 0;
+  updatePositionDisplay();
+  drawPianoRoll();
+}
+
+function jumpToEnd() {
+  // Find the last note across all tracks
+  const lastTick = Math.max(0, ...song.tracks.flatMap(t => 
+    t.clips[0].notes.map(n => n.tick + n.dur)
+  ));
+  Tone.Transport.ticks = lastTick;
+  updatePositionDisplay();
+  drawPianoRoll();
+}
+
+// Simple Tone.js drum recipes
+function makeMembrane(pitch, opts){
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const synth = new Tone.MembraneSynth(opts).connect(gain);
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='8n'){
+      try {
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(pitch, duration, time, vel);
+      } catch(e) {
+        console.warn('MembraneSynth trigger error:', e);
+      }
+    },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); gain.dispose(); panner.dispose(); }
+  };
+}
+function makeNoise(filterOpts, envOpts){
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const filter = new Tone.Filter(filterOpts).connect(gain);
+  const synth = new Tone.NoiseSynth({envelope: envOpts}).connect(filter);
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='16n'){
+      try {
+        const vel = Math.max(0.1, Math.min(1, velocity));
+        synth.triggerAttackRelease(duration, time, vel);
+      } catch(e) {
+        console.warn('NoiseSynth trigger error:', e);
+      }
+    },
+    setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); panner.dispose(); }
+  };
+}
+function makeMetal(opts){
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const synth = new Tone.MetalSynth(opts).connect(gain);
+  return {
+    trigger(note, time=Tone.now(), velocity=1, duration='8n'){
+      synth.triggerAttackRelease(midiToFreq(note), duration, time, velocity);
+    },
+    setVolume(v){ gain.gain.value = v; },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ synth.dispose(); gain.dispose(); panner.dispose(); }
+  };
+}
+function makeClap({filterFreq, bursts, decay}){
+  const panner = new Tone.Panner(0).connect(masterLim);
+  const gain = new Tone.Gain(1).connect(panner);
+  const filter = new Tone.Filter({type:'bandpass', frequency:filterFreq, Q:1}).connect(gain);
+  const noise = new Tone.NoiseSynth({envelope:{attack:0.001, decay:decay, sustain:0}}).connect(filter);
+  return {
+    trigger(note, time=Tone.now(), velocity=1){
+      for(let i=0;i<bursts;i++){
+        noise.triggerAttackRelease('16n', time + i*0.02, velocity);
+      }
+    },
+    setVolume(v){ gain.gain.value = v; },
+    setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    dispose(){ noise.dispose(); filter.dispose(); gain.dispose(); panner.dispose(); }
+  };
+}
+const DRUMS = {
+  'Kick 808': () => makeMembrane('C1',{pitchDecay:.05,octaves:4,envelope:{attack:.001,decay:.5,sustain:0,release:.1}}),
+  'Kick Punchy': () => makeMembrane('C1',{pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Kick Soft': () => makeMembrane('C1',{pitchDecay:.02,octaves:2,envelope:{attack:.002,decay:.3,sustain:0,release:.2}}),
+  'Snare Tight': () => makeNoise({type:'highpass',frequency:1800},{attack:.001,decay:.15,sustain:0}),
+  'Snare Crack': () => makeNoise({type:'bandpass',frequency:2000},{attack:.001,decay:.1,sustain:0}),
+  'Snare Brush': () => makeNoise({type:'lowpass',frequency:1200},{attack:.005,decay:.3,sustain:0}),
+  'Cymbal ClosedHat': () => makeMetal({frequency:400,envelope:{attack:.001,decay:.1,release:.01}}),
+  'Cymbal OpenHat': () => makeMetal({frequency:300,envelope:{attack:.001,decay:.4,release:.2}}),
+  'Cymbal Ride': () => makeMetal({frequency:250,envelope:{attack:.001,decay:1.2,release:.5},harmonicity:5.1,resonance:7e3}),
+  'Clap Short': () => makeClap({filterFreq:1200,bursts:2,decay:.15}),
+  'Clap Wide': () => makeClap({filterFreq:1200,bursts:3,decay:.25}),
+  'Clap Vintage': () => makeClap({filterFreq:800,bursts:4,decay:.3}),
+  'Hand Conga': () => makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
+  'Hand Bongo': () => makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Hand Tabla': () => makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}})
+};
+const DRUM_NAMES = Object.keys(DRUMS);
+// Plays MIDI notes using the synth. Notes are sequenced by default;
+// use `asChord` to trigger them simultaneously or `strum` for a quick
+// guitar-style roll.
+async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false, strum=false, noteDur}={}){
+  if(surgeEnabled && SURGE_PRESETS[instrument]){
+    const player = createSeqInstrument(instrument);
+    await player.loaded;
+    const beat=60/tempo;
+    const now=Tone.now();
+    if(asChord){
+      list.forEach(m=>player.trigger(m, now, 0.8, beat*2));
+      return;
+    }
+    if(strum){
+      list.forEach((m,i)=>{
+        const t=now + i*(beat/6);
+        player.trigger(m, t, 0.8, beat*1.2);
+      });
+      return;
+    }
+    if(noteDur!==undefined && list.length===1){
+      player.trigger(list[0], now, 0.8, noteDur);
+      return;
+    }
+    list.forEach((m,i)=>{
+      const t=now + i*(beat*0.6);
+      player.trigger(m, t, 0.8, beat*0.9);
+    });
+    return;
+  }
+  await ensureTone(instrument);
+  const beat=60/tempo;
+  const now=Tone.now();
+  if(asChord){
+    _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now);
+    return;
+  }
+  if(strum){
+    list.forEach((m,i)=>{
+      const t=now + i*(beat/6);
+      _synth.triggerAttackRelease(midiToFreq(m), beat*1.2, t);
+    });
+    return;
+  }
+  if(noteDur!==undefined && list.length===1){
+    _synth.triggerAttackRelease(midiToFreq(list[0]), noteDur, now);
+    return;
+  }
+  const seq=list;
+  seq.forEach((m,i)=>{
+    const t=now + i*(beat*0.6);
+    _synth.triggerAttackRelease(midiToFreq(m), beat*0.9, t);
+  });
+}
+// Limitation: only oscillator-based synth; sample instruments would require per-voice pitch bend.
+
+// ========================= MIDI (SMF Type 0) =========================
+function encVarLen(v){ let buffer=v & 0x7F; const out=[]; while((v >>= 7)){ buffer <<= 8; buffer |= ((v & 0x7F) | 0x80); } while(true){ out.push(buffer & 0xFF); if(buffer & 0x80) buffer >>= 8; else break; } return new Uint8Array(out); }
+const u32=n=>new Uint8Array([(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]); const u16=n=>new Uint8Array([(n>>>8)&255,n&255]); const strBytes=s=> new TextEncoder().encode(s);
+function buildMidi(noteEvents, ppq=96, bpm=130){ const hd=new Uint8Array([...strBytes('MThd'),...u32(6),...u16(0),...u16(1),...u16(ppq)]); const uspq=Math.round(60000000/bpm); const tempo=new Uint8Array([0x00,0xFF,0x51,0x03,(uspq>>>16)&255,(uspq>>>8)&255,uspq&255]); noteEvents.sort((a,b)=>a.start-b.start); let t=0; const ev=[]; for(const e of noteEvents){ const onTicks=Math.round(e.start*ppq)-t; t+=onTicks; ev.push(...encVarLen(onTicks), 0x90, e.midi&127, (e.vel??100)&127); const offTicks=Math.round(e.dur*ppq); ev.push(...encVarLen(offTicks), 0x80, e.midi&127, 0); } ev.push(0x00,0xFF,0x2F,0x00); const trkData=new Uint8Array([...tempo, ...ev]); const trk=new Uint8Array([...strBytes('MTrk'), ...u32(trkData.length), ...trkData]); return new Uint8Array([...hd, ...trk]); }
+async function copyBytesToClipboard(bytes){ const status=document.getElementById('copyStatus'); if(window.ClipboardItem){ try{ const item=new ClipboardItem({'audio/midi': new Blob([bytes],{type:'audio/midi'})}); await navigator.clipboard.write([item]); status.textContent='✅ Copied MIDI bytes. In FL: Piano roll → Edit → Paste from clipboard (Score).'; return true; }catch(e){ status.textContent='⚠️ Browser blocked binary clipboard. Use Download .MID instead.'; return false; } } else { status.textContent='⚠️ ClipboardItem not available. Use Download .MID.'; return false; } }
+
+// ========================= UI STATE =========================
+const $ = (sel)=>document.querySelector(sel);
+const pianoHost = $('#pianoHost'); const guitarHost = $('#guitarHost'); const bassHost = $('#bassHost'); const violinHost = $('#violinHost'); const fluteHost = $('#fluteHost'); const recorderHost = $('#recorderHost'); const trumpetHost = $('#trumpetHost'); const saxophoneHost = $('#saxophoneHost'); const kotoHost = $('#kotoHost'); const neyHost = $('#neyHost'); const instrIcon = $('#instrIcon');
+const selKey = $('#selKey'); const selQuality = $('#selQuality'); const selMode = $('#selMode'); const selInstr = $('#selInstr'); const selSystem = $('#selSystem'); const skinSelector = $('#skinSelector');
+const badgeRoot = $('#badgeRoot'); const badgeChordNotes = $('#badgeChordNotes'); const badgeScaleNotes = $('#badgeScaleNotes');
+const badgeId = $('#badgeId'); const badgeSelNotes = $('#badgeSelNotes');
+const btnModeChord = $('#btnModeChord'); const btnModeScale = $('#btnModeScale'); const btnModeSequencer = $('#btnModeSequencer');
+const wrapChord = $('#wrapChord'); const wrapScale = $('#wrapScale');
+const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); const btnPlayStrum = $('#btnPlayStrum');
+const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
+const heldSustainSnap = $('#heldSustainSnap');
+const tempoInput = $('#tempo');
+const chkSurge = $('#useSurge');
+const sequencerHost = $('#sequencerHost');
+const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
+const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
+const seqAutoScroll = $('#seqAutoScroll');
+const seqQuantize = $('#seqQuantize');
+const seqQuantizeBtn = $('#seqQuantizeBtn');
+const seqPosition = $('#seqPosition');
+const seqToStart = $('#seqToStart');
+const seqToEnd = $('#seqToEnd');
+const seqTSNum = $('#seqTSNum'); const seqTSDen = $('#seqTSDen');
+const seqColorScheme = $('#seqColorScheme');
+const pianoRoll = $('#pianoRoll');
+const pianoRollGutter = $('#pianoRollGutter');
+const pianoRollScroll = $('#pianoRollScroll');
+const pianoRollSpacer = $('#pianoRollSpacer');
+const seqTracks = $('#seqTracks');
+const seqZoomX = $('#seqZoomX'); const seqZoomY = $('#seqZoomY');
+const seqClearAll = $('#seqClearAll');
+const seqExportJson = $('#seqExportJson');
+const seqImportJson = $('#seqImportJson');
+const seqImportFile = $('#seqImportFile');
+const btnImportMidi = $('#btnImportMidi');
+const midiImportFile = $('#midiImportFile');
+const seqExportMid = $('#seqExportMid');
+const seqExportWav = $('#seqExportWav');
+const seqExportMp3 = $('#seqExportMp3');
+const seqStatus = $('#seqStatus');
+const patternCategory = $('#patternCategory');
+const patternKey = $('#patternKey');
+const btnPastePattern = $('#btnPastePattern');
+const patternPreview = $('#patternPreview');
+const noteAttrBar = $('#noteAttrBar');
+const noteAttrSelect = $('#noteAttrSelect');
+const seqHotkeys = $('#seqHotkeys');
+pianoRollScroll.addEventListener('scroll', ()=>{
+  ui.scrollX = pianoRollScroll.scrollLeft;
+  ui.scrollY = pianoRollScroll.scrollTop;
+  pianoRoll.style.left = pianoRollScroll.scrollLeft + 'px';
+  pianoRollGutter.scrollTop = ui.scrollY;
+  drawPianoRoll();
+});
+window.addEventListener('resize', drawPianoRoll);
+
+let mode = 'Chord';
+let instrument = 'Piano';
+let surgeEnabled = false;
+let keyRoot = 'C';
+let chordQuality = 'Maj';
+let scaleMode = 'Ionian';
+let system = 'Western';
+let tempo = 120;
+let fluteLeftToRight = true;
+let recorderLeftToRight = true;
+let neyLeftToRight = true;
+let fluteOrientation = 'horizontal';
+let recorderOrientation = 'horizontal';
+let neyOrientation = 'horizontal';
+let trumpetLeftToRight = true;
+let trumpetOrientation = 'horizontal';
+let saxophoneLeftToRight = true;
+let saxophoneOrientation = 'horizontal';
+let activeNoteAttr = 'velocity';
+
+// Selection for chord identification
+const selection = new Set(); // midi numbers
+const TOTAL_PIANO_KEYS = midiFrom('F',5) - midiFrom('C',3) + 1;
+
+// === SEQUENCER: Data Model & Store ===
+const defaultSeqTracks = ['Piano','Guitar','Bass','Kick 808','Snare Tight','Cymbal ClosedHat','Clap Short','Hand Conga'];
+
+const PATTERN_PPQ = 192; // ticks per quarter note used in patterns
+// Preset note patterns for quick insertion
+
+function generatePatternLibrary() {
+  const roots = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const chordDur = PATTERN_PPQ/2;
+  const scaleDur = PATTERN_PPQ/4;
+  const vel = 0.8;
+  const chordPatterns = {};
+  const scalePatterns = {};
+  roots.forEach(root => {
+    Object.keys(CHORD_QUALITIES).forEach(quality => {
+      const notes = buildChord(root, quality);
+      chordPatterns[`${root} ${quality}`] = notes.map(n => ({
+        tick:0,
+        dur:chordDur,
+        midi:midiFrom(n,4),
+        vel:vel
+      }));
+    });
+    Object.keys(MODES).forEach(mode => {
+      const notes = buildScale(root, mode);
+      let tick = 0;
+      const pattern = [];
+      for(let oct=4; oct<6; oct++){
+        notes.forEach(n => {
+          pattern.push({tick, dur:scaleDur, midi:midiFrom(n,oct), vel:vel});
+          tick += scaleDur;
+        });
+      }
+      pattern.push({tick, dur:scaleDur*2, midi:midiFrom(root,6), vel:vel});
+      scalePatterns[`${root} ${mode}`] = pattern;
+    });
+  });
+  PATTERN_LIBRARY.Chords = chordPatterns;
+  PATTERN_LIBRARY.Scales = scalePatterns;
+}
+
+const patternCategoryHandler = {
+  set(obj, key, val) {
+    obj[key] = val;
+    refreshPatternSelector();
+    return true;
+  }
+};
+
+function createPatternLibrary(library) {
+  Object.keys(library).forEach(cat => {
+    library[cat] = new Proxy(library[cat], patternCategoryHandler);
+  });
+  return new Proxy(library, {
+    set(target, prop, value) {
+      target[prop] = new Proxy(value, patternCategoryHandler);
+      refreshPatternSelector();
+      return true;
+    }
+  });
+}
+
+const PATTERN_LIBRARY = createPatternLibrary({
+  rhythms: {
+    'Four On Floor': [
+      {tick:0,   dur:48, midi:36, vel:0.9},
+      {tick:96,  dur:48, midi:36, vel:0.9},
+      {tick:192, dur:48, midi:36, vel:0.9},
+      {tick:288, dur:48, midi:36, vel:0.9}
+    ]
+  }
+});
+
+/**
+ * @typedef {Object} SeqNote
+ * @property {number} tick    Note start position in ticks
+ * @property {number} dur     Duration in ticks
+ * @property {number} midi    MIDI note number
+ * @property {number} vel     Velocity from 0–1
+ */
+
+/**
+ * @typedef {Object} SeqClip
+ * @property {number} start   Clip start in ticks
+ * @property {number} length  Clip length in ticks
+ * @property {SeqNote[]} notes
+ */
+
+/**
+ * @typedef {Object} SeqTrack
+ * @property {string} instrument
+ * @property {SeqClip[]} clips
+ * @property {boolean} mute
+ * @property {boolean} solo
+ * @property {number} vol
+ * @property {?Object} player
+ */
+
+/**
+ * @typedef {Object} SeqSong
+ * @property {number} ppq
+ * @property {number} bpm
+ * @property {[number,number]} loop   // measure range [start,end)
+ * @property {SeqTrack[]} tracks
+ */
+
+/** @type {SeqSong} */
+const song = {
+  ppq: 192,
+  bpm: 120,
+  ts:{num:4,den:4},
+  loop:{enabled:false,start:0,end:192*16},
+  tracks: defaultSeqTracks.map((name,i) => ({
+    id:'trk'+i,
+    name,
+    instrument: name,
+    clips: [{ id:'clip0', start:0, length:192*64, loop:false, notes: [] }],
+    mute:false,
+    solo:false,
+    volume:0.8,
+    pan:0,
+    color:'',
+    player:null,
+    part:null
+  }))
+};
+
+Tone.Transport.PPQ = song.ppq;
+
+// Unit conversion helpers
+const ticksToSeconds = ticks => Tone.Ticks(ticks).toSeconds();
+const secondsToTicks = seconds => Tone.Time(seconds).toTicks();
+
+const SIXTEENTH = song.ppq / 4;
+let lastNoteDur = song.ppq * song.ts.num;
+const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
+const MAX_MIDI = MIN_MIDI + 7*12; // Extended to 7 octaves (C1 to C8) for full 88-key piano range
+let activeTrack = 0;
+let dragNote = null;
+let trackSwitchTimeout = null;
+const TRACK_SWITCH_DELAY = 500;
+const ui = {zoomX:1, zoomY:1, scrollX:0, scrollY:0, scheme:'Classic', selecting:false, selectStart:{x:0,y:0}};
+
+// [fix] active track highlight
+function refreshActiveTrackHighlight(){
+  [...seqTracks.children].forEach((r,i)=>r.classList.toggle('bg-orange-500/20', i===activeTrack));
+}
+
+// === SEQUENCER: Color Schemes & Per-Track Colors ===
+const SEQ_COLOR_SCHEMES = {
+  Classic:['#60a5fa','#f472b6','#34d399','#f59e0b','#a78bfa','#f87171','#22d3ee','#c084fc'],
+  Pastel:['#93c5fd','#fbcfe8','#bbf7d0','#fde68a','#ddd6fe','#fecaca','#a5f3fc','#f5d0fe'],
+  Neon:['#3b82f6','#ec4899','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#a855f7'],
+  Sunset:['#fb7185','#f59e0b','#fbbf24','#fca5a5','#f472b6','#a78bfa','#60a5fa','#38bdf8'],
+  Ocean:['#0ea5e9','#38bdf8','#22d3ee','#10b981','#14b8a6','#34d399','#60a5fa','#818cf8']
+};
+function applySeqColorScheme(name){
+  const scheme=SEQ_COLOR_SCHEMES[name]||SEQ_COLOR_SCHEMES.Classic;
+  song.tracks.forEach((t,i)=>{ if(!t.colorOverridden){ t.color=scheme[i%scheme.length]; }});
+  [...seqTracks.children].forEach((row,i)=>{
+    const inp=row.querySelector('input[type="color"]');
+    if(inp && !song.tracks[i].colorOverridden) inp.value=song.tracks[i].color;
+  });
+  seqColorScheme.value=name;
+  refreshActiveTrackHighlight();
+}
+
+function setBpm(val){
+  song.bpm = tempo = val;
+  tempoInput.value = seqBpm.value = String(val);
+  Tone.Transport.bpm.value = val;
+}
+
+function updateLoop(){
+  // Clear any existing auto-stop
+  if(autoStopId) {
+    Tone.Transport.clear(autoStopId);
+    autoStopId = null;
+  }
+  
+  if(seqLoop.checked && song.loop.enabled) {
+    Tone.Transport.loopStart = `${song.loop.start}i`;
+    Tone.Transport.loopEnd = `${song.loop.end}i`;
+    Tone.Transport.loop = true;
+  } else {
+    // For one-shot playback, disable looping
+    Tone.Transport.loop = false;
+    // Determine the latest note end across all tracks
+    const maxNoteTick = Math.max(
+      0,
+      ...song.tracks.flatMap(t =>
+        t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+      )
+    );
+    // Schedule a stop event slightly after the final note
+    const buffer = 192; // allow trailing releases
+    autoStopId = Tone.Transport.scheduleOnce(() => {
+      if(sequencerState === 'playing') {
+        seqStop.click();
+      }
+    }, `${maxNoteTick + buffer}i`);
+  }
+}
+
+// Dynamic scheduling window
+const MAX_SCHEDULE_AHEAD_BARS = 256;
+const MAX_SONG_BARS = 1_000_000;
+let scheduleAheadBars = 16; // at least 16 bars or 25% of song length
+let scheduledUntil = 0;
+let rescheduleId = null;
+let songEndTick = 0;
+
+async function scheduleSong(trackIdx){
+  try{
+    const anySolo = song.tracks.some(t => t.solo);
+    const loadPromises = [];
+    for(const track of song.tracks){
+      const active = anySolo ? track.solo : !track.mute;
+      if(!active){
+        track.player?.dispose?.();
+        track.player = null;
+        continue;
+      }
+      if(!track.player){
+        try{
+          await ensureTone(track.instrument);
+          const drumFactory = DRUMS[track.instrument];
+          track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }catch(err){
+          console.error(`Failed to create player for ${track.instrument}:`, err);
+          track.player = createSeqInstrument('Piano');
+          track.player?.setVolume?.(track.volume ?? 0.8);
+          track.player?.setPan?.(track.pan ?? 0);
+        }
+      }
+      if(track.player?.loaded) loadPromises.push(track.player.loaded);
+    }
+    await Promise.all(loadPromises);
+
+    // Determine song length and dynamic scheduling window
+    const ticksPerBeat = song.ppq * (4 / song.ts.den);
+    const ticksPerBar = ticksPerBeat * song.ts.num;
+    songEndTick = Math.max(0, ...song.tracks.flatMap(t =>
+      t.clips.flatMap(c => c.notes.map(n => c.start + n.tick + n.dur))
+    ));
+    const totalBars = Math.ceil(songEndTick / ticksPerBar) || 1;
+    scheduleAheadBars = Math.min(MAX_SCHEDULE_AHEAD_BARS, Math.max(16, Math.ceil(totalBars * 0.25)));
+
+    Tone.Transport.cancel();
+    scheduledUntil = Tone.Transport.ticks;
+    scheduleAhead();
+    if(rescheduleId!==null) Tone.Transport.clear(rescheduleId);
+    rescheduleId = Tone.Transport.scheduleRepeat(scheduleAhead, '1m');
+  }catch(err){
+    console.error('scheduleSong error:', err);
+  }
+}
+
+function scheduleAhead(){
+  const anySolo = song.tracks.some(t => t.solo);
+  const ticksPerBeat = song.ppq * (4 / song.ts.den);
+  const ticksPerBar = ticksPerBeat * song.ts.num;
+  const endTick = Math.min(songEndTick, Tone.Transport.ticks + ticksPerBar * scheduleAheadBars);
+  song.tracks.forEach(track => {
+    const active = anySolo ? track.solo : !track.mute;
+    if(!active || !track.player) return;
+    const env = ENV[track.instrument] || ENV.Piano;
+    const maxDurTicks = secondsToTicks(env.maxSustain);
+    track.clips.forEach(clip => {
+      clip.notes.forEach(n => {
+        let when = clip.start + n.tick;
+        if(song.loop.enabled){
+          if(when < song.loop.start || when >= song.loop.end) return;
+        }
+        if(when >= scheduledUntil && when < endTick){
+          Tone.Transport.schedule(time => {
+            const durTicks = Math.min(n.dur, maxDurTicks);
+            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${durTicks}i`);
+            track.player.release?.(n.midi, time + ticksToSeconds(durTicks));
+          }, `${when}i`);
+        }
+      });
+    });
+  });
+  scheduledUntil = endTick;
+  if(rescheduleId !== null && scheduledUntil >= songEndTick){
+    Tone.Transport.clear(rescheduleId);
+    rescheduleId = null;
+  }
+}
+
+let clickId = null;
+let sequencerState = 'stopped'; // 'stopped', 'playing', 'paused'
+let autoStopId = null; // Store the auto-stop event ID
+
+// Selection and editing state
+let selectedNotes = new Set(); // Set of note objects
+let clipboard = []; // Copied notes
+let undoStack = []; // Undo history
+let redoStack = []; // Redo history
+const MAX_UNDO = 50;
+let quantizeSnap = SIXTEENTH; // Current quantization snap
+
+setBpm(song.bpm);
+updateLoop();
+
+function serializeSong(){
+  return JSON.stringify(song, (k,v)=> (k==='player' || k==='part') ? undefined : v);
+}
+
+function loadSong(data){
+  song.ppq = data.ppq;
+  song.bpm = data.bpm;
+  song.ts = data.ts || song.ts;
+  song.loop = data.loop || song.loop;
+  song.tracks = data.tracks.map(t=>({ ...t, player:null, part:null }));
+  Tone.Transport.PPQ = song.ppq;
+  setBpm(song.bpm);
+  updateLoop();
+  initSequencer();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+}
+
+function importSongMidi(buffer){
+  const view = new DataView(buffer);
+  let pos = 0;
+  const readStr = len => { let s=''; for(let i=0;i<len;i++) s += String.fromCharCode(view.getUint8(pos++)); return s; };
+  const readU32 = () => { const v = view.getUint32(pos); pos += 4; return v; };
+  const readU16 = () => { const v = view.getUint16(pos); pos += 2; return v; };
+  const readVar = () => { let v=0; while(true){ const b=view.getUint8(pos++); v=(v<<7)|(b&0x7F); if(!(b&0x80)) break; } return v; };
+
+  if(readStr(4) !== 'MThd') throw new Error('Invalid MIDI');
+  const hdLen = readU32();
+  const format = readU16();
+  if(format > 1) throw new Error('Unsupported MIDI format');
+  const nTracks = readU16();
+  const division = readU16();
+  song.ppq = division;
+  Tone.Transport.PPQ = division;
+  pos = 8 + hdLen; // jump to first track
+
+  let uspq = 500000; // default 120 bpm
+  const tracks = [];
+
+  for(let t=0;t<Math.min(nTracks,8);t++){
+    if(readStr(4) !== 'MTrk') break;
+    const len = readU32();
+    const end = pos + len;
+    let tick = 0;
+    let running = 0;
+    const notes = [];
+    const onMap = {};
+    while(pos < end){
+      const delta = readVar();
+      tick += delta;
+      let status = view.getUint8(pos++);
+      if(status < 0x80){ pos--; status = running; } else running = status;
+
+      if(status === 0xFF){
+        const type = view.getUint8(pos++);
+        const l = readVar();
+        if(type === 0x51 && l===3){
+          uspq = (view.getUint8(pos)<<16)|(view.getUint8(pos+1)<<8)|view.getUint8(pos+2);
+        }
+        pos += l;
+      } else if(status === 0xF0 || status === 0xF7){
+        const l = readVar();
+        pos += l;
+      } else {
+        const type = status & 0xF0;
+        const d1 = view.getUint8(pos++);
+        let d2;
+        if(type !== 0xC0 && type !== 0xD0){ d2 = view.getUint8(pos++); }
+        if(type === 0x90){
+          if(d2 > 0){ onMap[d1] = {tick, vel:d2/127}; }
+          else if(onMap[d1]){ const on = onMap[d1]; notes.push({tick:on.tick, dur:tick-on.tick, midi:d1, vel:on.vel}); delete onMap[d1]; }
+        } else if(type === 0x80){
+          if(onMap[d1]){ const on = onMap[d1]; notes.push({tick:on.tick, dur:tick-on.tick, midi:d1, vel:on.vel}); delete onMap[d1]; }
+        }
+      }
+    }
+    tracks.push({notes,length:tick});
+    pos = end;
+  }
+
+  const maxTick = Math.max(0, ...tracks.map(tr=>Math.max(0, ...tr.notes.map(n=>n.tick+n.dur))));
+  const maxTicksAllowed = song.ppq * 4 * MAX_SONG_BARS;
+  let songLen = maxTick || song.ppq * 4;
+  let truncated = false;
+  if(maxTick > maxTicksAllowed){
+    const bars = MAX_SONG_BARS.toLocaleString();
+    if(!confirm(`MIDI exceeds ${bars} bars. Import first ${bars} bars?`)){
+      seqStatus.textContent = '❌ Import canceled';
+      return;
+    }
+    songLen = maxTicksAllowed;
+    truncated = true;
+  }
+
+  song.tracks.forEach((tr,i)=>{
+    const src = tracks[i];
+    const notes = src ? src.notes.filter(n=>n.tick < songLen) : [];
+    tr.clips[0].notes = notes;
+    tr.clips[0].length = songLen;
+  });
+  
+  console.log('MIDI import - songLen:', songLen, 'maxTick:', maxTick);
+
+  song.loop.start = 0;
+  song.loop.end = songLen;
+
+  song.bpm = Math.round(60000000/uspq);
+  setBpm(song.bpm);
+  updateLoop();
+  initSequencer();
+  drawPianoRoll();
+  if(Tone.Transport.state==='started') scheduleSong();
+  const bars = MAX_SONG_BARS.toLocaleString();
+  seqStatus.textContent = truncated ? `⚠️ MIDI truncated to ${bars} bars` : '✅ Imported MIDI';
+}
+
+function exportSongMidi(){
+  // Type-0 merged MIDI. TODO: implement Type-1 multi-track export.
+  const events = [];
+  song.tracks.forEach(track=>{
+    track.clips.forEach(clip=>{
+      clip.notes.forEach(n=>{
+        events.push({
+          start:(clip.start + n.tick)/song.ppq,
+          dur:n.dur/song.ppq,
+          midi:n.midi,
+          vel:Math.round((n.vel ?? 0.8)*127)
+        });
+      });
+    });
+  });
+  const bytes = buildMidi(events, song.ppq, song.bpm);
+  const blob = new Blob([bytes],{type:'audio/midi'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='song.mid';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
+function lightenColor(hex,amt){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); const lr=Math.min(255,Math.round(r+(255-r)*amt)),lg=Math.min(255,Math.round(g+(255-g)*amt)),lb=Math.min(255,Math.round(b+(255-b)*amt)); return `#${lr.toString(16).padStart(2,'0')}${lg.toString(16).padStart(2,'0')}${lb.toString(16).padStart(2,'0')}`; }
+function drawPianoRoll(){
+  const clip = song.tracks[activeTrack].clips[0];
+  // Auto-extend clip length if needed based on actual notes - generous buffer for large files
+  const maxNoteTick = Math.max(0, ...song.tracks.flatMap(t => 
+    t.clips[0].notes.map(n => n.tick + n.dur)
+  ));
+  // For large MIDI files, add more substantial buffer - minimum 8 bars or 25% of content length
+  const bufferSize = Math.max(192*8, Math.floor(maxNoteTick * 0.25));
+  const minClipLength = Math.max(clip.length, maxNoteTick + bufferSize);
+  if(minClipLength > clip.length) {
+    song.tracks.forEach(t => t.clips[0].length = minClipLength);
+  }
+  const totalSteps = clip.length / SIXTEENTH;
+  const noteCount = MAX_MIDI - MIN_MIDI;
+  let cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  let totalWidth = totalSteps * cellW;
+  
+  // Debug logging for large MIDI files
+  if(clip.length > 192*64) {
+    console.log('Large MIDI detected - clip.length:', clip.length, 'totalSteps:', totalSteps, 'totalWidth:', totalWidth, 'cellW:', cellW);
+    
+    // Check for browser width limits
+    const maxBrowserWidth = 33554427; // Chrome/Firefox limit
+    if(totalWidth > maxBrowserWidth) {
+      console.warn('totalWidth exceeds browser limit:', totalWidth, '> max:', maxBrowserWidth);
+      // Reduce zoom to fit within browser limits
+      const maxZoomX = maxBrowserWidth / (totalSteps * 20);
+      if(ui.zoomX > maxZoomX) {
+        console.log('Reducing zoomX from', ui.zoomX, 'to', maxZoomX);
+        ui.zoomX = maxZoomX;
+        seqZoomX.value = maxZoomX;
+        // Recalculate with new zoom
+        cellW = 20 * ui.zoomX;
+        totalWidth = totalSteps * cellW;
+        console.log('Adjusted totalWidth:', totalWidth);
+      }
+    }
+  }
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const viewportWidth = pianoRollScroll.clientWidth;
+  const startStep = Math.floor(scrollLeft / cellW);
+  const endStep = startStep + Math.ceil(viewportWidth / cellW) + 1;
+  const width = viewportWidth;
+  const height = noteCount * cellH;
+  const dpr = window.devicePixelRatio||1;
+  pianoRoll.width = width*dpr; pianoRoll.height = height*dpr; pianoRoll.style.width=width+'px'; pianoRoll.style.height=height+'px';
+  pianoRollSpacer.style.width = totalWidth+'px'; pianoRollSpacer.style.height = height+'px';
+  const ctx = pianoRoll.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,width,height);
+  // background lanes
+  for(let i=0;i<noteCount;i++){ ctx.fillStyle = i%2? '#243341':'#23303c'; ctx.fillRect(0,i*cellH,width,cellH); }
+  // grid vertical
+  const stepsPerBeat = 16 / song.ts.den;
+  const stepsPerMeasure = song.ts.num * stepsPerBeat;
+  for(let i=startStep;i<=endStep;i++){
+    const x = i*cellW - scrollLeft;
+    ctx.strokeStyle = '#2d3c4a';
+    if(i % stepsPerBeat === 0) ctx.strokeStyle = '#395063';
+    if(i % stepsPerMeasure === 0) ctx.strokeStyle = '#4a6379';
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();
+  }
+  // horizontal lines
+  for(let j=0;j<=noteCount;j++){ const y=j*cellH; ctx.strokeStyle='#2d3c4a'; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke(); }
+  // notes - with viewport culling for performance
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+  const topMidi = MAX_MIDI - Math.floor(pianoRollScroll.scrollTop / cellH);
+  const bottomMidi = MAX_MIDI - Math.ceil((pianoRollScroll.scrollTop + pianoRollScroll.clientHeight) / cellH);
+  
+  song.tracks.forEach((track,idx)=>{
+    const alpha=idx===activeTrack?1:0.4;
+    const baseColor=hexToRgba(track.color||'#60a5fa',alpha);
+    const sustainColor=hexToRgba(lightenColor(track.color||'#60a5fa',0.5),alpha);
+    // Pre-filter notes for viewport culling - major performance improvement for large files
+    const visibleNotes = track.clips[0].notes.filter(n =>
+      n.tick + n.dur >= startTick && n.tick <= endTick &&
+      n.midi >= bottomMidi && n.midi <= topMidi
+    );
+
+    visibleNotes.forEach(n=>{
+      const x=n.tick/SIXTEENTH*cellW - scrollLeft;
+      const w=n.dur/SIXTEENTH*cellW;
+      const y=(MAX_MIDI-n.midi-1)*cellH;
+
+      // Highlight selected notes
+      if(idx === activeTrack && selectedNotes.has(n)) {
+        ctx.fillStyle = '#ff6b9d';
+        ctx.fillRect(x-2, y-2, w+4, cellH+4);
+      }
+
+      const sustainWidth=Math.min(8,w*0.15);
+      ctx.fillStyle=sustainColor;
+      ctx.fillRect(x,y,sustainWidth,cellH);
+      ctx.fillStyle=baseColor;
+      ctx.fillRect(x+sustainWidth,y,w-sustainWidth,cellH);
+
+      // Add subtle border for clarity
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x,y,w,cellH);
+    });
+  });
+  if(dragNote){
+    const dragColor = hexToRgba(song.tracks[activeTrack].color||'#60a5fa',0.8);
+    const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
+    if(x+w>=0 && x<=width) {
+      ctx.fillStyle = dragColor;
+      ctx.fillRect(x,y,w,cellH);
+      // Add pink border for drag preview
+      ctx.strokeStyle = 'rgba(236,72,153,0.8)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x,y,w,cellH);
+    }
+  }
+  
+  // Selection rectangle
+  if(ui.selecting) {
+    ctx.strokeStyle = '#ff6b9d';
+    ctx.fillStyle = 'rgba(255, 107, 157, 0.1)';
+    ctx.lineWidth = 2;
+    const rectX = Math.min(ui.selectStart.x, ui.selectEnd.x) - scrollLeft;
+    const rectY = Math.min(ui.selectStart.y, ui.selectEnd.y);
+    const rectW = Math.abs(ui.selectEnd.x - ui.selectStart.x);
+    const rectH = Math.abs(ui.selectEnd.y - ui.selectStart.y);
+    ctx.fillRect(rectX, rectY, rectW, rectH);
+    ctx.strokeRect(rectX, rectY, rectW, rectH);
+  }
+  // gutter
+  const gctx = pianoRollGutter.getContext('2d');
+  pianoRollGutter.width = 60*dpr; pianoRollGutter.height = height*dpr; pianoRollGutter.style.width='60px'; pianoRollGutter.style.height=height+'px';
+  gctx.setTransform(dpr,0,0,dpr,0,0); gctx.clearRect(0,0,60,height);
+  for(let i=0;i<noteCount;i++){ const y=i*cellH; gctx.fillStyle = i%2? '#243341':'#23303c'; gctx.fillRect(0,y,60,cellH); gctx.fillStyle='#cbd5e1'; const m=MAX_MIDI-1-i; gctx.fillText(midiName(m),5,y+12); }
+  drawNoteAttrBar();
+}
+
+function drawNoteAttrBar(){
+  const width = pianoRollScroll.clientWidth;
+  const height = noteAttrBar.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  noteAttrBar.width = width * dpr;
+  noteAttrBar.height = height * dpr;
+  noteAttrBar.style.width = width + 'px';
+  noteAttrBar.style.height = height + 'px';
+  const ctx = noteAttrBar.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+
+  const cellW = 20 * ui.zoomX;
+  const scrollLeft = pianoRollScroll.scrollLeft;
+  const startTick = Math.floor(scrollLeft / cellW) * SIXTEENTH;
+  const endTick = Math.ceil((scrollLeft + width) / cellW) * SIXTEENTH;
+
+  song.tracks.forEach((track, idx) => {
+    const alpha = idx === activeTrack ? 1 : 0.4;
+    ctx.fillStyle = hexToRgba(track.color || '#60a5fa', alpha);
+    const visible = track.clips[0].notes.filter(n => n.tick >= startTick && n.tick <= endTick);
+    visible.forEach(n => {
+      const x = n.tick / SIXTEENTH * cellW - scrollLeft;
+      let v = 0;
+      switch(activeNoteAttr){
+        case 'velocity':
+          v = n.vel ?? 0;
+          break;
+        default:
+          v = 0; // stub for other attributes
+      }
+      const barH = v * height;
+      const barW = Math.max(1, cellW * 0.8);
+      ctx.fillRect(x, height - barH, barW, barH);
+    });
+  });
+}
+
+function cancelTrackSwitch(){
+  if(trackSwitchTimeout){ clearTimeout(trackSwitchTimeout); trackSwitchTimeout=null; }
+  pianoRoll.removeEventListener('pointerup', cancelTrackSwitch);
+  pianoRoll.removeEventListener('pointerleave', cancelTrackSwitch);
+  pianoRoll.removeEventListener('pointercancel', cancelTrackSwitch);
+}
+
+function startTrackSwitchTimer(idx){
+  cancelTrackSwitch();
+  trackSwitchTimeout = setTimeout(()=>{
+    activeTrack = idx;
+    refreshActiveTrackHighlight();
+    seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+    drawPianoRoll();
+    cancelTrackSwitch();
+  }, TRACK_SWITCH_DELAY);
+  pianoRoll.addEventListener('pointerup', cancelTrackSwitch);
+  pianoRoll.addEventListener('pointerleave', cancelTrackSwitch);
+  pianoRoll.addEventListener('pointercancel', cancelTrackSwitch);
+}
+
+pianoRoll.addEventListener('contextmenu', ev => {
+  ev.preventDefault(); // Prevent browser context menu
+  
+  const dpr = window.devicePixelRatio||1;
+  const rect = pianoRoll.getBoundingClientRect();
+  const xCss = ev.clientX - rect.left;
+  const yCss = ev.clientY - rect.top;
+  const x = (xCss + pianoRollScroll.scrollLeft);
+  const y = (yCss + pianoRollScroll.scrollTop);
+  const cellW = 20 * ui.zoomX;
+  const cellH = 20 * ui.zoomY;
+  const midi = MAX_MIDI - 1 - Math.floor(y / cellH);
+  
+  const clip = song.tracks[activeTrack].clips[0];
+  
+  // Find if we right-clicked on a note
+  let foundNote = null;
+  for(let i = clip.notes.length - 1; i >= 0; i--) {
+    const n = clip.notes[i];
+    const noteX = n.tick / SIXTEENTH * cellW;
+    const noteW = n.dur / SIXTEENTH * cellW;
+    if(n.midi === midi && x >= noteX && x < noteX + noteW) {
+      foundNote = n;
+      break;
+    }
+  }
+  
+  if(foundNote) {
+    // Select the note if it's not already selected
+    if(!selectedNotes.has(foundNote)) {
+      selectedNotes.clear();
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+    }
+    
+    // Show context menu at mouse position
+    showContextMenu(ev.clientX, ev.clientY, foundNote);
+  }
+});
+
+pianoRoll.addEventListener('pointerdown', ev => {
+  cancelTrackSwitch();
+  const dpr = window.devicePixelRatio||1; const rect=pianoRoll.getBoundingClientRect();
+  const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
+  const x = (xCss + pianoRollScroll.scrollLeft);
+  const y = (yCss + pianoRollScroll.scrollTop);
+  const cellW = 20*ui.zoomX; const cellH = 20*ui.zoomY;
+  const tick = Math.floor(x/cellW)*SIXTEENTH;
+  const midi = MAX_MIDI-1-Math.floor(y/cellH);
+  // check notes from non-active tracks for potential track switch
+  for(let t=0;t<song.tracks.length;t++){
+    if(t===activeTrack) continue;
+    const oClip = song.tracks[t].clips[0];
+    for(let i=oClip.notes.length-1;i>=0;i--){
+      const n=oClip.notes[i];
+      const noteX=n.tick/SIXTEENTH*cellW;
+      const noteW=n.dur/SIXTEENTH*cellW;
+      if(n.midi===midi && x>=noteX && x<noteX+noteW){
+        startTrackSwitchTimer(t);
+        return;
+      }
+    }
+  }
+  const clip=song.tracks[activeTrack].clips[0];
+  // check existing notes first
+  let foundNote = null;
+  for(let i=clip.notes.length-1;i>=0;i--){
+    const n=clip.notes[i];
+    const noteX=n.tick/SIXTEENTH*cellW;
+    const noteW=n.dur/SIXTEENTH*cellW;
+    if(n.midi===midi && x>=noteX && x<noteX+noteW){
+      foundNote = n;
+      break;
+    }
+  }
+  
+  if(foundNote) {
+    if(ev.shiftKey && ev.altKey) {
+      // Shift+Alt = Delete note
+      saveState('Delete note');
+      clip.notes.splice(clip.notes.indexOf(foundNote), 1);
+      selectedNotes.delete(foundNote);
+      drawPianoRoll();
+      if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+      return;
+    } else if(ev.shiftKey) {
+      // Shift+Click = Toggle selection
+      if(selectedNotes.has(foundNote)) {
+        selectedNotes.delete(foundNote);
+      } else {
+        selectedNotes.add(foundNote);
+      }
+      drawPianoRoll();
+      return;
+    } else if(ev.ctrlKey || ev.metaKey) {
+      // Ctrl+Click = Add to selection
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+      return;
+    } else if(!selectedNotes.has(foundNote)) {
+      // Regular click on unselected note = Select only this note
+      selectedNotes.clear();
+      selectedNotes.add(foundNote);
+      drawPianoRoll();
+    }
+    
+    // Start dragging if note is selected
+    if(selectedNotes.has(foundNote)) {
+      const noteX=foundNote.tick/SIXTEENTH*cellW;
+      const noteW=foundNote.dur/SIXTEENTH*cellW;
+      const nearRight = x>noteX+noteW-5; // resize handle ~5px
+      saveState(nearRight ? 'Resize note' : 'Move note');
+      dragNote={note:foundNote, mode:nearRight?'resize':'move', offsetTick:tick-foundNote.tick, offsetMidi:midi-foundNote.midi};
+      pianoRoll.setPointerCapture(ev.pointerId);
+      drawPianoRoll();
+      return;
+    }
+  } else {
+    // Clicked on empty space
+    if(ev.shiftKey) {
+      // Start selection rectangle
+      ui.selecting = true;
+      ui.selectStart = {x, y};
+      ui.selectEnd = {x, y};
+      pianoRoll.setPointerCapture(ev.pointerId);
+      drawPianoRoll();
+      return;
+    } else if(!ev.ctrlKey && !ev.metaKey) {
+      selectedNotes.clear();
+      drawPianoRoll();
+    }
+  }
+  
+  // Don't create new note if we're starting a selection
+  if(!ui.selecting) {
+    // otherwise create new note
+    const snappedTick = quantizeSnap > 0 ? Math.round(tick / quantizeSnap) * quantizeSnap : tick;
+    dragNote={tick:snappedTick, dur:lastNoteDur, midi, mode:'new'};
+    pianoRoll.setPointerCapture(ev.pointerId);
+    drawPianoRoll();
+  }
+});
+pianoRoll.addEventListener('pointermove', ev=>{
+  const rect=pianoRoll.getBoundingClientRect();
+  const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
+  const x=(xCss+pianoRollScroll.scrollLeft); const y=(yCss+pianoRollScroll.scrollTop);
+  
+  if(ui.selecting) {
+    // Update selection rectangle
+    ui.selectEnd = {x, y};
+    drawPianoRoll();
+    return;
+  }
+  
+  if(!dragNote) return;
+  // (x and y already calculated above)
+  const cellW=20*ui.zoomX; const cellH=20*ui.zoomY;
+  const tick=Math.floor(x/cellW)*SIXTEENTH; const midi=MAX_MIDI-1-Math.floor(y/cellH);
+  if(dragNote.mode==='new'){
+    let endTick=Math.floor(x/cellW+1)*SIXTEENTH;
+    if(quantizeSnap > 0) {
+      endTick = Math.round(endTick / quantizeSnap) * quantizeSnap;
+    }
+    dragNote.dur=Math.max(quantizeSnap || SIXTEENTH, endTick-dragNote.tick);
+  } else if(dragNote.mode==='move'){
+    let newTick = Math.max(0,tick-dragNote.offsetTick);
+    if(quantizeSnap > 0) {
+      newTick = Math.round(newTick / quantizeSnap) * quantizeSnap;
+    }
+    const newMidi = Math.min(MAX_MIDI-1,Math.max(0,midi-dragNote.offsetMidi));
+    
+    // If multiple notes are selected, move them all relative to the dragged note
+    if(selectedNotes.size > 1) {
+      const tickDelta = newTick - dragNote.note.tick;
+      const midiDelta = newMidi - dragNote.note.midi;
+      
+      selectedNotes.forEach(note => {
+        if(note !== dragNote.note) {
+          note.tick = Math.max(0, note.tick + tickDelta);
+          note.midi = Math.min(MAX_MIDI-1, Math.max(0, note.midi + midiDelta));
+        }
+      });
+    }
+    
+    dragNote.note.tick = newTick;
+    dragNote.note.midi = newMidi;
+  } else if(dragNote.mode==='resize'){
+    const endTick=Math.floor(x/cellW+1)*SIXTEENTH; dragNote.note.dur=Math.max(SIXTEENTH,endTick-dragNote.note.tick);
+  }
+  drawPianoRoll();
+});
+pianoRoll.addEventListener('pointerup', ev=>{
+  const rect=pianoRoll.getBoundingClientRect();
+  const xCss=ev.clientX-rect.left; const yCss=ev.clientY-rect.top;
+  const x=(xCss+pianoRollScroll.scrollLeft); const y=(yCss+pianoRollScroll.scrollTop);
+  
+  if(ui.selecting) {
+    // Complete selection rectangle
+    const cellW = 20 * ui.zoomX;
+    const cellH = 20 * ui.zoomY;
+    
+    const startTick = Math.min(ui.selectStart.x, x) / cellW * SIXTEENTH;
+    const endTick = Math.max(ui.selectStart.x, x) / cellW * SIXTEENTH;
+    const startMidi = MAX_MIDI - 1 - Math.max(ui.selectStart.y, y) / cellH;
+    const endMidi = MAX_MIDI - 1 - Math.min(ui.selectStart.y, y) / cellH;
+    
+    const track = song.tracks[activeTrack];
+    const wasEmpty = selectedNotes.size === 0;
+    
+    track.clips[0].notes.forEach(note => {
+      if(note.tick >= startTick && note.tick < endTick && 
+         note.midi >= startMidi && note.midi <= endMidi) {
+        selectedNotes.add(note);
+      }
+    });
+    
+    ui.selecting = false;
+    drawPianoRoll();
+    pianoRoll.releasePointerCapture(ev.pointerId);
+    return;
+  }
+  
+  if(!dragNote) return; const track=song.tracks[activeTrack];
+  if(dragNote.mode==='new') {
+    saveState('Add note');
+    const newNote = {tick:dragNote.tick,dur:dragNote.dur,midi:dragNote.midi,vel:0.8};
+    track.clips[0].notes.push(newNote);
+    selectedNotes.clear();
+    selectedNotes.add(newNote);
+    lastNoteDur = dragNote.dur;
+  } else if(dragNote.mode === 'move' || dragNote.mode === 'resize') {
+    // Save state was already called on pointerdown for existing notes
+  }
+  // keep notes ordered after edits
+  track.clips[0].notes.sort((a,b)=>a.tick-b.tick);
+  dragNote=null; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); pianoRoll.releasePointerCapture(ev.pointerId);
+});
+pianoRoll.addEventListener('pointercancel', ()=>{ dragNote=null; drawPianoRoll(); });
+
+pianoRoll.addEventListener('wheel', ev=>{
+  if(ev.ctrlKey){ ev.preventDefault(); ui.zoomX=Math.min(8,Math.max(0.5,ui.zoomX*(ev.deltaY>0?0.9:1.1))); seqZoomX.value=ui.zoomX; drawPianoRoll(); }
+  else if(ev.altKey){ ev.preventDefault(); ui.zoomY=Math.min(2,Math.max(0.5,ui.zoomY*(ev.deltaY>0?0.9:1.1))); seqZoomY.value=ui.zoomY; drawPianoRoll(); }
+  else if(ev.shiftKey){ pianoRollScroll.scrollLeft += ev.deltaY; ev.preventDefault(); }
+});
+
+let attrDragNote=null;
+function updateAttrFromEvent(ev){
+  if(!attrDragNote) return;
+  const rect = noteAttrBar.getBoundingClientRect();
+  const y = ev.clientY - rect.top;
+  const height = noteAttrBar.clientHeight;
+  let v = 1 - y / height;
+  v = Math.max(0, Math.min(1, v));
+  if(activeNoteAttr === 'velocity'){
+    attrDragNote.vel = v;
+  } else {
+    // stub for other attributes
+  }
+  drawPianoRoll();
+}
+noteAttrBar.addEventListener('pointerdown', ev=>{
+  const rect = noteAttrBar.getBoundingClientRect();
+  const x = ev.clientX - rect.left + pianoRollScroll.scrollLeft;
+  const cellW = 20*ui.zoomX;
+  const barW = Math.max(1, cellW*0.8);
+  const notes = song.tracks[activeTrack].clips[0].notes;
+  for(let i=notes.length-1;i>=0;i--){
+    const n=notes[i];
+    const bx = n.tick / SIXTEENTH * cellW;
+    if(x>=bx && x<=bx+barW){
+      attrDragNote = n;
+      saveState('Edit note attribute');
+      noteAttrBar.setPointerCapture(ev.pointerId);
+      updateAttrFromEvent(ev);
+      break;
+    }
+  }
+});
+noteAttrBar.addEventListener('pointermove', ev=>{ if(attrDragNote) updateAttrFromEvent(ev); });
+noteAttrBar.addEventListener('pointerup', ev=>{ if(attrDragNote){ updateAttrFromEvent(ev); attrDragNote=null; noteAttrBar.releasePointerCapture(ev.pointerId); }});
+noteAttrBar.addEventListener('pointercancel', ()=>{ attrDragNote=null; });
+noteAttrSelect.addEventListener('change', e=>{ activeNoteAttr = e.target.value; drawPianoRoll(); });
+
+let playheadReq=null;
+function startPlayhead(){
+  let skipScroll=false;
+  function loop(){
+    const cellW=20*ui.zoomX;
+    const x=Tone.Transport.ticks/SIXTEENTH*cellW;
+    if(seqAutoScroll.checked){
+      const target = x - pianoRollScroll.clientWidth/2;
+      if(skipScroll){
+        pianoRollScroll.scrollLeft += (target - pianoRollScroll.scrollLeft) * 0.15;
+      }
+      skipScroll=!skipScroll;
+    }
+    updatePositionDisplay();
+    drawPianoRoll();
+    playheadReq=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopPlayhead(){ 
+  if(playheadReq) cancelAnimationFrame(playheadReq); 
+  playheadReq=null; 
+  updatePositionDisplay();
+  drawPianoRoll(); 
+}
+
+function initSequencer(){
+  seqTracks.innerHTML='';
+  song.tracks.forEach((track, idx) => {
+    const row=document.createElement('div');
+    row.className='flex items-center gap-2';
+    const instrOpts = INSTRUMENTS.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
+    const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
+    row.innerHTML=
+      `<span class="w-32">${track.instrument}</span>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
+      `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
+      `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
+      `<input type="range" min="-1" max="1" step="0.01" value="${track.pan}" class="w-24" />`+
+      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
+      instrOpts+
+      `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
+      `</select>`+
+      `<input type="color" id="trk-${idx}-color" class="w-8 h-8 rounded" value="${track.color||'#ffffff'}">`+
+      `<button id="trk-${idx}-clrReset" class="px-2 py-1 text-xs rounded bg-slate-700" aria-label="Reset track color" title="Reset track color">Reset</button>`;
+    seqTracks.appendChild(row);
+    const muteBtn = row.querySelector('[data-mute]');
+    const soloBtn = row.querySelector('[data-solo]');
+    const [volSlider, panSlider] = row.querySelectorAll('input[type="range"]');
+    const sel = row.querySelector('select');
+    const clrInput = row.querySelector(`#trk-${idx}-color`);
+    const clrReset = row.querySelector(`#trk-${idx}-clrReset`);
+    muteBtn.addEventListener('click', (e)=>{
+      track.mute = !track.mute;
+      muteBtn.classList.toggle('bg-rose-700', track.mute);
+      if(Tone.Transport.state==='started') scheduleSong();
+    });
+    soloBtn.addEventListener('click', ()=>{
+      track.solo = !track.solo;
+      soloBtn.classList.toggle('bg-emerald-700', track.solo);
+      if(Tone.Transport.state==='started') scheduleSong();
+    });
+    volSlider.addEventListener('input', e=>{
+      track.volume = Number(e.target.value);
+      if(track.player && track.player.setVolume) track.player.setVolume(track.volume);
+    });
+    panSlider.addEventListener('input', e=>{
+      track.pan = Number(e.target.value);
+      if(track.player && track.player.setPan) track.player.setPan(track.pan);
+    });
+    sel.addEventListener('change', e=>{
+      track.instrument = e.target.value;
+      row.querySelector('span').textContent = track.instrument;
+      if(track.player){ track.player.dispose(); track.player=null; }
+      if(Tone.Transport.state==='started') scheduleSong(idx);
+    });
+    clrInput.addEventListener('input', e=>{
+      track.color = e.target.value;
+      track.colorOverridden = true;
+      drawPianoRoll();
+    });
+    clrReset.addEventListener('click', ()=>{
+      track.colorOverridden = false;
+      applySeqColorScheme(seqColorScheme.value);
+      drawPianoRoll();
+    });
+    row.addEventListener('click', e=>{
+      if(['BUTTON','INPUT','SELECT'].includes(e.target.tagName)) return;
+      activeTrack = idx;
+      refreshActiveTrackHighlight();
+      seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+      drawPianoRoll();
+    });
+  });
+  applySeqColorScheme('Classic');
+  refreshActiveTrackHighlight();
+  seqStatus.textContent = `Painting: ${song.tracks[activeTrack].instrument} • ${song.ts.num}/${song.ts.den}`;
+  drawPianoRoll();
+}
+
+function updateSelButtons(){
+  const empty = selection.size === 0;
+  btnPlaySelChord.disabled = empty;
+  btnPlaySelArp.disabled = empty;
+}
+
+// Build selects
+function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
+fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
+fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
+fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
+function populateModeOptions(){
+  fillSelect(selMode, MODE_SYSTEMS[system]);
+  if(!MODE_SYSTEMS[system].includes(scaleMode)) scaleMode = MODE_SYSTEMS[system][0];
+  selMode.value = scaleMode;
+}
+populateModeOptions();
+
+function updateBadges(){
+  badgeRoot.textContent = 'Root: '+toSharpName(keyRoot);
+  const selected = computeSelected();
+  if(mode==='Chord'){ badgeChordNotes.textContent = 'Notes: '+selected.notes.join('-'); }
+  else { badgeScaleNotes.textContent = 'Scale: '+selected.notes.join('-'); }
+  const arr=[...selection].sort((a,b)=>a-b);
+  const id=chordNameFromNotes(arr);
+  badgeId.textContent = 'Selection: '+id.name+(id.detail?(' '+id.detail):'');
+  badgeSelNotes.textContent = 'Notes: ' + (arr.length? arr.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '): '—');
+  updateSelButtons();
+  btnSendToSeq.disabled = selection.size === 0 && selected.notes.length === 0;
+}
+
+function computeSelected(){ if(mode==='Chord'){ const notes=buildChord(keyRoot, chordQuality); return {type:'chord', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } else { const notes=buildScale(keyRoot, scaleMode); return {type:'scale', notes, pcset:makePcSet(notes), rootPc: pcIndex(keyRoot)}; } }
+
+// --- Secret Lick detection ---
+const _lickPattern = [0,2,3,5,2,10,0];
+const _lickWindow = 3000; // ms
+const _recentKeys = [];
+let _lickLock = false;
+function _registerKey(m){
+  const now = performance.now();
+  const pc = mod(m, OCTAVE);
+  _recentKeys.push({pc, time: now});
+  while(_recentKeys.length && now - _recentKeys[0].time > _lickWindow){
+    _recentKeys.shift();
+  }
+  if(_recentKeys.length >= _lickPattern.length){
+    const slice = _recentKeys.slice(-_lickPattern.length);
+    if(slice[slice.length-1].time - slice[0].time <= _lickWindow){
+      const base = slice[0].pc;
+      if(slice.every((e,i)=> mod(e.pc - base, OCTAVE) === _lickPattern[i])){
+        _triggerLick();
+        _recentKeys.length = 0;
+      }
+    }
+  }
+}
+function _triggerLick(){
+  if(_lickLock) return;
+  _lickLock = true;
+  // Open in background without stealing focus
+  const link = document.createElement('a');
+  link.href = 'https://www.youtube.com/watch?v=lSXxEdaOqgU';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  const msg=document.createElement('div');
+  msg.textContent='Lick [Unlocked]';
+  msg.className='fixed top-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded shadow z-50';
+  document.body.appendChild(msg);
+  setTimeout(()=>{ msg.remove(); _lickLock=false; }, 2000);
+}
+
+// ========================= PIANO =========================
+// === HELD-SUSTAIN: Piano pointer handlers ===
+function buildPiano(){ pianoHost.innerHTML=''; const container=document.createElement('div'); container.className='relative mx-auto select-none'; const shell=document.createElement('div'); shell.className='relative h-48 bg-slate-900 border border-slate-700 rounded-xl p-2'; container.appendChild(shell);
+  // White keys row
+  const startMidi=midiFrom('C',3); const endMidi=midiFrom('F',5); const keys=[]; for(let m=startMidi;m<=endMidi;m++) keys.push(m); const whites=keys.filter(m=>![1,3,6,8,10].includes(mod(m,OCTAVE)));
+  const whiteRow=document.createElement('div'); whiteRow.className='flex h-full'; shell.appendChild(whiteRow);
+  whites.forEach(m=>{ const pc=mod(m,OCTAVE); const k=document.createElement('div'); k.dataset.midi=String(m); k.dataset.pc=String(pc); k.className='white-key relative flex-1 mx-0.5 rounded-b-xl border bg-white border-slate-400'; const lbl=document.createElement('div'); lbl.className='absolute inset-x-0 bottom-1 text-center text-[10px] text-slate-700 select-none'; lbl.textContent = pcName(pc)+(Math.floor(m/OCTAVE)-1); k.appendChild(lbl);
+    k.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); k.setPointerCapture(ev.pointerId); k.dataset.held='1'; } });
+    const end=(ev)=>{ if(!k.dataset.held) return; releaseHeld(m); delete k.dataset.held; updateBadges(); renderHighlights(); };
+    k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end);
+    whiteRow.appendChild(k); });
+  // Black overlay with realistic piano spacing
+  const overlay=document.createElement('div'); overlay.className='pointer-events-none absolute left-2 right-2 top-2 bottom-2'; shell.appendChild(overlay);
+  keys.filter(m=>[1,3,6,8,10].includes(mod(m,OCTAVE))).forEach(m=>{ const pc=mod(m,OCTAVE); 
+    // Much simpler approach: map each black key to its position between white keys
+    // Pattern: C C# D D# E - F F# G G# A A# B (repeating every octave)
+    // In whites array: C D E F G A B positions: 0,1,2,3,4,5,6 per octave
+    
+    const octave = Math.floor(m / 12);
+    const baseOctaveStart = whites.findIndex(w => Math.floor(w/12) === octave);
+    
+    let whiteKeyIndex, betweenOffset;
+    if(pc === 1) { // C# - between C(0) and D(1)  
+      whiteKeyIndex = baseOctaveStart + 0; // C position
+      betweenOffset = 0.7; // 70% between C and D
+    } else if(pc === 3) { // D# - between D(1) and E(2)
+      whiteKeyIndex = baseOctaveStart + 1; // D position  
+      betweenOffset = 0.7; // 70% between D and E
+    } else if(pc === 6) { // F# - between F(3) and G(4)
+      whiteKeyIndex = baseOctaveStart + 3; // F position
+      betweenOffset = 0.7; // 70% between F and G
+    } else if(pc === 8) { // G# - between G(4) and A(5) 
+      whiteKeyIndex = baseOctaveStart + 4; // G position
+      betweenOffset = 0.7; // 70% between G and A
+    } else if(pc === 10) { // A# - between A(5) and B(6)
+      whiteKeyIndex = baseOctaveStart + 5; // A position
+      betweenOffset = 0.7; // 70% between A and B
+    }
+    
+    if(whiteKeyIndex === undefined) return;
+    
+    const wrap=document.createElement('div'); 
+    wrap.className='absolute pointer-events-none'; 
+    // Simple percentage-based positioning
+    wrap.style.left = `${(whiteKeyIndex / whites.length * 100) + (betweenOffset * (100 / whites.length))}%`;
+    wrap.style.width = `${100 / whites.length * 0.6}%`;
+    wrap.style.height = '65%'; 
+    wrap.style.top = '0';
+    
+    const blk=document.createElement('div'); 
+    blk.dataset.midi=String(m); 
+    blk.dataset.pc=String(pc); 
+    blk.className='black-key w-full h-full rounded-b-lg border bg-black border-black pointer-events-auto'; 
+    blk.title = pcName(pc)+(Math.floor(m/OCTAVE)-1); 
+    const lbl=document.createElement('div'); 
+    lbl.className='absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold select-none'; 
+    lbl.textContent=''; 
+    blk.appendChild(lbl);
+    blk.addEventListener('pointerdown', (ev)=>{ if(ev.shiftKey){ toggleSelect(m); } else { _registerKey(m); pressHeld(m); blk.setPointerCapture(ev.pointerId); blk.dataset.held='1'; } });
+    const end=(ev)=>{ if(!blk.dataset.held) return; releaseHeld(m); delete blk.dataset.held; updateBadges(); renderHighlights(); };
+    blk.addEventListener('pointerup', end); blk.addEventListener('pointercancel', end);
+    wrap.appendChild(blk); overlay.appendChild(wrap); });
+  pianoHost.appendChild(container);
+}
+function toggleSelect(m){ if(selection.has(m)) selection.delete(m); else selection.add(m); updateBadges(); renderHighlights(); }
+function clearSelection(){ selection.clear(); updateBadges(); renderHighlights(); }
+function renderHighlights(){ const {pcset, rootPc} = computeSelected(); // visual highlight comes from chosen chord/scale
+  // Whites (robust selector — no Tailwind arbitrary value in query)
+  pianoHost.querySelectorAll('.white-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'white-key relative flex-1 mx-0.5 rounded-b-xl border '+(active? 'bg-amber-200 border-amber-500':'bg-white border-slate-400');
+    const rootBadge = el.querySelector('.rootbadge'); if(rootBadge) rootBadge.remove(); if(rootPc===pc){ const b=document.createElement('div'); b.className='rootbadge absolute inset-x-0 bottom-1 text-center text-[10px] text-rose-600 font-bold'; b.textContent='ROOT'; el.appendChild(b); } });
+  // Blacks (robust selector)
+  pianoHost.querySelectorAll('.black-key').forEach((el)=>{ const m=Number(el.dataset.midi); const pc=mod(m,OCTAVE); const active=pcset.has(pc); el.className = 'black-key w-full h-full rounded-b-lg border '+(active? 'bg-indigo-400 border-indigo-600':'bg-black border-black')+' pointer-events-auto'; const r=el.querySelector('.rootchar'); if(r) r.remove(); if(rootPc===pc){ const rr=document.createElement('div'); rr.className='rootchar absolute inset-x-0 bottom-1 text-center text-[9px] text-rose-200 font-bold'; rr.textContent='R'; el.appendChild(rr); } });
+  // Selection highlights
+  selection.forEach((m)=>{ const el = pianoHost.querySelector(`[data-midi="${m}"]`); if(el) el.classList.add('key-selected'); });
+}
+
+// ========================= FRETBOARDS =========================
+const GUITAR_STD=[40,45,50,55,59,64]; const BASS_STD=[28,33,38,43]; const VIOLIN_TUNING=[55,62,69,76]; const KOTO_TUNING=[60,62,64,67,69,72,74,76,79,81,84,86,88];
+const KOTO_FINGERINGS={
+  C:[1,0,0,0,0,1,0,0,0,0,1,0,0],
+  'C#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  D:[0,1,0,0,0,0,1,0,0,0,0,1,0],
+  'D#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  E:[0,0,1,0,0,0,0,1,0,0,0,0,1],
+  F:[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  'F#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  G:[0,0,0,1,0,0,0,0,1,0,0,0,0],
+  'G#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  A:[0,0,0,0,1,0,0,0,0,1,0,0,0],
+  'A#':[0,0,0,0,0,0,0,0,0,0,0,0,0],
+  B:[0,0,0,0,0,0,0,0,0,0,0,0,0]
+};
+function buildFretboard(host, tuning, title){ host.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent = `${title} • Tuning: ` + tuning.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const box=document.createElement('div'); box.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const grid=document.createElement('div'); grid.className='grid'; const frets=13; grid.style.gridTemplateColumns = `repeat(${frets+1}, minmax(0,1fr))`; box.appendChild(grid); // header row
+  grid.appendChild(document.createElement('div')); for(let f=0; f<frets; f++){ const d=document.createElement('div'); d.className='text-center text-[10px] text-slate-400'; d.textContent=String(f); grid.appendChild(d); }
+  const {pcset, rootPc} = computeSelected(); const strings=tuning.length; for(let s=0; s<strings; s++){ const stringIndex=strings-1-s; const openMidi=tuning[stringIndex]; const lab=document.createElement('div'); lab.className='text-right pr-2 text-[11px] text-slate-400'; lab.textContent=pcName(mod(openMidi,OCTAVE)); grid.appendChild(lab); for(let f=0; f<frets; f++){ const midi=openMidi+f; const pc=mod(midi,OCTAVE); const cell=document.createElement('div'); cell.className='relative h-10 border border-slate-700/70'; if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className = 'absolute inset-1 rounded-full flex items-center justify-center text-[10px] font-semibold '+ (rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.title = `${pcName(pc)} @ string ${stringIndex+1}, fret ${f}`; dot.textContent = (rootPc===pc? 'R': pcName(pc)); cell.appendChild(dot); } grid.appendChild(cell); } }
+  outer.appendChild(box); const note=document.createElement('div'); note.className='mt-2 text-center text-xs text-slate-400'; note.textContent='Colored dots = playable notes on that string/fret. Red = root.'; outer.appendChild(note); host.appendChild(outer); }
+
+function buildKotoBoard(){ kotoHost.innerHTML=''; const outer=document.createElement('div'); outer.className='w-full'; const titleEl=document.createElement('div'); titleEl.className='text-sm text-slate-300 mb-2'; titleEl.textContent='Koto • Tuning: '+KOTO_TUNING.map(m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1)).join(' '); outer.appendChild(titleEl); const board=document.createElement('div'); board.className='bg-slate-900 rounded-xl border border-slate-700 p-3'; const {pcset, rootPc} = computeSelected(); const note=pcName(rootPc); const sharp=ENHARMONIC_MAP[note] || note; const fing=KOTO_FINGERINGS[sharp] || Array(KOTO_TUNING.length).fill(0); KOTO_TUNING.forEach((m,i)=>{ const pc=mod(m,OCTAVE); const pressed=fing[i]; const row=document.createElement('div'); row.className='relative h-5 my-1 flex items-center'; const line=document.createElement('div'); line.className='w-full h-0.5'; line.style.backgroundColor = pressed? '#374151' : (pcset.has(pc)? (rootPc===pc? '#f43f5e':'#4ade80') : '#cbd5e1'); row.appendChild(line); const lab=document.createElement('div'); lab.className='absolute -left-2 -translate-x-full text-xs text-slate-400'; lab.textContent=pcName(pc)+(Math.floor(m/OCTAVE)-1); row.appendChild(lab); if(pcset.has(pc)){ const dot=document.createElement('div'); dot.className='absolute right-0 top-1/2 -translate-y-1/2 px-1 text-[10px] font-semibold rounded '+(rootPc===pc? 'bg-rose-500/80 text-white':'bg-emerald-400/80 text-black'); dot.textContent = rootPc===pc? 'R': pcName(pc); row.appendChild(dot); } board.appendChild(row); }); outer.appendChild(board); kotoHost.appendChild(outer); }
+
+// ========================= FLUTE CHART =========================
+const FLUTE_FINGERINGS = {
+  C:[1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1],
+  D:[0,1,1,1,1,1],
+  'D#':[1,0,0,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,0,1],
+  'G#':[0,0,0,0,0,0],
+  A:[0,1,0,0,0,0],
+  'A#':[1,0,0,0,0,0],
+  B:[0,1,1,0,0,0]
+};
+/*
+  Flute chart layout
+  - ViewBox: 0 0 160 60 (overall diagram size)
+  - Hole spacing: i*22 (horizontal positioning)
+  - Hole radius: r=10
+  Change these numbers to resize the chart or adjust hole placement for custom layouts.
+*/
+function buildFluteChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = FLUTE_FINGERINGS[sharp] || [0,0,0,0,0,0];
+  fluteHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = fluteOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 320 80' : '0 0 80 320');
+  svg.setAttribute('class','mx-auto');
+  
+  // Realistic flute body with sections and proper proportions
+  if(isHoriz){
+    // Main tube body (cylindrical appearance with gradient)
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','fluteGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#e2e8f0');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','50%');
+    stop2.setAttribute('stop-color','#f8fafc');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','100%');
+    stop3.setAttribute('stop-color','#cbd5e1');
+    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head joint with embouchure
+    const headJoint = document.createElementNS(svgNS,'rect');
+    headJoint.setAttribute('x', fluteLeftToRight ? '10' : '250');
+    headJoint.setAttribute('y','25');
+    headJoint.setAttribute('width','60');
+    headJoint.setAttribute('height','30');
+    headJoint.setAttribute('rx','15');
+    headJoint.setAttribute('fill','url(#fluteGrad)');
+    headJoint.setAttribute('stroke','#64748b');
+    headJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(headJoint);
+    
+    // Embouchure hole
+    const embHole = document.createElementNS(svgNS,'ellipse');
+    embHole.setAttribute('cx', fluteLeftToRight ? '40' : '280');
+    embHole.setAttribute('cy','40');
+    embHole.setAttribute('rx','8');
+    embHole.setAttribute('ry','4');
+    embHole.setAttribute('fill','#1e293b');
+    embHole.setAttribute('stroke','#475569');
+    embHole.setAttribute('stroke-width','1');
+    svg.appendChild(embHole);
+    
+    // Body joint
+    const bodyJoint = document.createElementNS(svgNS,'rect');
+    bodyJoint.setAttribute('x', fluteLeftToRight ? '75' : '145');
+    bodyJoint.setAttribute('y','27');
+    bodyJoint.setAttribute('width','100');
+    bodyJoint.setAttribute('height','26');
+    bodyJoint.setAttribute('rx','13');
+    bodyJoint.setAttribute('fill','url(#fluteGrad)');
+    bodyJoint.setAttribute('stroke','#64748b');
+    bodyJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(bodyJoint);
+    
+    // Foot joint
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x', fluteLeftToRight ? '180' : '80');
+    footJoint.setAttribute('y','28');
+    footJoint.setAttribute('width','70');
+    footJoint.setAttribute('height','24');
+    footJoint.setAttribute('rx','12');
+    footJoint.setAttribute('fill','url(#fluteGrad)');
+    footJoint.setAttribute('stroke','#64748b');
+    footJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(footJoint);
+    
+    // Realistic tone hole positions and keys
+    const holePositions = fluteLeftToRight ? 
+      [90, 105, 125, 145, 165, 185] : 
+      [230, 215, 195, 175, 155, 135];
+    
+    fing.forEach((closed,i)=>{
+      const holeX = holePositions[i];
+      
+      // Key mechanism (small rectangle above hole)
+      const key = document.createElementNS(svgNS,'rect');
+      key.setAttribute('x', String(holeX - 8));
+      key.setAttribute('y','20');
+      key.setAttribute('width','16');
+      key.setAttribute('height','8');
+      key.setAttribute('rx','2');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
+      key.setAttribute('stroke','#64748b');
+      key.setAttribute('stroke-width','1');
+      svg.appendChild(key);
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','40');
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
+      hole.setAttribute('stroke','#64748b');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Key spring/mechanism rod
+      const rod = document.createElementNS(svgNS,'line');
+      rod.setAttribute('x1', String(holeX));
+      rod.setAttribute('y1','28');
+      rod.setAttribute('x2', String(holeX));
+      rod.setAttribute('y2','33');
+      rod.setAttribute('stroke','#94a3b8');
+      rod.setAttribute('stroke-width','1');
+      svg.appendChild(rod);
+    });
+    
+  } else {
+    // Vertical orientation - similar but rotated layout
+    // Main gradient for vertical
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','fluteGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#e2e8f0');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','50%');
+    stop2.setAttribute('stop-color','#f8fafc');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','100%');
+    stop3.setAttribute('stop-color','#cbd5e1');
+    [stop1,stop2,stop3].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head joint vertical
+    const headJoint = document.createElementNS(svgNS,'rect');
+    headJoint.setAttribute('x','25');
+    headJoint.setAttribute('y', fluteLeftToRight ? '10' : '250');
+    headJoint.setAttribute('width','30');
+    headJoint.setAttribute('height','60');
+    headJoint.setAttribute('rx','15');
+    headJoint.setAttribute('fill','url(#fluteGradV)');
+    headJoint.setAttribute('stroke','#64748b');
+    headJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(headJoint);
+    
+    // Embouchure hole vertical
+    const embHole = document.createElementNS(svgNS,'ellipse');
+    embHole.setAttribute('cx','40');
+    embHole.setAttribute('cy', fluteLeftToRight ? '40' : '280');
+    embHole.setAttribute('rx','4');
+    embHole.setAttribute('ry','8');
+    embHole.setAttribute('fill','#1e293b');
+    embHole.setAttribute('stroke','#475569');
+    embHole.setAttribute('stroke-width','1');
+    svg.appendChild(embHole);
+    
+    // Body joint vertical
+    const bodyJoint = document.createElementNS(svgNS,'rect');
+    bodyJoint.setAttribute('x','27');
+    bodyJoint.setAttribute('y', fluteLeftToRight ? '75' : '145');
+    bodyJoint.setAttribute('width','26');
+    bodyJoint.setAttribute('height','100');
+    bodyJoint.setAttribute('rx','13');
+    bodyJoint.setAttribute('fill','url(#fluteGradV)');
+    bodyJoint.setAttribute('stroke','#64748b');
+    bodyJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(bodyJoint);
+    
+    // Foot joint vertical
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x','28');
+    footJoint.setAttribute('y', fluteLeftToRight ? '180' : '80');
+    footJoint.setAttribute('width','24');
+    footJoint.setAttribute('height','70');
+    footJoint.setAttribute('rx','12');
+    footJoint.setAttribute('fill','url(#fluteGradV)');
+    footJoint.setAttribute('stroke','#64748b');
+    footJoint.setAttribute('stroke-width','1.5');
+    svg.appendChild(footJoint);
+    
+    // Tone holes vertical
+    const holePositions = fluteLeftToRight ? 
+      [90, 105, 125, 145, 165, 185] : 
+      [230, 215, 195, 175, 155, 135];
+    
+    fing.forEach((closed,i)=>{
+      const holeY = holePositions[i];
+      
+      // Key mechanism
+      const key = document.createElementNS(svgNS,'rect');
+      key.setAttribute('x','52');
+      key.setAttribute('y', String(holeY - 8));
+      key.setAttribute('width','8');
+      key.setAttribute('height','16');
+      key.setAttribute('rx','2');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e2e8f0');
+      key.setAttribute('stroke','#64748b');
+      key.setAttribute('stroke-width','1');
+      svg.appendChild(key);
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','40');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#374151' : '#1e293b');
+      hole.setAttribute('stroke','#64748b');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Key mechanism rod
+      const rod = document.createElementNS(svgNS,'line');
+      rod.setAttribute('x1','47');
+      rod.setAttribute('y1', String(holeY));
+      rod.setAttribute('x2','52');
+      rod.setAttribute('y2', String(holeY));
+      rod.setAttribute('stroke','#94a3b8');
+      rod.setAttribute('stroke-width','1');
+      svg.appendChild(rod);
+    });
+  }
+  fluteHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='fluteFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  fluteHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='fluteOrient';
+  orient.textContent = fluteOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  fluteHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  fluteHost.appendChild(lbl);
+  document.getElementById('fluteFlip').onclick = () => {
+    fluteLeftToRight = !fluteLeftToRight;
+    buildFluteChart();
+  };
+  document.getElementById('fluteOrient').onclick = () => {
+    fluteOrientation = fluteOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildFluteChart();
+  };
+}
+
+// ========================= RECORDER CHART =========================
+const RECORDER_FINGERINGS = {
+  C:[1,1,1,1,1,1,1,1],
+  'C#':[1,1,1,1,1,1,1,0],
+  D:[1,1,1,1,1,1,0,0],
+  'D#':[1,1,1,1,1,0,0,1],
+  E:[1,1,1,1,0,0,0,0],
+  F:[1,1,1,0,0,0,0,0],
+  'F#':[1,1,0,0,0,0,0,0],
+  G:[1,0,0,0,0,0,0,0],
+  'G#':[0,1,1,0,0,0,0,0],
+  A:[0,1,0,0,0,0,0,0],
+  'A#':[0,1,1,1,0,0,0,0],
+  B:[0,1,1,0,0,0,0,0]
+};
+/*
+  Recorder chart layout
+  - ViewBox: 0 0 180 60 (overall diagram size)
+  - Hole spacing: i*20 (horizontal positioning)
+  - Hole radius: r=8
+  Adjust these values to change chart size, spacing, or hole size for custom recorders.
+*/
+function buildRecorderChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = RECORDER_FINGERINGS[sharp] || [0,0,0,0,0,0,0,0];
+  recorderHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = recorderOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 340 100' : '0 0 100 340');
+  svg.setAttribute('class','mx-auto');
+  
+  // Realistic recorder with proper woodwind details
+  if(isHoriz){
+    // Wood gradient for realistic wooden appearance
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','woodGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#d97706');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#b45309');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#92400e');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#78350f');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece/head section with beak
+    const headSection = document.createElementNS(svgNS,'rect');
+    headSection.setAttribute('x', recorderLeftToRight ? '10' : '270');
+    headSection.setAttribute('y','35');
+    headSection.setAttribute('width','60');
+    headSection.setAttribute('height','30');
+    headSection.setAttribute('rx','15');
+    headSection.setAttribute('fill','url(#woodGrad)');
+    headSection.setAttribute('stroke','#92400e');
+    headSection.setAttribute('stroke-width','2');
+    svg.appendChild(headSection);
+    
+    // Beak (windway)
+    const beak = document.createElementNS(svgNS,'polygon');
+    const beakPoints = recorderLeftToRight ? 
+      '10,45 25,40 25,60 10,55' : 
+      '330,45 315,40 315,60 330,55';
+    beak.setAttribute('points', beakPoints);
+    beak.setAttribute('fill','#78350f');
+    beak.setAttribute('stroke','#451a03');
+    beak.setAttribute('stroke-width','1.5');
+    svg.appendChild(beak);
+    
+    // Upper joint (joint with thumb hole)
+    const upperJoint = document.createElementNS(svgNS,'rect');
+    upperJoint.setAttribute('x', recorderLeftToRight ? '75' : '205');
+    upperJoint.setAttribute('y','37');
+    upperJoint.setAttribute('width','60');
+    upperJoint.setAttribute('height','26');
+    upperJoint.setAttribute('rx','13');
+    upperJoint.setAttribute('fill','url(#woodGrad)');
+    upperJoint.setAttribute('stroke','#92400e');
+    upperJoint.setAttribute('stroke-width','2');
+    svg.appendChild(upperJoint);
+    
+    // Lower joint
+    const lowerJoint = document.createElementNS(svgNS,'rect');
+    lowerJoint.setAttribute('x', recorderLeftToRight ? '140' : '140');
+    lowerJoint.setAttribute('y','38');
+    lowerJoint.setAttribute('width','60');
+    lowerJoint.setAttribute('height','24');
+    lowerJoint.setAttribute('rx','12');
+    lowerJoint.setAttribute('fill','url(#woodGrad)');
+    lowerJoint.setAttribute('stroke','#92400e');
+    lowerJoint.setAttribute('stroke-width','2');
+    svg.appendChild(lowerJoint);
+    
+    // Foot joint
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x', recorderLeftToRight ? '205' : '75');
+    footJoint.setAttribute('y','39');
+    footJoint.setAttribute('width','60');
+    footJoint.setAttribute('height','22');
+    footJoint.setAttribute('rx','11');
+    footJoint.setAttribute('fill','url(#woodGrad)');
+    footJoint.setAttribute('stroke','#92400e');
+    footJoint.setAttribute('stroke-width','2');
+    svg.appendChild(footJoint);
+    
+    // Joint rings for realism
+    const rings = recorderLeftToRight ? [70, 135, 200] : [270, 205, 140];
+    rings.forEach(x => {
+      const ring = document.createElementNS(svgNS,'line');
+      ring.setAttribute('x1', String(x));
+      ring.setAttribute('y1','35');
+      ring.setAttribute('x2', String(x));
+      ring.setAttribute('y2','65');
+      ring.setAttribute('stroke','#451a03');
+      ring.setAttribute('stroke-width','2');
+      svg.appendChild(ring);
+    });
+    
+    // Tone holes with realistic spacing
+    const holePositions = recorderLeftToRight ? 
+      [85, 100, 115, 130, 150, 170, 190, 210] : 
+      [255, 240, 225, 210, 190, 170, 150, 130];
+    
+    fing.forEach((closed,i)=>{
+      const holeX = holePositions[i];
+      
+      // Tone hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','50');
+      hole.setAttribute('r','6');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#78350f');
+      hole.setAttribute('stroke-width','1.5');
+      svg.appendChild(hole);
+      
+      // Finger coverage indication
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx', String(holeX));
+        finger.setAttribute('cy','50');
+        finger.setAttribute('r','9');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.7)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole (back side, shown as small indicator)
+    const thumbHole = document.createElementNS(svgNS,'ellipse');
+    thumbHole.setAttribute('cx', recorderLeftToRight ? '95' : '245');
+    thumbHole.setAttribute('cy','32');
+    thumbHole.setAttribute('rx','3');
+    thumbHole.setAttribute('ry','2');
+    thumbHole.setAttribute('fill','#1c1917');
+    thumbHole.setAttribute('stroke','#78350f');
+    thumbHole.setAttribute('stroke-width','1');
+    svg.appendChild(thumbHole);
+    
+  } else {
+    // Vertical orientation - similar detailed structure
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','woodGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#d97706');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#b45309');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#92400e');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#78350f');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Head section vertical
+    const headSection = document.createElementNS(svgNS,'rect');
+    headSection.setAttribute('x','35');
+    headSection.setAttribute('y', recorderLeftToRight ? '10' : '270');
+    headSection.setAttribute('width','30');
+    headSection.setAttribute('height','60');
+    headSection.setAttribute('rx','15');
+    headSection.setAttribute('fill','url(#woodGradV)');
+    headSection.setAttribute('stroke','#92400e');
+    headSection.setAttribute('stroke-width','2');
+    svg.appendChild(headSection);
+    
+    // Beak vertical
+    const beak = document.createElementNS(svgNS,'polygon');
+    const beakPoints = recorderLeftToRight ? 
+      '45,10 40,25 60,25 55,10' : 
+      '45,330 40,315 60,315 55,330';
+    beak.setAttribute('points', beakPoints);
+    beak.setAttribute('fill','#78350f');
+    beak.setAttribute('stroke','#451a03');
+    beak.setAttribute('stroke-width','1.5');
+    svg.appendChild(beak);
+    
+    // Joints vertical
+    const upperJoint = document.createElementNS(svgNS,'rect');
+    upperJoint.setAttribute('x','37');
+    upperJoint.setAttribute('y', recorderLeftToRight ? '75' : '205');
+    upperJoint.setAttribute('width','26');
+    upperJoint.setAttribute('height','60');
+    upperJoint.setAttribute('rx','13');
+    upperJoint.setAttribute('fill','url(#woodGradV)');
+    upperJoint.setAttribute('stroke','#92400e');
+    upperJoint.setAttribute('stroke-width','2');
+    svg.appendChild(upperJoint);
+    
+    const lowerJoint = document.createElementNS(svgNS,'rect');
+    lowerJoint.setAttribute('x','38');
+    lowerJoint.setAttribute('y','140');
+    lowerJoint.setAttribute('width','24');
+    lowerJoint.setAttribute('height','60');
+    lowerJoint.setAttribute('rx','12');
+    lowerJoint.setAttribute('fill','url(#woodGradV)');
+    lowerJoint.setAttribute('stroke','#92400e');
+    lowerJoint.setAttribute('stroke-width','2');
+    svg.appendChild(lowerJoint);
+    
+    const footJoint = document.createElementNS(svgNS,'rect');
+    footJoint.setAttribute('x','39');
+    footJoint.setAttribute('y', recorderLeftToRight ? '205' : '75');
+    footJoint.setAttribute('width','22');
+    footJoint.setAttribute('height','60');
+    footJoint.setAttribute('rx','11');
+    footJoint.setAttribute('fill','url(#woodGradV)');
+    footJoint.setAttribute('stroke','#92400e');
+    footJoint.setAttribute('stroke-width','2');
+    svg.appendChild(footJoint);
+    
+    // Joint rings vertical
+    const rings = recorderLeftToRight ? [70, 135, 200] : [270, 205, 140];
+    rings.forEach(y => {
+      const ring = document.createElementNS(svgNS,'line');
+      ring.setAttribute('x1','35');
+      ring.setAttribute('y1', String(y));
+      ring.setAttribute('x2','65');
+      ring.setAttribute('y2', String(y));
+      ring.setAttribute('stroke','#451a03');
+      ring.setAttribute('stroke-width','2');
+      svg.appendChild(ring);
+    });
+    
+    // Tone holes vertical
+    const holePositions = recorderLeftToRight ? 
+      [85, 100, 115, 130, 150, 170, 190, 210] : 
+      [255, 240, 225, 210, 190, 170, 150, 130];
+    
+    fing.forEach((closed,i)=>{
+      const holeY = holePositions[i];
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','50');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','6');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#78350f');
+      hole.setAttribute('stroke-width','1.5');
+      svg.appendChild(hole);
+      
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx','50');
+        finger.setAttribute('cy', String(holeY));
+        finger.setAttribute('r','9');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.7)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole vertical
+    const thumbHole = document.createElementNS(svgNS,'ellipse');
+    thumbHole.setAttribute('cx','68');
+    thumbHole.setAttribute('cy', recorderLeftToRight ? '95' : '245');
+    thumbHole.setAttribute('rx','2');
+    thumbHole.setAttribute('ry','3');
+    thumbHole.setAttribute('fill','#1c1917');
+    thumbHole.setAttribute('stroke','#78350f');
+    thumbHole.setAttribute('stroke-width','1');
+    svg.appendChild(thumbHole);
+  }
+  recorderHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='recorderFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  recorderHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='recorderOrient';
+  orient.textContent = recorderOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  recorderHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  recorderHost.appendChild(lbl);
+  document.getElementById('recorderFlip').onclick = () => {
+    recorderLeftToRight = !recorderLeftToRight;
+    buildRecorderChart();
+  };
+  document.getElementById('recorderOrient').onclick = () => {
+    recorderOrientation = recorderOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildRecorderChart();
+  };
+}
+
+// ========================= TRUMPET CHART =========================
+const TRUMPET_FINGERINGS = {
+  C:[0,0,0],
+  'C#':[1,1,1],
+  D:[1,0,1],
+  'D#':[0,1,1],
+  E:[1,1,0],
+  F:[1,0,0],
+  'F#':[0,1,0],
+  G:[0,0,0],
+  'G#':[1,0,1],
+  A:[1,1,0],
+  'A#':[1,0,0],
+  B:[0,1,0]
+};
+/*
+  Trumpet chart layout
+  - ViewBox: 0 0 120 60 (overall diagram size)
+  - Valve spacing: i*40 (positioning)
+  - Valve radius: r=12
+  Adjust these numbers to resize the chart or reposition valves.
+*/
+function buildTrumpetChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = TRUMPET_FINGERINGS[sharp] || [0,0,0];
+  trumpetHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = trumpetOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 280 120' : '0 0 120 280');
+  svg.setAttribute('class','mx-auto');
+  
+  // Realistic trumpet with proper brass instrument details
+  if(isHoriz){
+    // Brass gradient for realistic metallic look
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','brassGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx', trumpetLeftToRight ? '15' : '265');
+    mouthpiece.setAttribute('cy','60');
+    mouthpiece.setAttribute('rx','12');
+    mouthpiece.setAttribute('ry','8');
+    mouthpiece.setAttribute('fill','url(#brassGrad)');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Lead pipe
+    const leadPipe = document.createElementNS(svgNS,'rect');
+    leadPipe.setAttribute('x', trumpetLeftToRight ? '25' : '215');
+    leadPipe.setAttribute('y','54');
+    leadPipe.setAttribute('width','40');
+    leadPipe.setAttribute('height','12');
+    leadPipe.setAttribute('rx','6');
+    leadPipe.setAttribute('fill','url(#brassGrad)');
+    leadPipe.setAttribute('stroke','#92400e');
+    leadPipe.setAttribute('stroke-width','1.5');
+    svg.appendChild(leadPipe);
+    
+    // Main tubing with curves (simplified representation of the wrap-around)
+    const mainTube1 = document.createElementNS(svgNS,'rect');
+    mainTube1.setAttribute('x', trumpetLeftToRight ? '70' : '150');
+    mainTube1.setAttribute('y','50');
+    mainTube1.setAttribute('width','60');
+    mainTube1.setAttribute('height','10');
+    mainTube1.setAttribute('rx','5');
+    mainTube1.setAttribute('fill','url(#brassGrad)');
+    mainTube1.setAttribute('stroke','#92400e');
+    mainTube1.setAttribute('stroke-width','1.5');
+    svg.appendChild(mainTube1);
+    
+    // Valve section
+    const valveSection = document.createElementNS(svgNS,'rect');
+    valveSection.setAttribute('x', trumpetLeftToRight ? '130' : '90');
+    valveSection.setAttribute('y','45');
+    valveSection.setAttribute('width','60');
+    valveSection.setAttribute('height','20');
+    valveSection.setAttribute('rx','4');
+    valveSection.setAttribute('fill','url(#brassGrad)');
+    valveSection.setAttribute('stroke','#92400e');
+    valveSection.setAttribute('stroke-width','2');
+    svg.appendChild(valveSection);
+    
+    // Second tubing section
+    const mainTube2 = document.createElementNS(svgNS,'rect');
+    mainTube2.setAttribute('x', trumpetLeftToRight ? '190' : '50');
+    mainTube2.setAttribute('y','52');
+    mainTube2.setAttribute('width','40');
+    mainTube2.setAttribute('height','8');
+    mainTube2.setAttribute('rx','4');
+    mainTube2.setAttribute('fill','url(#brassGrad)');
+    mainTube2.setAttribute('stroke','#92400e');
+    mainTube2.setAttribute('stroke-width','1.5');
+    svg.appendChild(mainTube2);
+    
+    // Bell section - realistic trumpet bell shape
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = trumpetLeftToRight ? 
+      'M 230 56 Q 250 45, 270 35 Q 275 50, 270 60 Q 275 70, 270 85 Q 250 75, 230 64 Z' :
+      'M 50 56 Q 30 45, 10 35 Q 5 50, 10 60 Q 5 70, 10 85 Q 30 75, 50 64 Z';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#brassGrad)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Valve pistons in correct positions
+    const valvePositions = trumpetLeftToRight ? [140, 155, 170] : [170, 155, 140];
+    fing.forEach((down,i)=>{
+      const valveX = valvePositions[i];
+      
+      // Valve casing
+      const casing = document.createElementNS(svgNS,'rect');
+      casing.setAttribute('x', String(valveX - 6));
+      casing.setAttribute('y','30');
+      casing.setAttribute('width','12');
+      casing.setAttribute('height','25');
+      casing.setAttribute('rx','3');
+      casing.setAttribute('fill','#e5e7eb');
+      casing.setAttribute('stroke','#6b7280');
+      casing.setAttribute('stroke-width','1');
+      svg.appendChild(casing);
+      
+      // Valve piston
+      const piston = document.createElementNS(svgNS,'rect');
+      piston.setAttribute('x', String(valveX - 4));
+      piston.setAttribute('y', down ? '32' : '28');
+      piston.setAttribute('width','8');
+      piston.setAttribute('height','15');
+      piston.setAttribute('rx','2');
+      piston.setAttribute('fill', down ? '#fbbf24' : '#d1d5db');
+      piston.setAttribute('stroke','#374151');
+      piston.setAttribute('stroke-width','1');
+      svg.appendChild(piston);
+      
+      // Valve button/cap
+      const button = document.createElementNS(svgNS,'circle');
+      button.setAttribute('cx', String(valveX));
+      button.setAttribute('cy','23');
+      button.setAttribute('r','5');
+      button.setAttribute('fill', down ? '#f59e0b' : '#9ca3af');
+      button.setAttribute('stroke','#374151');
+      button.setAttribute('stroke-width','1.5');
+      svg.appendChild(button);
+      
+      // Valve springs (visual representation)
+      const spring = document.createElementNS(svgNS,'line');
+      spring.setAttribute('x1', String(valveX));
+      spring.setAttribute('y1','55');
+      spring.setAttribute('x2', String(valveX));
+      spring.setAttribute('y2','65');
+      spring.setAttribute('stroke','#6b7280');
+      spring.setAttribute('stroke-width','2');
+      spring.setAttribute('stroke-dasharray','2,1');
+      svg.appendChild(spring);
+    });
+    
+    // Decorative details - water keys and bracing
+    const waterKey = document.createElementNS(svgNS,'circle');
+    waterKey.setAttribute('cx', trumpetLeftToRight ? '110' : '170');
+    waterKey.setAttribute('cy','65');
+    waterKey.setAttribute('r','2');
+    waterKey.setAttribute('fill','#94a3b8');
+    waterKey.setAttribute('stroke','#64748b');
+    waterKey.setAttribute('stroke-width','1');
+    svg.appendChild(waterKey);
+    
+  } else {
+    // Vertical orientation - similar detailed structure but rotated
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','brassGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx','60');
+    mouthpiece.setAttribute('cy', trumpetLeftToRight ? '15' : '265');
+    mouthpiece.setAttribute('rx','8');
+    mouthpiece.setAttribute('ry','12');
+    mouthpiece.setAttribute('fill','url(#brassGradV)');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Lead pipe vertical
+    const leadPipe = document.createElementNS(svgNS,'rect');
+    leadPipe.setAttribute('x','54');
+    leadPipe.setAttribute('y', trumpetLeftToRight ? '25' : '215');
+    leadPipe.setAttribute('width','12');
+    leadPipe.setAttribute('height','40');
+    leadPipe.setAttribute('rx','6');
+    leadPipe.setAttribute('fill','url(#brassGradV)');
+    leadPipe.setAttribute('stroke','#92400e');
+    leadPipe.setAttribute('stroke-width','1.5');
+    svg.appendChild(leadPipe);
+    
+    // Main valve section vertical
+    const valveSection = document.createElementNS(svgNS,'rect');
+    valveSection.setAttribute('x','45');
+    valveSection.setAttribute('y', trumpetLeftToRight ? '130' : '90');
+    valveSection.setAttribute('width','20');
+    valveSection.setAttribute('height','60');
+    valveSection.setAttribute('rx','4');
+    valveSection.setAttribute('fill','url(#brassGradV)');
+    valveSection.setAttribute('stroke','#92400e');
+    valveSection.setAttribute('stroke-width','2');
+    svg.appendChild(valveSection);
+    
+    // Bell vertical
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = trumpetLeftToRight ? 
+      'M 56 230 Q 45 250, 35 270 Q 50 275, 60 270 Q 70 275, 85 270 Q 75 250, 64 230 Z' :
+      'M 56 50 Q 45 30, 35 10 Q 50 5, 60 10 Q 70 5, 85 10 Q 75 30, 64 50 Z';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#brassGradV)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Valve pistons vertical
+    const valvePositions = trumpetLeftToRight ? [140, 155, 170] : [170, 155, 140];
+    fing.forEach((down,i)=>{
+      const valveY = valvePositions[i];
+      
+      // Valve casing vertical
+      const casing = document.createElementNS(svgNS,'rect');
+      casing.setAttribute('x','30');
+      casing.setAttribute('y', String(valveY - 6));
+      casing.setAttribute('width','25');
+      casing.setAttribute('height','12');
+      casing.setAttribute('rx','3');
+      casing.setAttribute('fill','#e5e7eb');
+      casing.setAttribute('stroke','#6b7280');
+      casing.setAttribute('stroke-width','1');
+      svg.appendChild(casing);
+      
+      // Valve piston vertical
+      const piston = document.createElementNS(svgNS,'rect');
+      piston.setAttribute('x', down ? '32' : '28');
+      piston.setAttribute('y', String(valveY - 4));
+      piston.setAttribute('width','15');
+      piston.setAttribute('height','8');
+      piston.setAttribute('rx','2');
+      piston.setAttribute('fill', down ? '#fbbf24' : '#d1d5db');
+      piston.setAttribute('stroke','#374151');
+      piston.setAttribute('stroke-width','1');
+      svg.appendChild(piston);
+      
+      // Valve button vertical
+      const button = document.createElementNS(svgNS,'circle');
+      button.setAttribute('cx','23');
+      button.setAttribute('cy', String(valveY));
+      button.setAttribute('r','5');
+      button.setAttribute('fill', down ? '#f59e0b' : '#9ca3af');
+      button.setAttribute('stroke','#374151');
+      button.setAttribute('stroke-width','1.5');
+      svg.appendChild(button);
+    });
+  }
+  trumpetHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='trumpetFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  trumpetHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='trumpetOrient';
+  orient.textContent = trumpetOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  trumpetHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Valve combo for ${sharp}`;
+  trumpetHost.appendChild(lbl);
+  document.getElementById('trumpetFlip').onclick = () => {
+    trumpetLeftToRight = !trumpetLeftToRight;
+    buildTrumpetChart();
+  };
+  document.getElementById('trumpetOrient').onclick = () => {
+    trumpetOrientation = trumpetOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildTrumpetChart();
+  };
+}
+
+// ========================= SAXOPHONE CHART =========================
+const SAX_FINGERINGS = {
+  C:[1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1],
+  D:[0,1,1,1,1,1],
+  'D#':[1,0,0,1,1,1],
+  E:[0,0,1,1,1,1],
+  F:[0,0,0,1,1,1],
+  'F#':[0,0,0,0,1,1],
+  G:[0,0,0,0,0,1],
+  'G#':[0,0,0,0,0,0],
+  A:[0,1,0,0,0,0],
+  'A#':[1,0,0,0,0,0],
+  B:[0,1,1,0,0,0]
+};
+/*
+  Saxophone chart layout
+  - ViewBox: 0 0 160 60 (overall diagram size)
+  - Key spacing: i*22 (positioning)
+  - Key radius: r=10
+  Adjust these values to resize the chart or reposition keys.
+*/
+function buildSaxophoneChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = SAX_FINGERINGS[sharp] || [0,0,0,0,0,0];
+  saxophoneHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = saxophoneOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 320 140' : '0 0 140 320');
+  svg.setAttribute('class','mx-auto');
+  
+  // Realistic saxophone with curved body and detailed key work
+  if(isHoriz){
+    // Brass gradient for saxophone
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','saxGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#f59e0b');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#d97706');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#b45309');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Mouthpiece and neck
+    const neckPath = document.createElementNS(svgNS,'path');
+    const neckD = saxophoneLeftToRight ? 
+      'M 10 70 Q 20 50, 40 55 Q 60 58, 80 65' :
+      'M 310 70 Q 300 50, 280 55 Q 260 58, 240 65';
+    neckPath.setAttribute('d', neckD);
+    neckPath.setAttribute('stroke','url(#saxGrad)');
+    neckPath.setAttribute('stroke-width','8');
+    neckPath.setAttribute('fill','none');
+    neckPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(neckPath);
+    
+    // Mouthpiece
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx', saxophoneLeftToRight ? '15' : '305');
+    mouthpiece.setAttribute('cy','70');
+    mouthpiece.setAttribute('rx','10');
+    mouthpiece.setAttribute('ry','6');
+    mouthpiece.setAttribute('fill','#1c1917');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','2');
+    svg.appendChild(mouthpiece);
+    
+    // Upper body section (straight)
+    const upperBody = document.createElementNS(svgNS,'rect');
+    upperBody.setAttribute('x', saxophoneLeftToRight ? '80' : '180');
+    upperBody.setAttribute('y','60');
+    upperBody.setAttribute('width','60');
+    upperBody.setAttribute('height','20');
+    upperBody.setAttribute('rx','10');
+    upperBody.setAttribute('fill','url(#saxGrad)');
+    upperBody.setAttribute('stroke','#92400e');
+    upperBody.setAttribute('stroke-width','2');
+    svg.appendChild(upperBody);
+    
+    // Curved body section (characteristic sax curve)
+    const bodyPath = document.createElementNS(svgNS,'path');
+    const bodyD = saxophoneLeftToRight ? 
+      'M 140 70 Q 160 75, 180 85 Q 200 95, 210 115' :
+      'M 180 70 Q 160 75, 140 85 Q 120 95, 110 115';
+    bodyPath.setAttribute('d', bodyD);
+    bodyPath.setAttribute('stroke','url(#saxGrad)');
+    bodyPath.setAttribute('stroke-width','16');
+    bodyPath.setAttribute('fill','none');
+    bodyPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(bodyPath);
+    
+    // Bell section (flared)
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = saxophoneLeftToRight ? 
+      'M 210 115 Q 220 125, 240 130 Q 260 132, 280 125 Q 290 120, 285 105' :
+      'M 110 115 Q 100 125, 80 130 Q 60 132, 40 125 Q 30 120, 35 105';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#saxGrad)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Key guards and tone holes
+    const keyPositions = saxophoneLeftToRight ? 
+      [90, 105, 120, 135, 150, 165] : 
+      [230, 215, 200, 185, 170, 155];
+    
+    fing.forEach((closed,i)=>{
+      const keyX = keyPositions[i];
+      
+      // Key guard (protective ring around key)
+      const guard = document.createElementNS(svgNS,'circle');
+      guard.setAttribute('cx', String(keyX));
+      guard.setAttribute('cy','70');
+      guard.setAttribute('r','12');
+      guard.setAttribute('fill','none');
+      guard.setAttribute('stroke','#78350f');
+      guard.setAttribute('stroke-width','1.5');
+      svg.appendChild(guard);
+      
+      // Key pad
+      const key = document.createElementNS(svgNS,'circle');
+      key.setAttribute('cx', String(keyX));
+      key.setAttribute('cy','70');
+      key.setAttribute('r','8');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e5e7eb');
+      key.setAttribute('stroke','#374151');
+      key.setAttribute('stroke-width','1.5');
+      svg.appendChild(key);
+      
+      // Tone hole underneath
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(keyX));
+      hole.setAttribute('cy','70');
+      hole.setAttribute('r','4');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','none');
+      svg.appendChild(hole);
+      
+      // Key mechanism (simplified)
+      const mechanism = document.createElementNS(svgNS,'rect');
+      mechanism.setAttribute('x', String(keyX - 3));
+      mechanism.setAttribute('y','55');
+      mechanism.setAttribute('width','6');
+      mechanism.setAttribute('height','8');
+      mechanism.setAttribute('rx','2');
+      mechanism.setAttribute('fill','#94a3b8');
+      mechanism.setAttribute('stroke','#64748b');
+      mechanism.setAttribute('stroke-width','1');
+      svg.appendChild(mechanism);
+    });
+    
+    // Octave key (small auxiliary key)
+    const octaveKey = document.createElementNS(svgNS,'circle');
+    octaveKey.setAttribute('cx', saxophoneLeftToRight ? '95' : '225');
+    octaveKey.setAttribute('cy','50');
+    octaveKey.setAttribute('r','4');
+    octaveKey.setAttribute('fill','#94a3b8');
+    octaveKey.setAttribute('stroke','#64748b');
+    octaveKey.setAttribute('stroke-width','1');
+    svg.appendChild(octaveKey);
+    
+  } else {
+    // Vertical orientation - similar structure but rotated
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','saxGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#f59e0b');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','30%');
+    stop2.setAttribute('stop-color','#d97706');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','70%');
+    stop3.setAttribute('stop-color','#b45309');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#92400e');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Neck vertical
+    const neckPath = document.createElementNS(svgNS,'path');
+    const neckD = saxophoneLeftToRight ? 
+      'M 70 10 Q 50 20, 55 40 Q 58 60, 65 80' :
+      'M 70 310 Q 50 300, 55 280 Q 58 260, 65 240';
+    neckPath.setAttribute('d', neckD);
+    neckPath.setAttribute('stroke','url(#saxGradV)');
+    neckPath.setAttribute('stroke-width','8');
+    neckPath.setAttribute('fill','none');
+    neckPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(neckPath);
+    
+    // Mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'ellipse');
+    mouthpiece.setAttribute('cx','70');
+    mouthpiece.setAttribute('cy', saxophoneLeftToRight ? '15' : '305');
+    mouthpiece.setAttribute('rx','6');
+    mouthpiece.setAttribute('ry','10');
+    mouthpiece.setAttribute('fill','#1c1917');
+    mouthpiece.setAttribute('stroke','#92400e');
+    mouthpiece.setAttribute('stroke-width','2');
+    svg.appendChild(mouthpiece);
+    
+    // Body sections vertical
+    const upperBody = document.createElementNS(svgNS,'rect');
+    upperBody.setAttribute('x','60');
+    upperBody.setAttribute('y', saxophoneLeftToRight ? '80' : '180');
+    upperBody.setAttribute('width','20');
+    upperBody.setAttribute('height','60');
+    upperBody.setAttribute('rx','10');
+    upperBody.setAttribute('fill','url(#saxGradV)');
+    upperBody.setAttribute('stroke','#92400e');
+    upperBody.setAttribute('stroke-width','2');
+    svg.appendChild(upperBody);
+    
+    // Curved body vertical
+    const bodyPath = document.createElementNS(svgNS,'path');
+    const bodyD = saxophoneLeftToRight ? 
+      'M 70 140 Q 75 160, 85 180 Q 95 200, 115 210' :
+      'M 70 180 Q 75 160, 85 140 Q 95 120, 115 110';
+    bodyPath.setAttribute('d', bodyD);
+    bodyPath.setAttribute('stroke','url(#saxGradV)');
+    bodyPath.setAttribute('stroke-width','16');
+    bodyPath.setAttribute('fill','none');
+    bodyPath.setAttribute('stroke-linecap','round');
+    svg.appendChild(bodyPath);
+    
+    // Bell vertical
+    const bellPath = document.createElementNS(svgNS,'path');
+    const bellD = saxophoneLeftToRight ? 
+      'M 115 210 Q 125 220, 130 240 Q 132 260, 125 280 Q 120 290, 105 285' :
+      'M 115 110 Q 125 100, 130 80 Q 132 60, 125 40 Q 120 30, 105 35';
+    bellPath.setAttribute('d', bellD);
+    bellPath.setAttribute('fill','url(#saxGradV)');
+    bellPath.setAttribute('stroke','#92400e');
+    bellPath.setAttribute('stroke-width','2');
+    svg.appendChild(bellPath);
+    
+    // Keys vertical
+    const keyPositions = saxophoneLeftToRight ? 
+      [90, 105, 120, 135, 150, 165] : 
+      [230, 215, 200, 185, 170, 155];
+    
+    fing.forEach((closed,i)=>{
+      const keyY = keyPositions[i];
+      
+      const guard = document.createElementNS(svgNS,'circle');
+      guard.setAttribute('cx','70');
+      guard.setAttribute('cy', String(keyY));
+      guard.setAttribute('r','12');
+      guard.setAttribute('fill','none');
+      guard.setAttribute('stroke','#78350f');
+      guard.setAttribute('stroke-width','1.5');
+      svg.appendChild(guard);
+      
+      const key = document.createElementNS(svgNS,'circle');
+      key.setAttribute('cx','70');
+      key.setAttribute('cy', String(keyY));
+      key.setAttribute('r','8');
+      key.setAttribute('fill', closed ? '#fbbf24' : '#e5e7eb');
+      key.setAttribute('stroke','#374151');
+      key.setAttribute('stroke-width','1.5');
+      svg.appendChild(key);
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','70');
+      hole.setAttribute('cy', String(keyY));
+      hole.setAttribute('r','4');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','none');
+      svg.appendChild(hole);
+      
+      const mechanism = document.createElementNS(svgNS,'rect');
+      mechanism.setAttribute('x','55');
+      mechanism.setAttribute('y', String(keyY - 3));
+      mechanism.setAttribute('width','8');
+      mechanism.setAttribute('height','6');
+      mechanism.setAttribute('rx','2');
+      mechanism.setAttribute('fill','#94a3b8');
+      mechanism.setAttribute('stroke','#64748b');
+      mechanism.setAttribute('stroke-width','1');
+      svg.appendChild(mechanism);
+    });
+    
+    // Octave key vertical
+    const octaveKey = document.createElementNS(svgNS,'circle');
+    octaveKey.setAttribute('cx','50');
+    octaveKey.setAttribute('cy', saxophoneLeftToRight ? '95' : '225');
+    octaveKey.setAttribute('r','4');
+    octaveKey.setAttribute('fill','#94a3b8');
+    octaveKey.setAttribute('stroke','#64748b');
+    octaveKey.setAttribute('stroke-width','1');
+    svg.appendChild(octaveKey);
+  }
+  saxophoneHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='saxophoneFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  saxophoneHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='saxophoneOrient';
+  orient.textContent = saxophoneOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  saxophoneHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  saxophoneHost.appendChild(lbl);
+  document.getElementById('saxophoneFlip').onclick = () => {
+    saxophoneLeftToRight = !saxophoneLeftToRight;
+    buildSaxophoneChart();
+  };
+  document.getElementById('saxophoneOrient').onclick = () => {
+    saxophoneOrientation = saxophoneOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildSaxophoneChart();
+  };
+}
+
+// ========================= NEY CHART =========================
+const NEY_FINGERINGS = {
+  C:[1,1,1,1,1,1,1],
+  'C#':[0,1,1,1,1,1,1],
+  D:[0,1,1,1,1,1,0],
+  'D#':[1,0,0,1,1,1,1],
+  E:[0,0,1,1,1,0,0],
+  F:[0,0,0,1,1,0,0],
+  'F#':[0,0,0,0,1,0,0],
+  G:[0,0,0,0,0,0,0],
+  'G#':[1,0,0,0,0,0,0],
+  A:[1,1,0,0,0,0,0],
+  'A#':[1,1,1,0,0,0,0],
+  B:[1,1,1,1,0,0,0]
+};
+/*
+  Ney chart layout
+  - ViewBox: 0 0 60 160 (overall diagram size)
+  - Hole spacing: 20 + i*22 (vertical positioning; first hole x=20, others x=30)
+  - Hole radius: r=8
+  Tweak these parameters to alter chart size, hole spacing, or radius for custom ney designs.
+*/
+function buildNeyChart(){
+  const {rootPc} = computeSelected();
+  const note = pcName(rootPc);
+  const sharp = ENHARMONIC_MAP[note] || note;
+  const fing = NEY_FINGERINGS[sharp] || [0,0,0,0,0,0,0];
+  neyHost.innerHTML='';
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  const isHoriz = neyOrientation === 'horizontal';
+  svg.setAttribute('viewBox', isHoriz ? '0 0 280 80' : '0 0 80 280');
+  svg.setAttribute('class','mx-auto');
+  
+  // Realistic ney - traditional Middle Eastern flute made from reed/bamboo
+  if(isHoriz){
+    // Reed/bamboo gradient for natural appearance
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','reedGrad');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','0%');
+    gradDef.setAttribute('y2','100%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#b45309');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Main reed body - single piece, cylindrical
+    const body = document.createElementNS(svgNS,'rect');
+    body.setAttribute('x', neyLeftToRight ? '20' : '60');
+    body.setAttribute('y','30');
+    body.setAttribute('width','200');
+    body.setAttribute('height','20');
+    body.setAttribute('rx','10');
+    body.setAttribute('fill','url(#reedGrad)');
+    body.setAttribute('stroke','#92400e');
+    body.setAttribute('stroke-width','1.5');
+    svg.appendChild(body);
+    
+    // Oblique mouthpiece cut (characteristic of ney)
+    const mouthpiece = document.createElementNS(svgNS,'polygon');
+    const mouthPoints = neyLeftToRight ? 
+      '20,35 30,25 30,55 20,50' :
+      '260,35 250,25 250,55 260,50';
+    mouthpiece.setAttribute('points', mouthPoints);
+    mouthpiece.setAttribute('fill','#78350f');
+    mouthpiece.setAttribute('stroke','#451a03');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Reed nodes/segments (natural bamboo/reed appearance)
+    const nodePositions = neyLeftToRight ? [60, 110, 160, 210] : [220, 170, 120, 70];
+    nodePositions.forEach(x => {
+      const node = document.createElementNS(svgNS,'line');
+      node.setAttribute('x1', String(x));
+      node.setAttribute('y1','28');
+      node.setAttribute('x2', String(x));
+      node.setAttribute('y2','52');
+      node.setAttribute('stroke','#92400e');
+      node.setAttribute('stroke-width','2');
+      svg.appendChild(node);
+    });
+    
+    // Finger holes with authentic ney positioning
+    // Traditional ney has 6 front holes + 1 thumb hole
+    const frontHolePositions = neyLeftToRight ? 
+      [70, 90, 110, 130, 150, 170] : 
+      [210, 190, 170, 150, 130, 110];
+    
+    fing.slice(0, 6).forEach((closed,i)=>{
+      const holeX = frontHolePositions[i];
+      
+      // Finger hole
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx', String(holeX));
+      hole.setAttribute('cy','40');
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#92400e');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      // Finger coverage indication (traditional ney uses direct finger contact)
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx', String(holeX));
+        finger.setAttribute('cy','40');
+        finger.setAttribute('r','8');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole (back of instrument)
+    if(fing[6] !== undefined) {
+      const thumbHole = document.createElementNS(svgNS,'ellipse');
+      thumbHole.setAttribute('cx', neyLeftToRight ? '105' : '175');
+      thumbHole.setAttribute('cy','25');
+      thumbHole.setAttribute('rx','3');
+      thumbHole.setAttribute('ry','2');
+      thumbHole.setAttribute('fill', fing[6] ? '#451a03' : '#1c1917');
+      thumbHole.setAttribute('stroke','#92400e');
+      thumbHole.setAttribute('stroke-width','1');
+      svg.appendChild(thumbHole);
+      
+      if(fing[6]) {
+        const thumbFinger = document.createElementNS(svgNS,'ellipse');
+        thumbFinger.setAttribute('cx', neyLeftToRight ? '105' : '175');
+        thumbFinger.setAttribute('cy','25');
+        thumbFinger.setAttribute('rx','5');
+        thumbFinger.setAttribute('ry','3');
+        thumbFinger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        thumbFinger.setAttribute('stroke','#f59e0b');
+        thumbFinger.setAttribute('stroke-width','1.5');
+        svg.appendChild(thumbFinger);
+      }
+    }
+    
+    // Traditional decorative details (optional binding)
+    const binding = document.createElementNS(svgNS,'rect');
+    binding.setAttribute('x', neyLeftToRight ? '190' : '90');
+    binding.setAttribute('y','32');
+    binding.setAttribute('width','6');
+    binding.setAttribute('height','16');
+    binding.setAttribute('fill','#78350f');
+    binding.setAttribute('stroke','#451a03');
+    binding.setAttribute('stroke-width','0.5');
+    svg.appendChild(binding);
+    
+  } else {
+    // Vertical orientation - traditional playing position
+    const grad = document.createElementNS(svgNS,'defs');
+    const gradDef = document.createElementNS(svgNS,'linearGradient');
+    gradDef.setAttribute('id','reedGradV');
+    gradDef.setAttribute('x1','0%');
+    gradDef.setAttribute('y1','0%');
+    gradDef.setAttribute('x2','100%');
+    gradDef.setAttribute('y2','0%');
+    const stop1 = document.createElementNS(svgNS,'stop');
+    stop1.setAttribute('offset','0%');
+    stop1.setAttribute('stop-color','#fbbf24');
+    const stop2 = document.createElementNS(svgNS,'stop');
+    stop2.setAttribute('offset','25%');
+    stop2.setAttribute('stop-color','#f59e0b');
+    const stop3 = document.createElementNS(svgNS,'stop');
+    stop3.setAttribute('offset','75%');
+    stop3.setAttribute('stop-color','#d97706');
+    const stop4 = document.createElementNS(svgNS,'stop');
+    stop4.setAttribute('offset','100%');
+    stop4.setAttribute('stop-color','#b45309');
+    [stop1,stop2,stop3,stop4].forEach(s=>gradDef.appendChild(s));
+    grad.appendChild(gradDef);
+    svg.appendChild(grad);
+    
+    // Main body vertical
+    const body = document.createElementNS(svgNS,'rect');
+    body.setAttribute('x','30');
+    body.setAttribute('y', neyLeftToRight ? '20' : '60');
+    body.setAttribute('width','20');
+    body.setAttribute('height','200');
+    body.setAttribute('rx','10');
+    body.setAttribute('fill','url(#reedGradV)');
+    body.setAttribute('stroke','#92400e');
+    body.setAttribute('stroke-width','1.5');
+    svg.appendChild(body);
+    
+    // Oblique mouthpiece vertical
+    const mouthpiece = document.createElementNS(svgNS,'polygon');
+    const mouthPoints = neyLeftToRight ? 
+      '35,20 25,30 55,30 50,20' :
+      '35,260 25,250 55,250 50,260';
+    mouthpiece.setAttribute('points', mouthPoints);
+    mouthpiece.setAttribute('fill','#78350f');
+    mouthpiece.setAttribute('stroke','#451a03');
+    mouthpiece.setAttribute('stroke-width','1.5');
+    svg.appendChild(mouthpiece);
+    
+    // Reed nodes vertical
+    const nodePositions = neyLeftToRight ? [60, 110, 160, 210] : [220, 170, 120, 70];
+    nodePositions.forEach(y => {
+      const node = document.createElementNS(svgNS,'line');
+      node.setAttribute('x1','28');
+      node.setAttribute('y1', String(y));
+      node.setAttribute('x2','52');
+      node.setAttribute('y2', String(y));
+      node.setAttribute('stroke','#92400e');
+      node.setAttribute('stroke-width','2');
+      svg.appendChild(node);
+    });
+    
+    // Front holes vertical
+    const frontHolePositions = neyLeftToRight ? 
+      [70, 90, 110, 130, 150, 170] : 
+      [210, 190, 170, 150, 130, 110];
+    
+    fing.slice(0, 6).forEach((closed,i)=>{
+      const holeY = frontHolePositions[i];
+      
+      const hole = document.createElementNS(svgNS,'circle');
+      hole.setAttribute('cx','40');
+      hole.setAttribute('cy', String(holeY));
+      hole.setAttribute('r','5');
+      hole.setAttribute('fill', closed ? '#451a03' : '#1c1917');
+      hole.setAttribute('stroke','#92400e');
+      hole.setAttribute('stroke-width','1');
+      svg.appendChild(hole);
+      
+      if(closed) {
+        const finger = document.createElementNS(svgNS,'circle');
+        finger.setAttribute('cx','40');
+        finger.setAttribute('cy', String(holeY));
+        finger.setAttribute('r','8');
+        finger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        finger.setAttribute('stroke','#f59e0b');
+        finger.setAttribute('stroke-width','2');
+        svg.appendChild(finger);
+      }
+    });
+    
+    // Thumb hole vertical
+    if(fing[6] !== undefined) {
+      const thumbHole = document.createElementNS(svgNS,'ellipse');
+      thumbHole.setAttribute('cx','55');
+      thumbHole.setAttribute('cy', neyLeftToRight ? '105' : '175');
+      thumbHole.setAttribute('rx','2');
+      thumbHole.setAttribute('ry','3');
+      thumbHole.setAttribute('fill', fing[6] ? '#451a03' : '#1c1917');
+      thumbHole.setAttribute('stroke','#92400e');
+      thumbHole.setAttribute('stroke-width','1');
+      svg.appendChild(thumbHole);
+      
+      if(fing[6]) {
+        const thumbFinger = document.createElementNS(svgNS,'ellipse');
+        thumbFinger.setAttribute('cx','55');
+        thumbFinger.setAttribute('cy', neyLeftToRight ? '105' : '175');
+        thumbFinger.setAttribute('rx','3');
+        thumbFinger.setAttribute('ry','5');
+        thumbFinger.setAttribute('fill','rgba(251, 191, 36, 0.6)');
+        thumbFinger.setAttribute('stroke','#f59e0b');
+        thumbFinger.setAttribute('stroke-width','1.5');
+        svg.appendChild(thumbFinger);
+      }
+    }
+    
+    // Binding vertical
+    const binding = document.createElementNS(svgNS,'rect');
+    binding.setAttribute('x','32');
+    binding.setAttribute('y', neyLeftToRight ? '190' : '90');
+    binding.setAttribute('width','16');
+    binding.setAttribute('height','6');
+    binding.setAttribute('fill','#78350f');
+    binding.setAttribute('stroke','#451a03');
+    binding.setAttribute('stroke-width','0.5');
+    svg.appendChild(binding);
+  }
+  neyHost.appendChild(svg);
+  const flip=document.createElement('button');
+  flip.id='neyFlip';
+  flip.textContent = isHoriz ? 'Flip ↔' : 'Flip ↕';
+  flip.className='mt-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  neyHost.appendChild(flip);
+  const orient=document.createElement('button');
+  orient.id='neyOrient';
+  orient.textContent = neyOrientation === 'horizontal' ? 'Vertical' : 'Horizontal';
+  orient.className='mt-2 ml-2 text-xs px-2 py-1 border border-slate-700 rounded';
+  neyHost.appendChild(orient);
+  const lbl=document.createElement('div');
+  lbl.className='mt-2 text-center text-xs text-slate-400';
+  lbl.textContent=`Fingering for ${sharp}`;
+  neyHost.appendChild(lbl);
+  document.getElementById('neyFlip').onclick = () => {
+    neyLeftToRight = !neyLeftToRight;
+    buildNeyChart();
+  };
+  document.getElementById('neyOrient').onclick = () => {
+    neyOrientation = neyOrientation === 'horizontal' ? 'vertical' : 'horizontal';
+    buildNeyChart();
+  };
+}
+
+// ========================= EXPORT HELPERS =========================
+function buildNoteEvents(){ const cur=computeSelected(); if(cur.type==='chord'){ const list=chordToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); const start=0,dur=1; return list.map(m=>({start,dur,midi:m,vel:100})); } const seq=scaleToMidi(cur.notes, keyRoot, instrument.startsWith('Bass')?2:4); return seq.map((m,i)=>({start:i*0.5, dur:0.45, midi:m, vel:100})); }
+function copyCSV(){ const ev=buildNoteEvents(); const toName=m=> pcName(mod(m,OCTAVE))+(Math.floor(m/OCTAVE)-1); const lines=['note,start(dur beats),dur,vel', ...ev.map(e=> `${toName(e.midi)},${e.start.toFixed(3)},${e.dur.toFixed(3)},${e.vel}`)]; return navigator.clipboard.writeText(lines.join('\n')); }
+function downloadMID(){ const bytes=buildMidi(buildNoteEvents(),96,130); const blob=new Blob([bytes],{type:'audio/midi'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${keyRoot}-${mode==='chord'?chordQuality:scaleMode}.mid`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500); }
+
+// ========================= TESTS =========================
+function addTest(list, name, pass, details){ list.push({name,pass,details}); }
+function runTests(){
+  const t=[];
+  addTest(t,'pcIndex C = 0', pcIndex('C')===0);
+  addTest(t,'pcIndex C# = 1', pcIndex('C#')===1);
+  addTest(t,'pcIndex C+ = 0.5', pcIndex('C+')===0.5);
+  addTest(t,'pcName 0.5 = C+', pcName(0.5)==='C+');
+  addTest(t,'toSharp(Db)=C#', toSharpName('Db')==='C#');
+  addTest(t,'toSharp(E#)=F', toSharpName('E#')==='F');
+  addTest(t,'toSharp(B#)=C', toSharpName('B#')==='C');
+  addTest(t,'toSharp(Cb)=B', toSharpName('Cb')==='B');
+  addTest(t,'C Ionian ok', JSON.stringify(buildScale('C','Ionian'))===JSON.stringify(['C','D','E','F','G','A','B']));
+  addTest(t,'A Dorian ok', JSON.stringify(buildScale('A','Dorian'))===JSON.stringify(['A','B','C','D','E','F#','G']));
+  addTest(t,'E Blues has A#', buildScale('E','Blues').includes('A#'));
+  addTest(t,'G Mixolydian len=7', buildScale('G','Mixolydian').length===7);
+  addTest(t,'A Major Pentatonic len=5', buildScale('A','Major Pentatonic').length===5);
+  addTest(t,'C Harmonic Minor has B', buildScale('C','Harmonic Minor').includes('B'));
+  addTest(t,'C Whole Tone len=6', buildScale('C','Whole Tone').length===6);
+  addTest(t,'C Dim Half-Whole starts C,C#', buildScale('C','Diminished (Half-Whole)').slice(0,2).join(',')==='C,C#');
+  addTest(t,'C Maqam Rast has D#+', buildScale('C','Maqam Rast').includes('D#+'));
+  addTest(t,'D Maqam Bayati has D#+', buildScale('D','Maqam Bayati')[1]==='D#+');
+  addTest(t,'C Maqam Kurd second=C#', buildScale('C','Maqam Kurd')[1]==='C#');
+  addTest(t,'C Maqam Huzam second=C#+', buildScale('C','Maqam Huzam')[1]==='C#+');
+  addTest(t,'C Maqam Hijazkar has F#', buildScale('C','Maqam Hijazkar').includes('F#'));
+  addTest(t,'C Maj chord', JSON.stringify(buildChord('C','Maj'))===JSON.stringify(['C','E','G']));
+  addTest(t,'G7 chord', JSON.stringify(buildChord('G','7'))===JSON.stringify(['G','B','D','F']));
+  addTest(t,'Bm7b5 chord', JSON.stringify(buildChord('B','m7b5'))===JSON.stringify(['B','D','F','A']));
+  addTest(t,'Dsus4 chord', JSON.stringify(buildChord('D','Sus4'))===JSON.stringify(['D','G','A']));
+  addTest(t,'Cmaj9 chord', JSON.stringify(buildChord('C','Maj9'))===JSON.stringify(['C','E','G','B','D']));
+  addTest(t,'C13 chord len=7', buildChord('C','13').length===7);
+  addTest(t,'G7b9 has G#', buildChord('G','7b9').includes('G#'));
+  const cm=chordToMidi(['C','E','G'],'C',4);
+  addTest(t,'ChordToMidi >=3', cm.length>=3, cm.join(','));
+  const sc=scaleToMidi(['C','D','E','F','G','A','B'],'C',4);
+  addTest(t,'ScaleToMidi >=14', sc.length>=14, String(sc.length));
+  const maq=scaleToMidi(buildScale('C','Maqam Rast'),'C',4);
+  addTest(t,'ScaleToMidi quarter-tone', maq.includes(63.5));
+  const fq=midiToFreq(60.5);
+  addTest(t,'midiToFreq 60.5', Math.abs(fq - 440*Math.pow(2,(60.5-69)/12))<0.01, fq.toFixed(2));
+  addTest(t,'MODE_SYSTEMS maqam', MODE_SYSTEMS.Maqam.includes('Maqam Rast'));
+  const testsEl=document.getElementById('tests'); testsEl.innerHTML='';
+  t.forEach((r)=>{ const li=document.createElement('div'); li.className='px-3 py-2 rounded-lg border '+ (r.pass?'border-emerald-700 bg-emerald-900/30 text-emerald-200':'border-rose-700 bg-rose-900/30 text-rose-200'); li.innerHTML = '<span class="font-semibold">'+(r.pass?'PASS':'FAIL')+'</span> — '+r.name + (r.details? ('<div class="text-xs opacity-75">'+r.details+'</div>'):''); testsEl.appendChild(li); });
+}
+
+// ========================= WIRING =========================
+function updateInstrumentIcon(){
+  const iconPath = INSTRUMENT_ICONS[selInstr.value];
+  if(iconPath){
+    instrIcon.src = iconPath;
+    instrIcon.classList.remove('hidden');
+  } else {
+    instrIcon.classList.add('hidden');
+    instrIcon.removeAttribute('src');
+  }
+}
+function refreshInstruments(){
+  updateInstrumentIcon();
+  const isGuitar = selInstr.value.startsWith('Guitar') || selInstr.value.startsWith('Oud');
+  const isBass = selInstr.value.startsWith('Bass');
+  const isViolin = selInstr.value.startsWith('Violin');
+  const isFlute = selInstr.value.startsWith('Flute');
+  const isRecorder = selInstr.value.startsWith('Recorder');
+  const isTrumpet = selInstr.value.startsWith('Trumpet');
+  const isSaxophone = selInstr.value.startsWith('Saxophone');
+  const isKoto = selInstr.value.startsWith('Koto');
+  const isNey = selInstr.value.startsWith('Ney');
+  guitarHost.classList.toggle('hidden', !isGuitar);
+  bassHost.classList.toggle('hidden', !isBass);
+  violinHost.classList.toggle('hidden', !isViolin);
+  fluteHost.classList.toggle('hidden', !isFlute);
+  recorderHost.classList.toggle('hidden', !isRecorder);
+  trumpetHost.classList.toggle('hidden', !isTrumpet);
+  saxophoneHost.classList.toggle('hidden', !isSaxophone);
+  kotoHost.classList.toggle('hidden', !isKoto);
+  neyHost.classList.toggle('hidden', !isNey);
+  if(!violinHost.classList.contains('hidden')) buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
+  if(!fluteHost.classList.contains('hidden')) buildFluteChart();
+  if(!recorderHost.classList.contains('hidden')) buildRecorderChart();
+  if(!trumpetHost.classList.contains('hidden')) buildTrumpetChart();
+  if(!saxophoneHost.classList.contains('hidden')) buildSaxophoneChart();
+  if(!kotoHost.classList.contains('hidden')) buildKotoBoard();
+  if(!neyHost.classList.contains('hidden')) buildNeyChart();
+  btnPlayStrum.classList.toggle('hidden', !isGuitar);
+}
+function updateAll(){
+  renderHighlights();
+  updateBadges();
+  if(!guitarHost.classList.contains('hidden'))
+    buildFretboard(guitarHost, GUITAR_STD,'Guitar (12 frets)');
+  if(!bassHost.classList.contains('hidden'))
+    buildFretboard(bassHost, BASS_STD,'Bass (12 frets)');
+  if(!violinHost.classList.contains('hidden'))
+    buildFretboard(violinHost, VIOLIN_TUNING,'Violin (12 positions)');
+  if(!fluteHost.classList.contains('hidden'))
+    buildFluteChart();
+  if(!recorderHost.classList.contains('hidden'))
+    buildRecorderChart();
+  if(!trumpetHost.classList.contains('hidden'))
+    buildTrumpetChart();
+  if(!saxophoneHost.classList.contains('hidden'))
+    buildSaxophoneChart();
+  if(!kotoHost.classList.contains('hidden'))
+    buildKotoBoard();
+  if(!neyHost.classList.contains('hidden'))
+    buildNeyChart();
+}
+
+// Build UI
+function setupUI() {
+  buildPiano();
+  refreshInstruments();
+  updateAll();
+  runTests();
+  initSequencer();
+  generatePatternLibrary();
+  refreshPatternSelector();
+  loadSettings();
+  setTimeout(initSessionManagement, 500);
+}
+// === TAB: Sequencer wiring (non-destructive) ===
+btnModeChord.addEventListener('click', ()=>{
+  mode='Chord';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.remove('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.remove('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeScale.addEventListener('click', ()=>{
+  mode='Scale/Mode';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapScale.classList.remove('hidden');
+  wrapChord.classList.add('hidden');
+  listenScale.classList.remove('hidden');
+  listenChord.classList.add('hidden');
+  sequencerHost.classList.add('hidden');
+  updateAll();
+});
+btnModeSequencer.addEventListener('click', ()=>{
+  mode='Sequencer';
+  btnModeSequencer.className='px-3 py-2 text-sm bg-slate-700/70';
+  btnModeChord.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  btnModeScale.className='px-3 py-2 text-sm bg-slate-800/60 hover:bg-slate-700/50';
+  wrapChord.classList.add('hidden');
+  wrapScale.classList.add('hidden');
+  listenChord.classList.add('hidden');
+  listenScale.classList.add('hidden');
+  sequencerHost.classList.remove('hidden');
+  updateAll();
+});
+
+selKey.addEventListener('change', (e)=>{ keyRoot = e.target.value; updateAll(); });
+selQuality.addEventListener('change', (e)=>{ chordQuality = e.target.value; updateAll(); });
+selMode.addEventListener('change', (e)=>{ scaleMode = e.target.value; updateAll(); });
+selInstr.addEventListener('change', (e)=>{ instrument = e.target.value; refreshInstruments(); updateAll(); updateInstrumentIcon(); });
+selSystem.addEventListener('change', (e)=>{ system = e.target.value; populateModeOptions(); updateAll(); });
+
+chkSurge.addEventListener('change', async (e)=>{
+  surgeEnabled = e.target.checked;
+  if(surgeEnabled){
+    await ensureTone(instrument);
+    try{
+      await SurgeLoader.init(Tone.context);
+    }catch(err){
+      console.error('Failed to init Surge XT', err);
+      surgeEnabled = false;
+      e.target.checked = false;
+    }
+  }
+  if(song && song.tracks){
+    song.tracks.forEach(t=>{ t.player?.dispose?.(); t.player=null; });
+  }
+});
+
+// Settings event listeners
+const reverbAmountSlider = $('#reverbAmount');
+const reverbValue = $('#reverbValue');
+const enableSamplesCheckbox = $('#enableSamples');
+const sampleQualitySelect = $('#sampleQuality');
+
+reverbAmountSlider?.addEventListener('input', (e) => {
+  const value = e.target.value;
+  reverbValue.textContent = value + '%';
+  // Store in localStorage
+  localStorage.setItem('reverbAmount', value);
+});
+
+enableSamplesCheckbox?.addEventListener('change', (e) => {
+  const enabled = e.target.checked;
+  localStorage.setItem('enableSamples', enabled);
+  // Reinitialize audio system if needed
+  if (enabled && !sampleLibrary) {
+    initSampleLibrary();
+  }
+});
+
+sampleQualitySelect?.addEventListener('change', (e) => {
+  const quality = e.target.value;
+  localStorage.setItem('sampleQuality', quality);
+});
+
+// Load settings from localStorage
+function loadSettings() {
+  const reverbAmount = localStorage.getItem('reverbAmount') || '15';
+  const enableSamples = localStorage.getItem('enableSamples') !== 'false';
+  const sampleQuality = localStorage.getItem('sampleQuality') || 'medium';
+  
+  if (reverbAmountSlider) {
+    reverbAmountSlider.value = reverbAmount;
+    reverbValue.textContent = reverbAmount + '%';
+  }
+  if (enableSamplesCheckbox) {
+    enableSamplesCheckbox.checked = enableSamples;
+  }
+  if (sampleQualitySelect) {
+    sampleQualitySelect.value = sampleQuality;
+  }
+}
+
+// Load settings on page load is invoked inside setupUI()
+
+// Session management
+const saveSessionBtn = $('#saveSession');
+const loadSessionBtn = $('#loadSession');
+const enableAutoSaveCheckbox = $('#enableAutoSave');
+let autoSaveInterval = null;
+
+function saveSessionToLocal() {
+  try {
+    const sessionData = {
+      timestamp: Date.now(),
+      song: JSON.parse(serializeSong()),
+      settings: {
+        reverbAmount: localStorage.getItem('reverbAmount') || '15',
+        enableSamples: localStorage.getItem('enableSamples') !== 'false',
+        sampleQuality: localStorage.getItem('sampleQuality') || 'medium'
+      },
+      version: '1.0'
+    };
+    localStorage.setItem('chordsAndKeys_session', JSON.stringify(sessionData));
+    return true;
+  } catch(e) {
+    console.error('Failed to save session:', e);
+    return false;
+  }
+}
+
+function loadSessionFromLocal() {
+  try {
+    const sessionData = localStorage.getItem('chordsAndKeys_session');
+    if (sessionData) {
+      const data = JSON.parse(sessionData);
+      if (data.song) {
+        loadSong(data.song);
+      }
+      if (data.settings) {
+        // Apply settings
+        Object.entries(data.settings).forEach(([key, value]) => {
+          localStorage.setItem(key, value);
+        });
+        loadSettings();
+      }
+      return true;
+    }
+    return false;
+  } catch(e) {
+    console.error('Failed to load session:', e);
+    return false;
+  }
+}
+
+function setupAutoSave() {
+  const enabled = enableAutoSaveCheckbox?.checked !== false;
+  localStorage.setItem('enableAutoSave', enabled);
+  
+  if (autoSaveInterval) {
+    clearInterval(autoSaveInterval);
+    autoSaveInterval = null;
+  }
+  
+  if (enabled) {
+    autoSaveInterval = setInterval(() => {
+      if (saveSessionToLocal()) {
+        // Show brief indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-2 py-1 rounded text-xs opacity-75 z-50';
+        indicator.textContent = 'Session saved';
+
+        document.body.appendChild(indicator);
+        setTimeout(() => indicator.remove(), 2000);
+      }
+    }, 30000); // 30 seconds
+  }
+}
+
+saveSessionBtn?.addEventListener('click', () => {
+  if (saveSessionToLocal()) {
+    seqStatus.textContent = '✅ Session saved locally';
+  } else {
+    seqStatus.textContent = '❌ Failed to save session';
+  }
+});
+
+loadSessionBtn?.addEventListener('click', () => {
+  if (loadSessionFromLocal()) {
+    seqStatus.textContent = '✅ Session loaded from local storage';
+  } else {
+    seqStatus.textContent = '❌ No saved session found';
+  }
+});
+
+enableAutoSaveCheckbox?.addEventListener('change', setupAutoSave);
+
+// Load auto-save setting and start if enabled
+function initSessionManagement() {
+  const enableAutoSave = localStorage.getItem('enableAutoSave') !== 'false';
+  if (enableAutoSaveCheckbox) {
+    enableAutoSaveCheckbox.checked = enableAutoSave;
+  }
+  setupAutoSave();
+  
+  // Try to load last session on startup
+  const hasSession = localStorage.getItem('chordsAndKeys_session');
+  if (hasSession) {
+    // Show option to restore previous session
+    setTimeout(() => {
+      if (confirm('Would you like to restore your previous session?')) {
+        loadSessionFromLocal();
+      }
+    }, 1000);
+  }
+}
+
+// Session management initialized in setupUI()
+
+const skinClasses = {
+  default: 'skin-default',
+  solarized: 'skin-solarized',
+  mono: 'skin-mono',
+  spring: 'skin-spring',
+  summer: 'skin-summer',
+  autumn: 'skin-autumn',
+  winter: 'skin-winter',
+  forest: 'skin-forest',
+  ocean: 'skin-ocean',
+  desert: 'skin-desert',
+  mountain: 'skin-mountain',
+  sunrise: 'skin-sunrise',
+  sunset: 'skin-sunset'
+};
+skinSelector.addEventListener('change', (e)=>{ document.body.classList.remove(...Object.values(skinClasses)); document.body.classList.add(skinClasses[e.target.value]); });
+tempoInput.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
+seqBpm.addEventListener('input', e => setBpm(Number(e.target.value) || song.bpm));
+seqLoop.addEventListener('change', ()=>{ song.loop.enabled = seqLoop.checked; updateLoop(); });
+seqTSNum.addEventListener('change', ()=>{ song.ts.num = Math.max(1,Math.min(16,Number(seqTSNum.value)||4)); drawPianoRoll(); });
+seqTSDen.addEventListener('change', ()=>{ const allowed=[1,2,4,8,16]; const v=Number(seqTSDen.value); song.ts.den = allowed.includes(v)?v:4; drawPianoRoll(); });
+
+// Quantization controls
+seqQuantize.addEventListener('change', ()=>{
+  const value = Number(seqQuantize.value);
+  quantizeSnap = value || SIXTEENTH; // Default to 1/16 if "Off" is selected for snap-to-grid
+});
+
+seqQuantizeBtn.addEventListener('click', ()=>{
+  if(selectedNotes.size === 0) {
+    // If no notes selected, select all notes on active track
+    selectAll();
+  }
+  quantizeSelected();
+});
+
+// Transport controls
+seqToStart.addEventListener('click', jumpToStart);
+seqToEnd.addEventListener('click', jumpToEnd);
+
+// Update position display every 100ms when playing
+setInterval(() => {
+  if(sequencerState === 'playing') {
+    updatePositionDisplay();
+  }
+}, 100);
+
+// Context menu handling
+const noteContextMenu = document.getElementById('noteContextMenu');
+let contextMenuNote = null;
+
+function showContextMenu(x, y, note) {
+  if(!noteContextMenu) return;
+  contextMenuNote = note;
+  noteContextMenu.style.left = x + 'px';
+  noteContextMenu.style.top = y + 'px';
+  noteContextMenu.classList.remove('hidden');
+}
+
+function hideContextMenu() {
+  if(!noteContextMenu) return;
+  noteContextMenu.classList.add('hidden');
+  contextMenuNote = null;
+}
+
+// Hide context menu on click elsewhere
+document.addEventListener('click', (e) => {
+  if(!noteContextMenu || !noteContextMenu.contains(e.target)) {
+    hideContextMenu();
+  }
+});
+
+// Velocity editor
+function showVelocityEditor() {
+  if(selectedNotes.size === 0) return;
+  
+  const currentVel = Array.from(selectedNotes)[0].vel || 0.8;
+  const newVel = parseFloat(prompt(`Enter velocity (0.1 - 1.0):`, currentVel.toFixed(2)));
+  
+  if(newVel >= 0.1 && newVel <= 1.0) {
+    saveState('Change velocity');
+    selectedNotes.forEach(note => {
+      note.vel = newVel;
+    });
+    drawPianoRoll();
+  }
+  
+  hideContextMenu();
+}
+seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
+seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
+seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
+seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
+seqExportWav.addEventListener('click', handleExportWav);
+seqExportMp3.addEventListener('click', handleExportMp3);
+$('#btnClearSel').addEventListener('click', clearSelection);
+$('#btnSendToSeq').addEventListener('click', sendToSequencer);
+patternCategory.addEventListener('change', refreshPatternSelector);
+patternKey.addEventListener('change', drawPatternPreview);
+btnPastePattern.addEventListener('click', ()=>{ pastePattern(`${patternCategory.value}.${patternKey.value}`); });
+
+// Listen buttons
+$('#btnPlayBlock').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
+$('#btnPlayArp').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
+$('#btnPlayStrum').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=chordToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo, strum:true}); });
+$('#btnPlayScale').addEventListener('click', ()=>{ const sel=computeSelected(); const midi=scaleToMidi(sel.notes, keyRoot, instrument.startsWith('Bass')?2:4); playMidiNotes(midi,{instrument, tempo}); });
+$('#btnPlaySelChord').addEventListener('click', ()=>{ const midi=[...selection].sort((a,b)=>a-b); playMidiNotes(midi,{instrument, tempo, asChord:true}); });
+$('#btnPlaySelArp').addEventListener('click', ()=>{
+  const midi=[...selection].sort((a,b)=>a-b);
+  playMidiNotes(midi,{instrument, tempo});
+  if(selection.size === TOTAL_PIANO_KEYS){
+    // Open in background without stealing focus
+    const link = document.createElement('a');
+    link.href = 'https://soundcloud.com/shurikenmiasma/albums';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    const note=document.createElement('div');
+    note.textContent='Meet the Author! [Unlocked]';
+    note.className='fixed inset-0 flex items-center justify-center bg-black/60 text-white text-2xl font-bold z-50';
+    document.body.appendChild(note);
+    setTimeout(()=>note.remove(),3000);
+  }
+});
+
+seqPlay.addEventListener('click', async ()=>{
+  try {
+    const instruments = Array.from(new Set(song.tracks.map(t => t.instrument)));
+    for (const instr of instruments) {
+      await ensureTone(instr);
+    }
+
+    if(sequencerState === 'paused') {
+      // Resume from pause
+      Tone.Transport.start();
+      startPlayhead();
+      sequencerState = 'playing';
+      seqPlay.textContent = 'Play';
+      return;
+    }
+
+    // Fresh start
+    if(sequencerState === 'playing') {
+      return; // Already playing
+    }
+
+    await scheduleSong();
+    
+    if(seqClick.checked){
+      clickId = Tone.Transport.scheduleRepeat(time => {
+        const p = ENV.Piano;
+        _synth.set({ envelope:{attack:p.a,decay:p.d,sustain:p.s,release:p.r}, oscillator:{type:p.osc} });
+        _synth.triggerAttackRelease(midiToFreq(midiFrom('C',5)), '16n', time);
+      }, '4n');
+    }
+    
+    updateLoop();
+    Tone.Transport.start();
+    startPlayhead();
+    sequencerState = 'playing';
+  } catch(error) {
+    console.error('Playback error:', error);
+    seqStatus.textContent = '❌ Playback failed';
+  }
+});
+
+
+seqPause.addEventListener('click', ()=>{
+  if(sequencerState === 'playing') {
+    Tone.Transport.pause();
+    stopPlayhead();
+    sequencerState = 'paused';
+    seqPlay.textContent = 'Resume';
+  }
+});
+
+seqStop.addEventListener('click', ()=>{
+  Tone.Transport.stop();
+  Tone.Transport.cancel();
+  if(clickId!==null){ Tone.Transport.clear(clickId); clickId=null; }
+  if(autoStopId!==null){ Tone.Transport.clear(autoStopId); autoStopId=null; }
+  song.tracks.forEach(t=>{ 
+    if(t.part) { t.part.dispose(); t.part = null; }
+    if(t.player){ t.player.dispose(); t.player=null; }
+  });
+  stopPlayhead();
+  sequencerState = 'stopped';
+  seqPlay.textContent = 'Play';
+});
+
+seqExportJson.addEventListener('click', ()=>{
+  const blob = new Blob([serializeSong()],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='song.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  seqStatus.textContent='✅ Exported JSON';
+});
+
+seqImportJson.addEventListener('click', ()=> seqImportFile.click());
+
+seqImportFile.addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try {
+      const data = JSON.parse(ev.target.result);
+      loadSong(data);
+      seqStatus.textContent='✅ Imported JSON';
+    } catch(err){
+      console.error(err);
+      seqStatus.textContent='❌ Import failed';
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
+btnImportMidi.addEventListener('click', ()=> midiImportFile.click());
+
+midiImportFile.addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    importSongMidi(buffer);
+  } catch(err){
+    console.error(err);
+    seqStatus.textContent='❌ Import failed';
+  }
+  e.target.value='';
+});
+
+seqExportMid.addEventListener('click', ()=>{
+  exportSongMidi();
+  seqStatus.textContent='✅ Exported MIDI';
+});
+
+// Export buttons
+$('#btnCopyCSV').addEventListener('click', ()=>{ copyCSV().then(()=>{ $('#copyStatus').textContent='✅ Copied CSV'; }); });
+$('#btnMid').addEventListener('click', downloadMID);
+$('#btnCopyFL').addEventListener('click', ()=>{ const bytes=buildMidi(buildNoteEvents(),96,130); copyBytesToClipboard(bytes); });
+
+// === SEQUENCER: Import/Export (JSON, MIDI, WAV, MP3) ===
+function encodeWavFromFloat32(left, right, sampleRate){
+  const frames = Math.max(left.length, right.length);
+  const bytesPerSample = 2;
+  const numChannels = 2;
+  const blockAlign = numChannels * bytesPerSample;
+  const byteRate = sampleRate * blockAlign;
+  const dataBytes = frames * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataBytes);
+  const view = new DataView(buffer);
+  writeStr(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataBytes, true);
+  writeStr(view, 8, 'WAVE');
+  writeStr(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeStr(view, 36, 'data');
+  view.setUint32(40, dataBytes, true);
+  let offset = 44;
+  for (let i = 0; i < frames; i++){
+    const L = Math.max(-1, Math.min(1, left[i]  ?? 0));
+    const R = Math.max(-1, Math.min(1, right[i] ?? 0));
+    view.setInt16(offset, L < 0 ? L * 0x8000 : L * 0x7FFF, true); offset += 2;
+    view.setInt16(offset, R < 0 ? R * 0x8000 : R * 0x7FFF, true); offset += 2;
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+  function writeStr(v, off, s){ for (let i=0;i<s.length;i++) v.setUint8(off+i, s.charCodeAt(i)); }
+}
+
+function createMp3Worker(){
+  const LAME_MIN = `/* lamejs minified placeholder */`;
+  const workerSrc = `
+${'${LAME_MIN}'}
+self.onmessage = function(e){ self.postMessage({type:'error', err:'mp3 encode not implemented'}); };
+  `;
+  return new Worker(URL.createObjectURL(new Blob([workerSrc],{type:'application/javascript'})));
+}
+
+function encodeMp3FromFloat32(){ return Promise.reject('mp3 encode not implemented'); }
+
+async function renderSongToBuffer(song){
+  const PPQ = song.ppq;
+  const qPerBeat = 4 / song.ts.den;
+  const ticksPerBeat = PPQ * qPerBeat;
+  function songLengthTicks(){ if(song.loop.enabled) return song.loop.end; let maxT=0; for(const t of song.tracks){ for(const cl of t.clips){ for(const n of cl.notes){ const end=cl.start+n.tick+n.dur; if(end>maxT) maxT=end; } } } return maxT + ticksPerBeat*song.ts.num; }
+  const totalBeats = songLengthTicks() / ticksPerBeat;
+  const seconds = (60 / song.bpm) * totalBeats;
+  const buffer = await Tone.Offline(async () => {
+    Tone.Transport.cancel();
+    Tone.Transport.PPQ = song.ppq;
+    Tone.Transport.bpm.value = song.bpm;
+    const nodes=[];
+    song.tracks.forEach(tr=>{
+      const drumFactory = DRUMS[tr.instrument];
+      const node = drumFactory?drumFactory():createSeqInstrument(tr.instrument);
+      node.setVolume?.(tr.volume ?? 0.8);
+      nodes.push(node);
+      if(tr.mute) return;
+      tr.clips.forEach(cl=>{
+        cl.notes.forEach(n=>{
+          const startBeats=(cl.start+n.tick)/ticksPerBeat;
+          const durBeats=n.dur/ticksPerBeat;
+          Tone.Transport.schedule(time=>{ node.trigger(n.midi, time, n.vel||0.8, durBeats); }, startBeats+'i');
+        });
+      });
+    });
+    if(song.loop.enabled){ Tone.Transport.loopStart = song.loop.start/ticksPerBeat+'i'; Tone.Transport.loopEnd = song.loop.end/ticksPerBeat+'i'; Tone.Transport.loop = true; }
+    Tone.Transport.start();
+  }, seconds+0.1);
+  return { buffer, sampleRate: buffer.sampleRate };
+}
+
+async function handleExportWav(){
+  try{
+    const {buffer, sampleRate} = await renderSongToBuffer(song);
+    const L = buffer.getChannelData(0); const R = buffer.numberOfChannels>1?buffer.getChannelData(1):L;
+    const blob = encodeWavFromFloat32(L, R, sampleRate);
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='sequencer.wav'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+    seqStatus.textContent+=' ✅ WAV exported';
+  }catch(err){ seqStatus.textContent+=' ❌ WAV export failed'; console.error(err); }
+}
+
+async function handleExportMp3(){
+  try{
+    const {buffer, sampleRate} = await renderSongToBuffer(song);
+    const L = buffer.getChannelData(0); const R = buffer.numberOfChannels>1?buffer.getChannelData(1):L;
+    const blob = await encodeMp3FromFloat32(new Float32Array(L), new Float32Array(R), sampleRate);
+    const url = URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='sequencer.mp3'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+    seqStatus.textContent+=' ✅ MP3 exported';
+  }catch(err){ seqStatus.textContent+=' ❌ MP3 export failed'; console.error(err); }
+}
+const devTests=document.getElementById('devTests');
+if(devTests){
+  const summary=devTests.querySelector('summary');
+  devTests.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',devTests.open));
+
+}
+if (typeof window !== 'undefined') {
+  if (document.readyState !== 'loading') {
+    setupUI();
+  } else {
+    window.addEventListener('DOMContentLoaded', setupUI);
+  }
+  Object.assign(window, { copySelected, cutSelected, deleteSelected, quantizeSelected, showVelocityEditor });
+}
+
+export { drawPianoRoll, makeSynth, setupUI };
