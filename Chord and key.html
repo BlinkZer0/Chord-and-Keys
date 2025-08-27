@@ -1,3 +1,4 @@
+<!-- renamed to: Chord and key.html -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -12,6 +13,7 @@
     <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
   <style>
     body { background: var(--bg-body); color: var(--text-body); }
+    :root { --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px; }
     body.skin-default { --bg-body: #020617; --text-body: #f1f5f9; }
     body.skin-solarized { --bg-body: #002b36; --text-body: #eee8d5; }
     body.skin-mono { --bg-body: #000000; --text-body: #ffffff; }
@@ -28,6 +30,9 @@
     #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
     #devTests[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
+    .glass { background: rgba(2, 6, 23, 0.6); backdrop-filter: saturate(150%) blur(8px); }
+    .focus-ring:focus-visible { outline: 2px solid #4ab0ff; outline-offset: 2px; border-radius: 8px; }
+    .topbar { position: sticky; top: 0; z-index: 40; }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
@@ -35,7 +40,7 @@
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
         <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
         <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
-        <select id="skinSelector" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
+        <select id="skinSelector" aria-label="Theme" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
           <option value="default">Default</option>
           <option value="solarized">Solarized</option>
           <option value="mono">Mono</option>
@@ -51,6 +56,25 @@
           <option value="sunset">Sunset</option>
         </select>
       </header>
+
+      <!-- Sticky Transport Bar -->
+      <div id="topTransportBar" class="topbar glass border border-slate-700 rounded-xl p-2 mb-6 shadow-sm">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="topPlay" class="focus-ring px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium" aria-label="Play">Play</button>
+          <button id="topPause" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Pause">Pause</button>
+          <button id="topStop" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Stop">Stop</button>
+          <div class="flex items-center gap-2 ml-3">
+            <label class="text-sm text-slate-300">BPM</label>
+            <input id="topBpm" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
+            <label class="text-sm text-slate-300">TS</label>
+            <input id="topTSNum" type="number" min="1" max="16" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" /> /
+            <input id="topTSDen" type="number" min="1" max="32" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" />
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <button id="openCmdPalette" class="focus-ring px-2 py-1 rounded-lg border border-slate-700 text-slate-200 text-sm" aria-label="Open Command Palette">Ctrl/Cmd+K</button>
+          </div>
+        </div>
+      </div>
 
     <!-- ============ 1) Choose What To Explore ============ -->
     <section class="mb-6">
@@ -224,6 +248,11 @@
           <div id="pianoRollSpacer"></div>
 
         </div>
+        </div>
+
+        <!-- Piano Roll Minimap -->
+        <div class="mt-2">
+          <canvas id="pianoMiniMap" class="w-full h-10 bg-slate-900 border border-slate-700"></canvas>
         </div>
 
         <div id="noteAttrWrap" class="mt-2">
@@ -4804,6 +4833,120 @@ if(devTests){
 
 }
 </script>
+
+<script>
+// Minimap: shows current horizontal viewport over the piano roll
+(function(){
+  const mini = document.getElementById('pianoMiniMap');
+  const scroll = document.getElementById('pianoRollScroll');
+  const roll = document.getElementById('pianoRoll');
+  if(!mini || !scroll || !roll) return;
+  const ctx = mini.getContext('2d');
+  function sizeCanvas(){
+    mini.width = mini.clientWidth; mini.height = mini.clientHeight;
+  }
+  function draw(){
+    sizeCanvas();
+    const W = mini.width, H = mini.height;
+    ctx.clearRect(0,0,W,H);
+    // Background gradient
+    const g = ctx.createLinearGradient(0,0,W,0); g.addColorStop(0,'#0f172a'); g.addColorStop(1,'#1f2937'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    const total = Math.max(roll.width, 1);
+    const viewStart = scroll.scrollLeft/total; const viewEnd = (scroll.scrollLeft + scroll.clientWidth)/total;
+    const x = Math.max(0, Math.min(W, Math.floor(viewStart*W)));
+    const w = Math.max(8, Math.floor((viewEnd-viewStart)*W));
+    ctx.fillStyle = 'rgba(99,102,241,.25)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(34,197,94,.6)'; ctx.fillRect(x,2,w,H-4);
+    ctx.strokeStyle = 'rgba(34,197,94,.9)'; ctx.strokeRect(x+0.5,1.5,w-1,H-3);
+  }
+  const ro = new ResizeObserver(draw); ro.observe(mini); ro.observe(scroll);
+  scroll.addEventListener('scroll', draw, { passive: true });
+  setTimeout(draw, 250);
+})();
+</script>
+
+<!-- Lightweight UI wiring: theme, toasts, shortcuts, command palette -->
+<script>
+  // Theme persistence + system preference
+  (function(){
+    try{
+      const sel = document.getElementById('skinSelector');
+      const saved = localStorage.getItem('skin');
+      if(saved && sel){ sel.value = saved; document.body.className = document.body.className.replace(/skin-[^\s]+/,'skin-'+saved); }
+      sel?.addEventListener('change', (e)=>{
+        const v = e.target.value; localStorage.setItem('skin', v);
+        document.body.className = document.body.className.replace(/skin-[^\s]+/,'skin-'+v);
+      });
+    }catch(err){ /* noop */ }
+  })();
+
+  // Top transport proxies -> existing sequencer controls
+  const proxyClick = (srcSel, dstSel) => {
+    const src = document.querySelector(srcSel); const dst = document.querySelector(dstSel);
+    src && dst && src.addEventListener('click', ()=> dst.dispatchEvent(new Event('click', {bubbles:true})));
+  };
+  proxyClick('#topPlay','#seqPlay');
+  proxyClick('#topPause','#seqPause');
+  proxyClick('#topStop','#seqStop');
+  const topBpm = document.getElementById('topBpm');
+  if(topBpm){ topBpm.addEventListener('change',(e)=>{ const v=e.target.value; const bpm=document.querySelector('#seqBpm'); if(bpm){ bpm.value=v; bpm.dispatchEvent(new Event('input',{bubbles:true})); } }); }
+  const topTSN = document.getElementById('topTSNum');
+  const topTSD = document.getElementById('topTSDen');
+  if(topTSN){ topTSN.addEventListener('change',()=>{ const el=document.querySelector('#seqTSNum'); if(el){ el.value=topTSN.value; el.dispatchEvent(new Event('input',{bubbles:true})); }}); }
+  if(topTSD){ topTSD.addEventListener('change',()=>{ const el=document.querySelector('#seqTSDen'); if(el){ el.value=topTSD.value; el.dispatchEvent(new Event('input',{bubbles:true})); }}); }
+
+  // Toasts from #seqStatus changes
+  (function(){
+    const status = document.getElementById('seqStatus');
+    if(!status) return;
+    const toasts = document.getElementById('toasts') || (function(){ const n=document.createElement('div'); n.id='toasts'; n.className='fixed bottom-3 right-3 flex flex-col gap-2 z-50'; document.body.appendChild(n); return n; })();
+    function toast(msg){ const d=document.createElement('div'); d.className='rounded-lg bg-slate-800/90 border border-slate-700 px-3 py-2 text-sm shadow'; d.textContent=msg; toasts.appendChild(d); setTimeout(()=>d.remove(),2200); }
+    const mo = new MutationObserver(()=>{ const t=status.textContent?.trim(); if(t) toast(t); }); mo.observe(status,{childList:true,subtree:true,characterData:true});
+  })();
+
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e)=>{
+    const isMac = navigator.platform.includes('Mac');
+    if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase()==='k') { e.preventDefault(); document.getElementById('openCmdPalette')?.click(); }
+    if (e.code==='Space') { e.preventDefault(); document.getElementById('seqPlay')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.key.toLowerCase()==='s') { e.preventDefault(); document.getElementById('seqStop')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.key.toLowerCase()==='q') { e.preventDefault(); document.getElementById('seqQuantizeBtn')?.dispatchEvent(new Event('click',{bubbles:true})); }
+  });
+
+  // Command palette (simple)
+  (function(){
+    const btn = document.getElementById('openCmdPalette');
+    if(!btn) return;
+    const overlay = document.createElement('div');
+    overlay.id='cmdOverlay'; overlay.className='fixed inset-0 hidden items-start justify-center bg-black/50 z-50';
+    overlay.innerHTML = `
+      <div role="dialog" aria-modal="true" aria-label="Command palette" class="mt-24 w-[600px] rounded-xl bg-slate-900/90 border border-slate-700 shadow-2xl">
+        <input id="cmdInput" class="w-full bg-transparent px-4 py-3 border-b border-slate-700 outline-none" placeholder="Type a command..."/>
+        <div id="cmdList" class="max-h-80 overflow-auto"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#cmdInput');
+    const list = overlay.querySelector('#cmdList');
+    const cmds = [
+      {label:'Transport: Play', run:()=>document.getElementById('seqPlay')?.click()},
+      {label:'Transport: Pause', run:()=>document.getElementById('seqPause')?.click()},
+      {label:'Transport: Stop', run:()=>document.getElementById('seqStop')?.click()},
+      {label:'Notes: Quantize', run:()=>document.getElementById('seqQuantizeBtn')?.click()},
+      {label:'Export: JSON', run:()=>document.getElementById('seqExportJson')?.click()},
+      {label:'Export: MIDI', run:()=>document.getElementById('seqExportMid')?.click()},
+    ];
+    function render(q=''){ list.innerHTML=''; cmds.filter(c=>c.label.toLowerCase().includes(q.toLowerCase())).forEach(c=>{ const b=document.createElement('button'); b.className='w-full text-left px-4 py-2 hover:bg-slate-800'; b.textContent=c.label; b.addEventListener('click',()=>{ c.run(); hide(); }); list.appendChild(b); }); }
+    function show(){ overlay.classList.remove('hidden'); input.value=''; render(''); input.focus(); }
+    function hide(){ overlay.classList.add('hidden'); }
+    btn.addEventListener('click', show);
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) hide(); });
+    window.addEventListener('keydown',(e)=>{ if(e.key==='Escape' && !overlay.classList.contains('hidden')) hide(); });
+    input.addEventListener('input', ()=>render(input.value));
+  })();
+</script>
+
+<!-- Toast mount -->
+<div id="toasts" class="fixed bottom-3 right-3 flex flex-col gap-2 z-50"></div>
 
 <!-- Context Menu -->
 <div id="noteContextMenu" class="fixed hidden bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-2 z-50 min-w-[160px]">

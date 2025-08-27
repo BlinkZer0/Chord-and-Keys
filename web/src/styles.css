@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-body: #0b1220;
+  --text-body: #e5e7eb;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-body: #f8fafc;
+    --text-body: #0f172a;
+  }
+}
+
+html, body, #app { height: 100%; }
+body { background: var(--bg-body); color: var(--text-body); }
+
+.focus-ring:focus-visible { outline: 2px solid #4ab0ff; outline-offset: 2px; border-radius: 8px; }
+
+.glass {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: saturate(150%) blur(8px);
+}
+

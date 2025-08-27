@@ -1,0 +1,10 @@
+{
+  "name": "Chord & Scale Library",
+  "short_name": "Chords&Keys",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#1e9bff",
+  "icons": []
+}
+

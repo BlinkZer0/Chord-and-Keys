@@ -12,7 +12,7 @@ so the only binary you'll find is a joke about 0s and 1s.
 - 🎛️ **Attribute Bar** – tweak velocity (and friends) à la FL Studio with a bar graph solo.
 - 🔀 **Surge XT Option** – flip a checkbox to swap Tone.js for Surge presets; drums keep grooving in Tone.
 - ⏱️ **Advanced Time Signatures** – support for traditional (4/4, 3/4, 6/8) and irrational time signatures (4/3, 4/5, 4/7, etc.) with dynamic grid resolution.
-- 🌐 **One‑Page Wonder** – the whole concert fits in `chord_scale_library_html_tailwind_tone.html`.
+- 🌐 **One-Page Wonder** - the whole concert fits in `Chord and key.html`.
 
 ## Band Members
 
@@ -46,7 +46,7 @@ Want to drop this library into your own site?  Slip the page into an iframe:
 
 ```html
 <iframe
-  src="/path/to/chord_scale_library_html_tailwind_tone.html"
+  src="/path/to/Chord and key.html"
   width="960"
   height="600"
   style="border:0;"
@@ -54,6 +54,20 @@ Want to drop this library into your own site?  Slip the page into an iframe:
 ```
 
 For deeper integration, serve the file from your project and harmonize the stylesheets as needed.
+
+## Modern UI (Vite + Tailwind)
+
+There is a modern shell in `web/` using Vite, TypeScript and Tailwind with a top transport bar, sidebar, toasts, keyboard shortcuts, and a command palette.
+
+Run it locally:
+
+```
+cd web
+npm i
+npm run dev
+```
+
+It can bridge actions to the legacy page if embedded on the same domain.
 
 ## Packing an APK Solo
 
