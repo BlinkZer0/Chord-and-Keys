@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualization Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0b1220;
+            color: #e5e7eb;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #374151;
+            border-radius: 8px;
+        }
+        .piano-key {
+            border: 1px solid #374151;
+            transition: all 0.1s ease;
+        }
+        .piano-key.white {
+            background: #ffffff;
+            color: #000000;
+        }
+        .piano-key.black {
+            background: #1f2937;
+            color: #ffffff;
+        }
+        .piano-key.active {
+            background: #4ab0ff;
+            color: #ffffff;
+        }
+        .piano-key:hover {
+            background: #e5e7eb;
+        }
+        .piano-key.black:hover {
+            background: #374151;
+        }
+        canvas {
+            border: 1px solid #374151;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualization Test</h1>
+    
+    <div class="test-section">
+        <h2>Piano Keyboard Test</h2>
+        <div id="piano-test" style="display: flex; height: 120px; background: #1f2937; padding: 10px; gap: 2px; position: relative; border-radius: 8px;">
+            <!-- Piano keys will be generated here -->
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Canvas Test</h2>
+        <canvas id="canvas-test" width="600" height="200"></canvas>
+    </div>
+    
+    <div class="test-section">
+        <h2>Scale Pattern Test</h2>
+        <div id="scale-pattern" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 400px;">
+            <!-- Scale pattern will be generated here -->
+        </div>
+    </div>
+
+    <script>
+        // Test piano keyboard
+        function createPianoTest() {
+            const container = document.getElementById('piano-test');
+            const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+            const blackKeys = ['C#', 'D#', '', 'F#', 'G#', 'A#', ''];
+            const activeNotes = [60, 64, 67]; // C major triad
+            
+            // Create white keys
+            for (let i = 0; i < 7; i++) {
+                const whiteKey = document.createElement('div');
+                whiteKey.className = 'piano-key white flex-1 rounded-b-md flex items-end justify-center pb-2 text-xs font-medium';
+                whiteKey.textContent = whiteKeys[i];
+                whiteKey.style.flex = '1';
+                whiteKey.style.borderRadius = '0 0 6px 6px';
+                whiteKey.style.display = 'flex';
+                whiteKey.style.alignItems = 'end';
+                whiteKey.style.justifyContent = 'center';
+                whiteKey.style.paddingBottom = '8px';
+                whiteKey.style.fontSize = '12px';
+                whiteKey.style.fontWeight = '500';
+                
+                const midiNote = [60, 62, 64, 65, 67, 69, 71][i];
+                if (activeNotes.includes(midiNote)) {
+                    whiteKey.classList.add('active');
+                }
+                
+                container.appendChild(whiteKey);
+                
+                // Add black key if it exists
+                if (blackKeys[i] && blackKeys[i] !== '') {
+                    const blackKey = document.createElement('div');
+                    blackKey.className = 'piano-key black absolute w-8 h-20 rounded-b-md flex items-end justify-center pb-2 text-xs font-medium';
+                    blackKey.textContent = blackKeys[i];
+                    blackKey.style.position = 'absolute';
+                    blackKey.style.width = '32px';
+                    blackKey.style.height = '80px';
+                    blackKey.style.borderRadius = '0 0 6px 6px';
+                    blackKey.style.display = 'flex';
+                    blackKey.style.alignItems = 'end';
+                    blackKey.style.justifyContent = 'center';
+                    blackKey.style.paddingBottom = '8px';
+                    blackKey.style.fontSize = '12px';
+                    blackKey.style.fontWeight = '500';
+                    
+                    const blackKeyPositions = [10, 24, 0, 38, 52, 66, 0];
+                    if (blackKeyPositions[i] > 0) {
+                        blackKey.style.marginLeft = `${blackKeyPositions[i]}%`;
+                        blackKey.style.zIndex = '10';
+                        
+                        const blackKeyMidi = [61, 63, 0, 66, 68, 70, 0];
+                        const blackMidiNote = blackKeyMidi[i];
+                        if (activeNotes.includes(blackMidiNote)) {
+                            blackKey.classList.add('active');
+                        }
+                        
+                        container.appendChild(blackKey);
+                    }
+                }
+            }
+        }
+        
+        // Test canvas
+        function createCanvasTest() {
+            const canvas = document.getElementById('canvas-test');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.fillStyle = '#0b1220';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255,255,255,.1)';
+            ctx.lineWidth = 1;
+            
+            // Vertical lines (bars)
+            for (let i = 0; i <= 16; i++) {
+                const x = (i / 16) * canvas.width;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // Horizontal lines (notes)
+            for (let i = 0; i <= 12; i++) {
+                const y = (i / 12) * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Draw some test notes
+            ctx.fillStyle = '#4ab0ff';
+            ctx.fillRect(50, 50, 100, 20);
+            ctx.fillRect(200, 80, 80, 20);
+            ctx.fillRect(350, 120, 120, 20);
+            
+            // Add note labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('C', 100, 65);
+            ctx.fillText('E', 240, 95);
+            ctx.fillText('G', 410, 135);
+        }
+        
+        // Test scale pattern
+        function createScalePatternTest() {
+            const container = document.getElementById('scale-pattern');
+            const noteNames = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+            const scaleNotes = [60, 62, 64, 65, 67, 69, 71]; // C major scale
+            const activeNotes = [60, 64, 67]; // C major triad
+            
+            noteNames.forEach((note, index) => {
+                const noteCell = document.createElement('div');
+                noteCell.style.aspectRatio = '1';
+                noteCell.style.borderRadius = '4px';
+                noteCell.style.display = 'flex';
+                noteCell.style.alignItems = 'center';
+                noteCell.style.justifyContent = 'center';
+                noteCell.style.fontSize = '12px';
+                noteCell.style.fontWeight = '500';
+                noteCell.style.border = '1px solid';
+                
+                const midiNote = scaleNotes[index];
+                
+                if (activeNotes.includes(midiNote)) {
+                    noteCell.style.background = '#4ab0ff';
+                    noteCell.style.color = '#ffffff';
+                    noteCell.style.borderColor = '#1e9bff';
+                    noteCell.textContent = note;
+                } else {
+                    noteCell.style.background = '#1f2937';
+                    noteCell.style.color = '#9ca3af';
+                    noteCell.style.borderColor = '#374151';
+                    noteCell.textContent = '·';
+                }
+                
+                container.appendChild(noteCell);
+            });
+        }
+        
+        // Initialize tests
+        createPianoTest();
+        createCanvasTest();
+        createScalePatternTest();
+        
+        console.log('Visualization tests completed successfully!');
+    </script>
+</body>
+</html>

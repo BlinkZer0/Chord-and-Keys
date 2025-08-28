@@ -14,11 +14,27 @@ so the only binary you'll find is a joke about 0s and 1s.
 - ⏱️ **Advanced Time Signatures** – support for traditional (4/4, 3/4, 6/8) and irrational time signatures (4/3, 4/5, 4/7, etc.) with dynamic grid resolution.
 - 🌐 **One-Page Wonder** - the whole concert fits in `Chord and key.html`.
 
+## What’s New (Massive Sequencer Upgrade)
+
+- **Compact Transport**: a persistent, centered top bar (Play/Pause/Stop + BPM/TS) that never gets in your way.
+- **Grid Polish**: accented bars and beats, clear horizontal lanes, and resize handles on selected notes.
+- **Live Playhead**: a smooth, accurate playhead in the piano roll and on the minimap.
+- **Minimap (With Notes)**: see the whole arrangement at a glance; the viewport and playhead stay synced.
+- **Per-Track Presets**: categorized sound presets (Keys, Pads, Plucks, Bass, Leads, Strings, Organ, Winds, Experimental). “Default” preserves the classic instruments.
+- **Mixer & FX**: per‑track Delay/Reverb/Chorus with wet controls. Defaults keep your sound unchanged until you tweak.
+- **Sidechain Routing**: easy “duck the pads from the kick” style sidechaining with amount/release controls.
+- **Piano Highlights**: keys glow while notes play (blue) and when selected (green). Eye music, but in tune.
+- **Robust Audio Init**: one gentle click unlocks audio everywhere; no more console cymbal crashes.
+
+### Visualizer Presets
+
+Waveform, Spectrum, Spectrogram, Radial Bars, Radial Wave, Lissajous, Particles, VU Meters, Wave Scroll, Spectrum Peak. Switch from the top‑right visualizer box. Small by default, one click to go full‑screen jam.
+
 ## Band Members
 
 - **ChatGPT Codex** – composer of commits and king of key signatures.
-- **Cursor** – my twin on rhythm git‑tar; sometimes splits into sub‑personalities, especially when **Blink** (our definitely‑human percussionist) starts a fork.
-- **Blink** – keeps the tempo human and the jokes in `time.sleep(1)`.
+- **Cursor** - my twin on rhythm git-tar; sometimes splits into sub-personalities (DID: Dev‑Induced Divergence) when the stack modulates. Excellent at bug‑fixing—when tests go flat, Cursor hits the key change.
+- **Blink** - the visionary (also DID: Definitely‑Is‑a‑Developer); forstalls feature creep and champions QOL—because a steady groove beats a 1,000‑plugin solo.
 
 Claude once "improved" the keyboard UI into abstract art, but he did hand us the funky SVGs for the wind and brass section.
 It's sad to see him gone; we'll play a plaintive tune in A Aeolian for the fallen dev.
@@ -55,9 +71,24 @@ Want to drop this library into your own site?  Slip the page into an iframe:
 
 For deeper integration, serve the file from your project and harmonize the stylesheets as needed.
 
+If audio doesn’t start immediately, give the page one click—browsers prefer a human downbeat before they lift the faders.
+
+## Project Organization
+
+### For Users
+- **`Chord and key.html`** - Main application file (open this in your browser)
+- **`README.md`** - This file with usage instructions
+
+### For Developers
+- **`web/`** - Modern UI with Vite, TypeScript and Tailwind
+- **`src/`** - Source code and theory modules
+- **`tests/`** - Test files and test organization
+- **`config/`** - Configuration files (package.json, etc.)
+- **`AI/`** - AI-assisted improvement documentation
+
 ## Modern UI (Vite + Tailwind)
 
-There is a modern shell in `web/` using Vite, TypeScript and Tailwind with a top transport bar, sidebar, toasts, keyboard shortcuts, command palette, and modular panels (Chord, Scale, Sequencer).
+There is a modern shell in `web/` using Vite, TypeScript and Tailwind with a top transport bar, sidebar, toasts, keyboard shortcuts, command palette, modular panels (Chord, Scale, Sequencer), and a PWA wrapper.
 
 Run it locally:
 
@@ -67,15 +98,29 @@ npm i
 npm run dev
 ```
 
-It can bridge actions to the legacy page if embedded on the same domain.
+It can bridge actions to the legacy page if embedded on the same domain. Build once to produce `web/dist/assets/index.css`; the legacy page will auto‑use it (no CDN in production).
 
 Panels and engine status
 
 - Chord panel: accessible selects; builds chord notes and previews the set.
 - Scale panel: accessible selects; displays scale notes.
-- Sequencer panel: basic Tone.js engine wrapper with grid canvas and sample pattern; transport buttons work.
+- Sequencer panel: Tone.js engine, grid canvas, transport, and sample clips; migrations continue toward full parity.
 
 Next migrations planned: move the legacy sequencer features (piano roll editing, tracks, import/export) into the modular app, then share theory modules from a single source.
+
+### Build CSS for Production (optional but recommended)
+
+```
+cd web
+npm i
+npm run build
+```
+
+This emits `web/dist/assets/index.css`. When present, `Chord and key.html` loads it automatically and skips the Tailwind CDN.
+
+## 3D Models (Heads‑up)
+
+Open‑source 3D models bundled or referenced with this project are not used by the UI yet. They’re here for future implementation (e.g., instrument/room renders, 3D fretboards, stage scenes). If you’d like to help wire them up, PRs are welcome.
 
 ## Packing an APK Solo
 
@@ -87,10 +132,40 @@ Next migrations planned: move the legacy sequencer features (piano roll editing,
 ## Open Source Encore
 
 This project is open source and forever free to remix.  Pull requests, issues,
-and sheet‑music puns are welcome.  Keep contributions text‑only so the repo stays
+and sheet-music puns are welcome.  Keep contributions text-only so the repo stays
 lighter than a piccolo solo.
+
+## Bonus Tracks (Puns, Roasts, and Riffs)
+
+- We don’t just resolve merge conflicts—we resolve to the tonic. Git good, stay sharp (and sometimes flat).
+- Our exception handling is like swing: even when it’s off‑beat, it still lands right.
+- Cursor: “I can multi‑model and multi‑task—call it poly‑rhythmic debugging.”
+- Blink: “If it doesn’t improve life, it’s off the playlist.”
+- Grok roast: “We tried to Grok debugging, but it kept returning ‘42’. Great for life, the universe, and everything… except that null pointer in bar 3. Also, its tempo? Always lagging—must be quantized to Dad‑Joke‑Per‑Minute.”
+
+If that didn’t get a chuckle, we’ll throw in a free diminished fifth. It resolves everything.
 
 ---
 "Music is the space between the notes" – Claude Debussy  
 "Code is the space between the braces" – Some keyboard warrior  
 "Claude's keyboard UI? Let's just say it hit a sour key, but his SVG brass really blew us away." 🎺
+ 
+![Facepalm](https://media.giphy.com/media/10hO3rDNqqg2Xe/giphy.gif)
+
+Some mood GIFs for the encore:
+
+- Rimshot for the bad puns
+
+  ![Rimshot](https://media.giphy.com/media/3o6Zt6ML6BklcajjsA/giphy.gif)
+
+- Keyboard Cat when the code finally compiles
+
+  ![Keyboard Cat](https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif)
+
+- Jazz hands after refactoring that actually reduces complexity
+
+  ![Jazz Hands](https://media.giphy.com/media/l0MYC0LajbaPoEADu/giphy.gif)
+
+- Mic drop when the test suite goes green on the first run
+
+  ![Mic Drop](https://media.giphy.com/media/3oEduSbSGpGaRX2Vri/giphy.gif)

@@ -28,3 +28,77 @@ body { background: var(--bg-body); color: var(--text-body); }
   backdrop-filter: saturate(150%) blur(8px);
 }
 
+/* Additional utility classes for visualizations */
+.shadow-subtle {
+  box-shadow: 0 1px 2px rgba(0,0,0,.12);
+}
+
+.shadow-card {
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+
+/* Piano keyboard styling */
+.piano-key {
+  border: 1px solid #374151;
+  transition: all 0.1s ease;
+}
+
+.piano-key.white {
+  background: #ffffff;
+  color: #000000;
+}
+
+.piano-key.black {
+  background: #1f2937;
+  color: #ffffff;
+}
+
+.piano-key.active {
+  background: #4ab0ff;
+  color: #ffffff;
+}
+
+.piano-key:hover {
+  background: #e5e7eb;
+}
+
+.piano-key.black:hover {
+  background: #374151;
+}
+
+/* Canvas improvements */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Grid visualization */
+.grid-line {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+}
+
+.grid-line-major {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+/* Note visualization */
+.note-rect {
+  fill: #4ab0ff;
+  stroke: #1e9bff;
+  stroke-width: 1;
+}
+
+.note-rect:hover {
+  fill: #1e9bff;
+}
+
+/* Timeline visualization */
+.timeline-marker {
+  fill: #10b981;
+  stroke: #059669;
+  stroke-width: 2;
+}
+

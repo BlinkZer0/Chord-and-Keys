@@ -24,6 +24,58 @@ function chordIntervals(q: string): number[] {
   }
 }
 
+function createPianoKeyboard(container: HTMLElement, activeNotes: number[] = []) {
+  container.innerHTML = '';
+  
+  const keyboard = document.createElement('div');
+  keyboard.className = 'flex h-32 bg-slate-800 rounded-lg p-2 gap-1 relative';
+  
+  const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const blackKeys = ['C#', 'D#', '', 'F#', 'G#', 'A#', ''];
+  
+  // Create one octave of keys
+  for (let i = 0; i < 7; i++) {
+    const whiteKey = document.createElement('div');
+    whiteKey.className = 'piano-key white flex-1 rounded-b-md flex items-end justify-center pb-2 text-xs font-medium';
+    whiteKey.textContent = whiteKeys[i];
+    
+    // Map white keys to MIDI notes: C=60, D=62, E=64, F=65, G=67, A=69, B=71
+    const whiteKeyMidi = [60, 62, 64, 65, 67, 69, 71];
+    const midiNote = whiteKeyMidi[i];
+    
+    if (activeNotes.includes(midiNote)) {
+      whiteKey.classList.add('active');
+    }
+    
+    keyboard.appendChild(whiteKey);
+    
+    // Add black key if it exists
+    if (blackKeys[i] && blackKeys[i] !== '') {
+      const blackKey = document.createElement('div');
+      blackKey.className = 'piano-key black absolute w-8 h-20 rounded-b-md flex items-end justify-center pb-2 text-xs font-medium';
+      blackKey.textContent = blackKeys[i];
+      
+      // Position black keys correctly
+      const blackKeyPositions = [10, 24, 0, 38, 52, 66, 0]; // percentages
+      if (blackKeyPositions[i] > 0) {
+        blackKey.style.marginLeft = `${blackKeyPositions[i]}%`;
+        blackKey.style.zIndex = '10';
+        
+        // Map black keys to MIDI notes: C#=61, D#=63, F#=66, G#=68, A#=70
+        const blackKeyMidi = [61, 63, 0, 66, 68, 70, 0];
+        const blackMidiNote = blackKeyMidi[i];
+        if (activeNotes.includes(blackMidiNote)) {
+          blackKey.classList.add('active');
+        }
+        
+        keyboard.appendChild(blackKey);
+      }
+    }
+  }
+  
+  container.appendChild(keyboard);
+}
+
 export function mountChordPanel(container: HTMLElement) {
   container.innerHTML = '';
   const wrap = document.createElement('div');
@@ -61,6 +113,9 @@ export function mountChordPanel(container: HTMLElement) {
   const out = document.createElement('div');
   out.className = 'rounded-lg border border-slate-700 bg-slate-900 p-3 text-sm';
 
+  const pianoContainer = document.createElement('div');
+  pianoContainer.className = 'relative';
+
   const actions = document.createElement('div');
   actions.className = 'flex gap-2';
   const sendBtn = document.createElement('button');
@@ -68,7 +123,7 @@ export function mountChordPanel(container: HTMLElement) {
   sendBtn.textContent = 'Send to Sequencer';
   actions.appendChild(sendBtn);
 
-  wrap.append(header, controls, out, actions);
+  wrap.append(header, controls, out, pianoContainer, actions);
   container.appendChild(wrap);
 
   function render(){
@@ -81,7 +136,11 @@ export function mountChordPanel(container: HTMLElement) {
     const notes = ints.map(semi => midiRoot + semi);
     // apply inversion
     for(let i=0;i<inv;i++){ const n = notes.shift()!; notes.push(n+12); }
+    
     out.textContent = `${root}${q==='maj'?'':q}: [${notes.join(', ')}]`;
+    
+    // Update piano keyboard visualization
+    createPianoKeyboard(pianoContainer, notes);
   }
   invInput.addEventListener('input', render);
   render();

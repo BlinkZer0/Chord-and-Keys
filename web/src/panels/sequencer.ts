@@ -19,7 +19,14 @@ export function mountSequencerPanel(container: HTMLElement) {
   const mini = document.createElement('canvas');
   mini.className = 'w-full h-10 bg-slate-900 border border-slate-700 rounded-md';
 
-  wrap.append(controls, canvas, mini);
+  // Add timeline
+  const timeline = document.createElement('div');
+  timeline.className = 'flex items-center gap-2 text-sm text-slate-400';
+  const timeDisplay = document.createElement('span');
+  timeDisplay.textContent = '0:00';
+  timeline.appendChild(timeDisplay);
+
+  wrap.append(controls, canvas, mini, timeline);
   container.appendChild(wrap);
 
   const eng = createEngine();
@@ -48,41 +55,125 @@ export function mountSequencerPanel(container: HTMLElement) {
   stop.addEventListener('click', () => eng.stop());
   bpm.addEventListener('change', () => eng.setBpm(parseFloat((bpm as HTMLInputElement).value || '120')));
 
-  // Draw grid over canvas
+  // Enhanced drawing functions
   const ctx = canvas.getContext('2d')!;
   const mctx = mini.getContext('2d')!;
+  
   function size() {
-    canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
-    mini.width = mini.clientWidth; mini.height = mini.clientHeight;
+    canvas.width = canvas.clientWidth; 
+    canvas.height = canvas.clientHeight;
+    mini.width = mini.clientWidth; 
+    mini.height = mini.clientHeight;
   }
-  function grid() {
+  
+  function drawGrid() {
     size();
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0,0,W,H);
-    ctx.fillStyle = '#0b1220'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#0b1220'; 
+    ctx.fillRect(0,0,W,H);
+    
     // Bars and beats
-    const bars = 16; const beatsPerBar = song.ts.num;
+    const bars = 16; 
+    const beatsPerBar = song.ts.num;
+    const ticksPerBar = song.ppq * beatsPerBar;
+    
     for (let bar = 0; bar <= bars; bar++){
       const x = Math.round((bar / bars) * W);
       ctx.strokeStyle = bar % 2 === 0 ? 'rgba(255,255,255,.15)' : 'rgba(255,255,255,.08)';
-      ctx.beginPath(); ctx.moveTo(x+0.5, 0); ctx.lineTo(x+0.5, H); ctx.stroke();
+      ctx.lineWidth = bar % 2 === 0 ? 2 : 1;
+      ctx.beginPath(); 
+      ctx.moveTo(x+0.5, 0); 
+      ctx.lineTo(x+0.5, H); 
+      ctx.stroke();
+      
       if (bar < bars) {
-        for (let b=1;b<beatsPerBar;b++){
+        for (let b=1; b<beatsPerBar; b++){
           const xb = x + Math.round((b / beatsPerBar) * (W / bars));
           ctx.strokeStyle = 'rgba(255,255,255,.06)';
-          ctx.beginPath(); ctx.moveTo(xb+0.5, 0); ctx.lineTo(xb+0.5, H); ctx.stroke();
+          ctx.lineWidth = 1;
+          ctx.beginPath(); 
+          ctx.moveTo(xb+0.5, 0); 
+          ctx.lineTo(xb+0.5, H); 
+          ctx.stroke();
         }
       }
     }
-    // Minimap
-    mctx.clearRect(0,0,mini.width, mini.height);
-    mctx.fillStyle = '#0b1220'; mctx.fillRect(0,0,mini.width, mini.height);
-    mctx.fillStyle = 'rgba(99,102,241,.25)'; mctx.fillRect(0,0,mini.width, mini.height);
-    mctx.fillStyle = 'rgba(34,197,94,.6)'; mctx.fillRect(0,2, mini.width/4, mini.height-4);
-    mctx.strokeStyle = 'rgba(34,197,94,.9)'; mctx.strokeRect(0.5,1.5, mini.width/4-1, mini.height-3);
+    
+    // Draw notes
+    drawNotes();
   }
-  const ro = new ResizeObserver(grid); ro.observe(canvas); ro.observe(mini);
-  setTimeout(grid, 200);
+  
+  function drawNotes() {
+    const W = canvas.width, H = canvas.height;
+    const bars = 16;
+    const ticksPerBar = song.ppq * song.ts.num;
+    const totalTicks = bars * ticksPerBar;
+    
+    // Note colors
+    const noteColors = ['#4ab0ff', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    
+    song.tracks.forEach((track, trackIndex) => {
+      track.clips.forEach(clip => {
+        clip.notes.forEach(note => {
+          const startX = (clip.start + note.tick) / totalTicks * W;
+          const width = note.dur / totalTicks * W;
+          const noteHeight = 20;
+          const y = 50 + trackIndex * 30;
+          
+          // Note rectangle
+          ctx.fillStyle = noteColors[trackIndex % noteColors.length];
+          ctx.fillRect(startX, y, Math.max(width, 2), noteHeight);
+          
+          // Note border
+          ctx.strokeStyle = '#1e9bff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(startX, y, Math.max(width, 2), noteHeight);
+          
+          // Note label
+          const noteName = getNoteName(note.midi);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(noteName, startX + width/2, y + noteHeight/2 + 3);
+        });
+      });
+    });
+  }
+  
+  function getNoteName(midi: number): string {
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return notes[midi % 12];
+  }
+  
+  function drawMinimap() {
+    mctx.clearRect(0,0,mini.width, mini.height);
+    mctx.fillStyle = '#0b1220'; 
+    mctx.fillRect(0,0,mini.width, mini.height);
+    
+    // Background pattern
+    mctx.fillStyle = 'rgba(99,102,241,.25)'; 
+    mctx.fillRect(0,0,mini.width, mini.height);
+    
+    // Current position indicator
+    mctx.fillStyle = 'rgba(34,197,94,.6)'; 
+    mctx.fillRect(0,2, mini.width/4, mini.height-4);
+    mctx.strokeStyle = 'rgba(34,197,94,.9)'; 
+    mctx.strokeRect(0.5,1.5, mini.width/4-1, mini.height-3);
+  }
+  
+  const ro = new ResizeObserver(() => {
+    drawGrid();
+    drawMinimap();
+  }); 
+  ro.observe(canvas); 
+  ro.observe(mini);
+  
+  // Initial draw
+  setTimeout(() => {
+    drawGrid();
+    drawMinimap();
+  }, 200);
 }
 
 function btn(label: string, color: string){ const b=document.createElement('button'); b.className=`px-3 py-2 rounded-md ${color} hover:opacity-90 text-white text-sm`; b.textContent=label; return b; }

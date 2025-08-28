@@ -1,0 +1,18 @@
+{
+  "name": "chord-and-keys",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "test:unit": "node tests/run-tests.js --unit-only",
+    "test:visualization": "node tests/run-tests.js --list-viz",
+    "test:all": "node tests/run-tests.js",
+    "test:watch": "node --watch tests/run-tests.js",
+    "test:coverage": "echo 'Coverage reporting not yet implemented'",
+    "test:integration": "echo 'Integration tests not yet implemented'",
+    "test:e2e": "echo 'E2E tests not yet implemented'"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0"
+  }
+}

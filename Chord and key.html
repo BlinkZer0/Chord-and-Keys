@@ -80,7 +80,7 @@
               <span>Visualizer</span>
               <select id="vizMode" class="bg-slate-800 text-slate-100 border border-slate-500 rounded px-1 py-0.5">
                 <option value="waveform">Waveform</option>
-                <option value="spectrum">Spectrum</option>
+                <option value="fireworks">Fireworks</option>
                 <option value="spectrogram">Spectrogram</option>
                 <option value="radial-bars">Radial Bars</option>
                 <option value="radial-wave">Radial Wave</option>
@@ -88,7 +88,8 @@
                 <option value="particles">Particles</option>
                 <option value="vu">VU Meters</option>
                 <option value="wave-scroll">Wave Scroll</option>
-                <option value="spectrum-peak">Spectrum Peak</option>
+                <option value="neural-network">Neural Network</option>
+                <option value="matrix">Matrix</option>
               </select>
             </div>
             <div class="flex items-center gap-1">
@@ -5330,19 +5331,56 @@ document.addEventListener('pointerdown', function _unlockOnce(){
     }
     applyState();
 
-    function ensureAnalyser(){
+    // Native Web Audio API analyser graph (properly connected to Tone.js)
+    let _wa = { ac:null, splitter:null, analyser:null, analyserL:null, analyserR:null, wave:null, freq:null, waveL:null, waveR:null, peak:null };
+    function ensureAnalysers(){
       try{
-        if(!window.masterAnalyser || (window.masterAnalyser._type && window.masterAnalyser._type!==mode)){
-          try{ window.masterAnalyser.dispose?.(); }catch{}
-          initAudioGraph(mode);
-          window.masterAnalyser = masterAnalyser;
-          window.masterAnalyser._type = mode;
-          getMasterBus().connect(window.masterAnalyser);
-          try{ window.masterAnalyser.smoothing = 0.8; }catch{}
+        initAudioGraph();
+        const ac = Tone.getContext().rawContext; _wa.ac = ac;
+        
+        // Get the Tone.js master bus as a native Web Audio node
+        const masterBusNode = getMasterBus().output;
+        
+        if(!_wa.analyser){
+          _wa.analyser = ac.createAnalyser(); 
+          _wa.analyser.fftSize = 1024; 
+          _wa.analyser.smoothingTimeConstant = 0.8;
+          masterBusNode.connect(_wa.analyser);
+          _wa.wave = new Uint8Array(_wa.analyser.fftSize);
+          _wa.freq = new Uint8Array(_wa.analyser.frequencyBinCount);
         }
-      }catch(e){
-        console.warn('Analyzer setup failed:', e);
-      }
+        
+        if(!_wa.splitter){ 
+          _wa.splitter = ac.createChannelSplitter(2); 
+          masterBusNode.connect(_wa.splitter); 
+        }
+        if(!_wa.analyserL){ 
+          _wa.analyserL = ac.createAnalyser(); 
+          _wa.analyserL.fftSize = 1024; 
+          _wa.analyserL.smoothingTimeConstant = 0.8; 
+          _wa.splitter.connect(_wa.analyserL,0); 
+          _wa.waveL = new Uint8Array(_wa.analyserL.fftSize); 
+        }
+        if(!_wa.analyserR){ 
+          _wa.analyserR = ac.createAnalyser(); 
+          _wa.analyserR.fftSize = 1024; 
+          _wa.analyserR.smoothingTimeConstant = 0.8; 
+          _wa.splitter.connect(_wa.analyserR,1); 
+          _wa.waveR = new Uint8Array(_wa.analyserR.fftSize); 
+        }
+        
+        if(!_wa.peak){ _wa.peak = new Float32Array(_wa.analyser.frequencyBinCount); _wa.peak.fill(0); }
+      }catch(e){ console.warn('Analyzer setup failed:', e); }
+    }
+
+    function ensureAnalyser(){
+      try{ 
+        // Ensure audio context is started
+        if(Tone.context.state !== 'running') {
+          Tone.start().catch(e => console.warn('Could not start audio context:', e));
+        }
+        ensureAnalysers(); 
+      } catch(e){ console.warn('Analyzer setup failed:', e); }
     }
 
     // Spectrogram data storage
@@ -5356,70 +5394,110 @@ document.addEventListener('pointerdown', function _unlockOnce(){
       const W = canvas.width, H = canvas.height;
       try{
         if(mode==='waveform'){
-          const data = window.masterAnalyser.getValue();
+          _wa.analyserL.getByteTimeDomainData(_wa.waveL);
           ctx.clearRect(0,0,W,H);
           ctx.strokeStyle = '#60a5fa'; 
           ctx.lineWidth = 2;
           ctx.beginPath();
-          for(let i=0;i<data.length;i++){
-            const x = i / (data.length-1) * W;
-            const y = (1 - (data[i] + 1) / 2) * H;
+          for(let i=0;i<_wa.waveL.length;i++){
+            const x = i / (_wa.waveL.length-1) * W;
+            const y = (1 - ((_wa.waveL[i]-128)/128 + 1) / 2) * H;
             if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
           }
           ctx.stroke();
-        } else if(mode==='fft'){
-          const data = window.masterAnalyser.getValue(); // frequency magnitudes (dB)
-          ctx.clearRect(0,0,W,H);
+        } else if(mode==='fireworks'){
+          _wa.analyser.getByteFrequencyData(_wa.freq);
           
-          // Create gradient background
-          const gradient = ctx.createLinearGradient(0, 0, 0, H);
-          gradient.addColorStop(0, '#0f172a');
-          gradient.addColorStop(1, '#1e293b');
-          ctx.fillStyle = gradient;
+          // Create dark background with fade effect
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
           ctx.fillRect(0, 0, W, H);
           
-          const barW = Math.max(1, Math.floor(W / data.length));
-          
-          for(let i=0;i<data.length;i++){
-            const v = Math.max(-100, Math.min(0, data[i]));
-            const mag = Math.pow(10, v/20); // convert dB -> amplitude 0..1
-            
-            // Frequency-based color mapping
-            const freq = (i / data.length) * (Tone.context.sampleRate / 2);
-            const hue = Math.min(360, Math.max(0, 240 - (freq / 2000) * 240)); // Blue to red
-            const saturation = 70 + mag * 30;
-            const lightness = 40 + mag * 40;
-            
-            const h = Math.max(1, Math.floor(mag * H * 0.8));
-            ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-            ctx.fillRect(i*barW, H-h, barW-1, h);
-            
-            // Add subtle glow effect for stronger frequencies
-            if(mag > 0.3) {
-              ctx.shadowColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-              ctx.shadowBlur = 3;
-              ctx.fillRect(i*barW, H-h, barW-1, h);
-              ctx.shadowBlur = 0;
-            }
+          // Initialize fireworks array if not exists
+          if (!window._fireworks) {
+            window._fireworks = [];
           }
           
-          // Add frequency labels
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-          ctx.font = '10px monospace';
-          ctx.textAlign = 'center';
-          const labelFreqs = [100, 500, 1000, 2000, 5000, 10000];
-          labelFreqs.forEach(freq => {
-            const binIndex = Math.floor((freq / (Tone.context.sampleRate / 2)) * data.length);
-            if(binIndex < data.length) {
-              const x = binIndex * barW + barW / 2;
-              ctx.fillText(`${freq >= 1000 ? (freq/1000).toFixed(1) + 'k' : freq}Hz`, x, H - 5);
+          // Get audio intensity for triggering new fireworks
+          const bass = _wa.freq[4] / 255;
+          const treble = _wa.freq[Math.floor(_wa.freq.length * 0.8)] / 255;
+          const intensity = (bass + treble) / 2;
+          
+          // Create new fireworks based on audio intensity
+          if (Math.random() < intensity * 0.1) {
+            window._fireworks.push({
+              x: Math.random() * W,
+              y: H,
+              vx: (Math.random() - 0.5) * 4,
+              vy: -Math.random() * 8 - 4,
+              particles: [],
+              hue: Math.random() * 360,
+              life: 100
+            });
+          }
+          
+          // Update and draw fireworks
+          for (let i = window._fireworks.length - 1; i >= 0; i--) {
+            const fw = window._fireworks[i];
+            
+            // Update position
+            fw.x += fw.vx;
+            fw.y += fw.vy;
+            fw.vy += 0.2; // gravity
+            fw.life--;
+            
+            // Explode when velocity changes direction or life runs out
+            if (fw.vy > 0 && fw.particles.length === 0) {
+              // Create explosion particles
+              const particleCount = 50 + Math.floor(intensity * 30);
+              for (let j = 0; j < particleCount; j++) {
+                fw.particles.push({
+                  x: fw.x,
+                  y: fw.y,
+                  vx: (Math.random() - 0.5) * 8,
+                  vy: (Math.random() - 0.5) * 8,
+                  life: 50 + Math.random() * 50,
+                  hue: fw.hue + Math.random() * 60 - 30
+                });
+              }
             }
-          });
+            
+            // Update and draw particles
+            for (let j = fw.particles.length - 1; j >= 0; j--) {
+              const p = fw.particles[j];
+              p.x += p.vx;
+              p.y += p.vy;
+              p.vx *= 0.98;
+              p.vy *= 0.98;
+              p.life--;
+              
+              if (p.life > 0) {
+                const alpha = p.life / 100;
+                const size = (p.life / 100) * 3;
+                ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add glow effect
+                ctx.shadowColor = `hsl(${p.hue}, 100%, 60%)`;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+              } else {
+                fw.particles.splice(j, 1);
+              }
+            }
+            
+            // Remove dead fireworks
+            if (fw.life <= 0 && fw.particles.length === 0) {
+              window._fireworks.splice(i, 1);
+            }
+          }
         } else if(mode==='spectrogram'){
-          const data = window.masterAnalyser.getValue(); // dB bins
+          _wa.analyser.getByteFrequencyData(_wa.freq);
           
           // Add new column to spectrogram data
-          const newColumn = data.map(v => Math.max(-100, Math.min(0, v)));
+          const newColumn = Array.from(_wa.freq);
           spectrogramData.push(newColumn);
           
           // Limit spectrogram width
@@ -5433,14 +5511,14 @@ document.addEventListener('pointerdown', function _unlockOnce(){
           // Draw spectrogram
           const columnWidth = W / spectrogramData.length;
           
+          const sr2 = (_wa.ac && _wa.ac.sampleRate) || ((Tone.getContext && Tone.getContext().rawContext && Tone.getContext().rawContext.sampleRate) || 44100);
           for(let x = 0; x < spectrogramData.length; x++) {
             const column = spectrogramData[x];
             for(let y = 0; y < column.length; y++) {
-              const v = column[y];
-              const mag = Math.pow(10, v/20);
+              const mag = column[y]/255;
               
               // Frequency-based color mapping (inverted Y axis for spectrogram)
-              const freq = ((column.length - 1 - y) / column.length) * (Tone.context.sampleRate / 2);
+              const freq = ((column.length - 1 - y) / column.length) * (sr2 / 2);
               const hue = Math.min(360, Math.max(0, 240 - (freq / 2000) * 240));
               const saturation = 85;
               const lightness = Math.max(10, Math.min(90, 25 + mag * 65));
@@ -5469,11 +5547,290 @@ document.addEventListener('pointerdown', function _unlockOnce(){
           ctx.textAlign = 'left';
           const labelFreqs = [100, 500, 1000, 2000, 5000, 10000];
           labelFreqs.forEach(freq => {
-            const y = (1 - (freq / (Tone.context.sampleRate / 2))) * H;
+            const y = (1 - (freq / (sr2 / 2))) * H;
             if(y >= 0 && y < H) {
               ctx.fillText(`${freq >= 1000 ? (freq/1000).toFixed(1) + 'k' : freq}Hz`, 5, y + 3);
             }
           });
+        } else if(mode==='radial-bars'){
+          _wa.analyser.getByteFrequencyData(_wa.freq);
+          ctx.clearRect(0,0,W,H);
+          const cx=W/2, cy=H/2; const baseR=Math.min(W,H)/6; const n=_wa.freq.length; const maxLen=Math.min(W,H)/2 - baseR - 4;
+          for(let i=0;i<n;i++){
+            const a=(i/n)*Math.PI*2 - Math.PI/2; const mag=_wa.freq[i]/255; const len=mag*maxLen; const x1=cx+Math.cos(a)*baseR, y1=cy+Math.sin(a)*baseR; const x2=cx+Math.cos(a)*(baseR+len), y2=cy+Math.sin(a)*(baseR+len);
+            ctx.strokeStyle=`hsl(${200+mag*100},70%,60%)`; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+          }
+        } else if(mode==='radial-wave'){
+          _wa.analyserL.getByteTimeDomainData(_wa.waveL);
+          ctx.clearRect(0,0,W,H);
+          const cx=W/2, cy=H/2, R=Math.min(W,H)/3; ctx.strokeStyle='#60a5fa'; ctx.beginPath();
+          for(let i=0;i<_wa.waveL.length;i++){ const t=i/(_wa.waveL.length-1), a=t*Math.PI*2 - Math.PI/2; const v=(_wa.waveL[i]-128)/128; const rr=R+v*R*0.3; const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); }
+          ctx.stroke();
+        } else if(mode==='lissajous'){
+          _wa.analyserL.getByteTimeDomainData(_wa.waveL); _wa.analyserR.getByteTimeDomainData(_wa.waveR);
+          ctx.clearRect(0,0,W,H); ctx.strokeStyle='#22d3ee'; ctx.beginPath(); const n=Math.min(_wa.waveL.length,_wa.waveR.length); for(let i=0;i<n;i++){ const xl=(_wa.waveL[i]-128)/128, xr=(_wa.waveR[i]-128)/128; const x=(xl*0.5+0.5)*W, y=(1-(xr*0.5+0.5))*H; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+        } else if(mode==='particles'){
+          _wa.analyser.getByteFrequencyData(_wa.freq); if(!window._vizParts){ window._vizParts=Array.from({length:180},()=>({x:Math.random()*W,y:Math.random()*H,vx:0,vy:0})); }
+          ctx.fillStyle='rgba(15,23,42,0.2)'; ctx.fillRect(0,0,W,H); const bass=_wa.freq[4]/255, treb=_wa.freq[Math.floor(_wa.freq.length*0.8)]/255; window._vizParts.forEach(p=>{ p.vx+=(Math.random()-0.5)*0.5+(treb-0.5)*0.5; p.vy+=(Math.random()-0.5)*0.5+(bass-0.5)*0.5; p.x=(p.x+p.vx+W)%W; p.y=(p.y+p.vy+H)%H; p.vx*=0.98; p.vy*=0.98; ctx.fillStyle=`hsl(${200+bass*120},70%,${50+treb*30}%)`; ctx.fillRect(p.x,p.y,2,2); });
+        } else if(mode==='vu'){
+          _wa.analyserL.getByteTimeDomainData(_wa.waveL); _wa.analyserR.getByteTimeDomainData(_wa.waveR);
+          function rms(a){ let s=0; for(let i=0;i<a.length;i++){const v=(a[i]-128)/128; s+=v*v;} return Math.sqrt(s/a.length);} const l=rms(_wa.waveL), r=rms(_wa.waveR);
+          ctx.clearRect(0,0,W,H); const w=(W-30)/2; ctx.fillStyle='#111827'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#22c55e'; ctx.fillRect(10,H-l*H,w,l*H); ctx.fillStyle='#3b82f6'; ctx.fillRect(20+w,H-r*H,w,r*H);
+        } else if(mode==='wave-scroll'){
+          const img=ctx.getImageData(1,0,W-1,H); ctx.putImageData(img,0,0); _wa.analyserL.getByteTimeDomainData(_wa.waveL); const v=(_wa.waveL[Math.floor(Math.random()*_wa.waveL.length)]-128)/128; const y=(1-(v*0.5+0.5))*H; ctx.fillStyle='#60a5fa'; ctx.fillRect(W-1,y-1,1,2);
+        } else if(mode==='neural-network'){
+          _wa.analyser.getByteFrequencyData(_wa.freq);
+          
+          // Clear canvas with fade effect
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+          ctx.fillRect(0, 0, W, H);
+          
+          // Initialize neural network if not exists
+          if (!window._neuralNetwork) {
+            window._neuralNetwork = {
+              nodes: [],
+              connections: [],
+              time: 0
+            };
+            
+            // Create nodes
+            const nodeCount = 20;
+            for (let i = 0; i < nodeCount; i++) {
+              window._neuralNetwork.nodes.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2,
+                size: 3 + Math.random() * 4,
+                hue: Math.random() * 360,
+                pulse: Math.random() * Math.PI * 2
+              });
+            }
+            
+            // Create connections between nearby nodes
+            for (let i = 0; i < nodeCount; i++) {
+              for (let j = i + 1; j < nodeCount; j++) {
+                const dx = window._neuralNetwork.nodes[i].x - window._neuralNetwork.nodes[j].x;
+                const dy = window._neuralNetwork.nodes[i].y - window._neuralNetwork.nodes[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) {
+                  window._neuralNetwork.connections.push({
+                    from: i,
+                    to: j,
+                    strength: 1 - (distance / 150)
+                  });
+                }
+              }
+            }
+          }
+          
+          const nn = window._neuralNetwork;
+          nn.time += 0.02;
+          
+          // Get audio data for node activation
+          const bass = _wa.freq[4] / 255;
+          const mid = _wa.freq[Math.floor(_wa.freq.length * 0.5)] / 255;
+          const treble = _wa.freq[Math.floor(_wa.freq.length * 0.8)] / 255;
+          
+          // Update nodes
+          nn.nodes.forEach((node, index) => {
+            // Update position with gentle movement
+            node.x += node.vx;
+            node.y += node.vy;
+            
+            // Bounce off edges
+            if (node.x < 0 || node.x > W) node.vx *= -1;
+            if (node.y < 0 || node.y > H) node.vy *= -1;
+            
+            // Keep nodes in bounds
+            node.x = Math.max(0, Math.min(W, node.x));
+            node.y = Math.max(0, Math.min(H, node.y));
+            
+            // Audio-reactive pulsing
+            node.pulse += 0.1;
+            const audioIntensity = (bass + mid + treble) / 3;
+            const pulseSize = node.size + Math.sin(node.pulse) * audioIntensity * 5;
+            
+            // Draw node
+            const alpha = 0.3 + audioIntensity * 0.7;
+            ctx.fillStyle = `hsla(${node.hue}, 80%, 60%, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, pulseSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add glow effect
+            ctx.shadowColor = `hsl(${node.hue}, 80%, 60%)`;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          });
+          
+          // Draw connections
+          nn.connections.forEach(conn => {
+            const fromNode = nn.nodes[conn.from];
+            const toNode = nn.nodes[conn.to];
+            
+            // Calculate connection strength based on audio
+            const audioIntensity = (bass + mid + treble) / 3;
+            const strength = conn.strength * (0.3 + audioIntensity * 0.7);
+            
+            if (strength > 0.1) {
+              ctx.strokeStyle = `rgba(100, 200, 255, ${strength * 0.5})`;
+              ctx.lineWidth = strength * 3;
+              ctx.beginPath();
+              ctx.moveTo(fromNode.x, fromNode.y);
+              ctx.lineTo(toNode.x, toNode.y);
+              ctx.stroke();
+              
+              // Add flowing effect
+              const flowOffset = Math.sin(nn.time + conn.from * 0.5) * 5;
+              ctx.strokeStyle = `rgba(150, 255, 255, ${strength * 0.3})`;
+              ctx.lineWidth = strength * 1.5;
+              ctx.beginPath();
+              ctx.moveTo(fromNode.x + flowOffset, fromNode.y);
+              ctx.lineTo(toNode.x + flowOffset, toNode.y);
+              ctx.stroke();
+            }
+          });
+        } else if(mode==='matrix'){
+          _wa.analyser.getByteFrequencyData(_wa.freq);
+          
+          // Clear canvas with dark green fade
+          ctx.fillStyle = 'rgba(0, 20, 0, 0.1)';
+          ctx.fillRect(0, 0, W, H);
+          
+          // Initialize matrix if not exists
+          if (!window._matrix) {
+            window._matrix = {
+              columns: [],
+              symbols: '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン',
+              time: 0
+            };
+            
+            // Create falling columns
+            const columnCount = Math.floor(W / 20);
+            for (let i = 0; i < columnCount; i++) {
+              window._matrix.columns.push({
+                x: i * 20 + 10,
+                y: Math.random() * H,
+                speed: 1 + Math.random() * 3,
+                length: 10 + Math.floor(Math.random() * 20),
+                chars: [],
+                intensity: Math.random()
+              });
+            }
+          }
+          
+          const matrix = window._matrix;
+          matrix.time += 0.02;
+          
+          // Get audio intensity
+          const bass = _wa.freq[4] / 255;
+          const mid = _wa.freq[Math.floor(_wa.freq.length * 0.5)] / 255;
+          const treble = _wa.freq[Math.floor(_wa.freq.length * 0.8)] / 255;
+          const audioIntensity = (bass + mid + treble) / 3;
+          
+          // Update and draw columns
+          matrix.columns.forEach((column, index) => {
+            // Update position
+            column.y += column.speed;
+            
+            // Reset column when it goes off screen
+            if (column.y > H + column.length * 20) {
+              column.y = -column.length * 20;
+              column.intensity = Math.random();
+              column.speed = 1 + Math.random() * 3;
+            }
+            
+            // Generate new characters for the column
+            if (column.chars.length === 0 || Math.random() < 0.1) {
+              column.chars = [];
+              for (let i = 0; i < column.length; i++) {
+                column.chars.push({
+                  char: matrix.symbols[Math.floor(Math.random() * matrix.symbols.length)],
+                  age: i * 2,
+                  brightness: 1 - (i / column.length)
+                });
+              }
+            }
+            
+            // Draw characters in the column
+            column.chars.forEach((char, charIndex) => {
+              const charY = column.y - charIndex * 20;
+              
+              // Skip if character is off screen
+              if (charY < -20 || charY > H + 20) return;
+              
+              // Calculate brightness based on audio and character age
+              const audioBrightness = 0.3 + audioIntensity * 0.7;
+              const ageBrightness = Math.max(0.1, char.brightness - char.age * 0.02);
+              const finalBrightness = Math.min(1, ageBrightness * audioBrightness * column.intensity);
+              
+              // Draw character with Matrix green color
+              ctx.fillStyle = `rgba(0, ${255 * finalBrightness}, 0, ${finalBrightness})`;
+              ctx.font = '16px monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(char.char, column.x, charY);
+              
+              // Add glow effect for brighter characters
+              if (finalBrightness > 0.5) {
+                ctx.shadowColor = `rgba(0, ${255 * finalBrightness}, 0, ${finalBrightness})`;
+                ctx.shadowBlur = 5;
+                ctx.fillText(char.char, column.x, charY);
+                ctx.shadowBlur = 0;
+              }
+              
+              // Age the character
+              char.age += 0.5;
+            });
+            
+            // Remove old characters
+            column.chars = column.chars.filter(char => char.age < 50);
+          });
+          
+          // Add some floating particles for extra effect
+          if (!window._matrixParticles) {
+            window._matrixParticles = [];
+          }
+          
+          // Create new particles based on audio intensity
+          if (Math.random() < audioIntensity * 0.1) {
+            window._matrixParticles.push({
+              x: Math.random() * W,
+              y: Math.random() * H,
+              vx: (Math.random() - 0.5) * 2,
+              vy: (Math.random() - 0.5) * 2,
+              life: 50 + Math.random() * 50,
+              size: 1 + Math.random() * 3
+            });
+          }
+          
+          // Update and draw particles
+          for (let i = window._matrixParticles.length - 1; i >= 0; i--) {
+            const particle = window._matrixParticles[i];
+            
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.life--;
+            
+            if (particle.life > 0) {
+              const alpha = particle.life / 100;
+              const size = particle.size * (particle.life / 100);
+              
+              ctx.fillStyle = `rgba(0, 255, 0, ${alpha * 0.5})`;
+              ctx.beginPath();
+              ctx.arc(particle.x, particle.y, size, 0, Math.PI * 2);
+              ctx.fill();
+              
+              // Add glow
+              ctx.shadowColor = 'rgba(0, 255, 0, 0.8)';
+              ctx.shadowBlur = 10;
+              ctx.fill();
+              ctx.shadowBlur = 0;
+            } else {
+              window._matrixParticles.splice(i, 1);
+            }
+          }
         }
       }catch(e){
         console.warn('Visualization error:', e);
