@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chord & Scale Library</title>
+  <title>Chord and Key</title>
   <!-- Tailwind loader: prefer built CSS; fallback to CDN in dev -->
   <script>
     (function(){
@@ -53,7 +53,7 @@
 <body class="min-h-screen w-full skin-default">
   <div class="max-w-6xl mx-auto p-6">
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
-        <h1 class="text-2xl md:text-3xl font-bold">Chord & Scale Library</h1>
+        <h1 class="text-2xl md:text-3xl font-bold">Chord and Key</h1>
         <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
         <select id="skinSelector" aria-label="Theme" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
           <option value="default">Default</option>
@@ -442,7 +442,7 @@
       </section>
     </details>
 
-      <footer class="mt-10 text-center text-xs text-slate-500">© 2025 — Interactive Chord & Scale Library</footer>
+      <footer class="mt-10 text-center text-xs text-slate-500">© 2025 — Interactive Chord and Key</footer>
   </div>
 
 <script>
@@ -5953,24 +5953,16 @@ document.addEventListener('pointerdown', function _unlockOnce(){
     const mo = new MutationObserver(()=>{ const t=status.textContent?.trim(); if(t) toast(t); }); mo.observe(status,{childList:true,subtree:true,characterData:true});
   })();
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (secondary handler; Space handled by primary global handler)
   window.addEventListener('keydown', (e)=>{
     const isMac = navigator.platform.includes('Mac');
+    const ae = document.activeElement; const tag=(ae?.tagName||'').toLowerCase();
+    const isTyping = ['input','textarea','select'].includes(tag) || (ae && ae.isContentEditable);
     if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase()==='k') { e.preventDefault(); document.getElementById('openCmdPalette')?.click(); }
-    if (e.code==='Space') { 
-      e.preventDefault(); 
-      const seqPlay = document.getElementById('seqPlay');
-      const seqPause = document.getElementById('seqPause');
-      if (sequencerState === 'playing') {
-        seqPause?.dispatchEvent(new Event('click',{bubbles:true}));
-      } else {
-        seqPlay?.dispatchEvent(new Event('click',{bubbles:true}));
-      }
-    }
-    if (e.key.toLowerCase()==='s') { e.preventDefault(); document.getElementById('seqStop')?.dispatchEvent(new Event('click',{bubbles:true})); }
-    if (e.key.toLowerCase()==='q') { e.preventDefault(); document.getElementById('seqQuantizeBtn')?.dispatchEvent(new Event('click',{bubbles:true})); }
-    if (e.code==='Home') { e.preventDefault(); document.getElementById('seqToStart')?.dispatchEvent(new Event('click',{bubbles:true})); }
-    if (e.code==='End') { e.preventDefault(); document.getElementById('seqToEnd')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.key.toLowerCase()==='s' && !isTyping) { e.preventDefault(); document.getElementById('seqStop')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.key.toLowerCase()==='q' && !isTyping) { e.preventDefault(); document.getElementById('seqQuantizeBtn')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.code==='Home' && !isTyping) { e.preventDefault(); document.getElementById('seqToStart')?.dispatchEvent(new Event('click',{bubbles:true})); }
+    if (e.code==='End' && !isTyping) { e.preventDefault(); document.getElementById('seqToEnd')?.dispatchEvent(new Event('click',{bubbles:true})); }
   });
 
   // Command palette (simple)

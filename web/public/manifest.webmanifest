@@ -1,5 +1,5 @@
 {
-  "name": "Chord & Scale Library",
+  "name": "Chord and Key",
   "short_name": "Chords&Keys",
   "start_url": "/",
   "display": "standalone",
@@ -7,4 +7,3 @@
   "theme_color": "#1e9bff",
   "icons": []
 }
-

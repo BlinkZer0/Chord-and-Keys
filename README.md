@@ -1,4 +1,4 @@
-# Chord & Scale Library 🎵
+# Chord and Key
 
 A free‑as‑in‑jazz playground where code and chords jam in perfect sync.
 The repo is entirely text‑based – every texture is procedurally generated,
