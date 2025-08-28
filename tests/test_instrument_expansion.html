@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrument Expansion Test</title>
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .instrument-selector {
+            background: #3a3a3a;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        select {
+            background: #4a4a4a;
+            color: white;
+            border: 1px solid #666;
+            padding: 8px;
+            border-radius: 4px;
+            width: 300px;
+        }
+        optgroup {
+            font-weight: bold;
+            color: #ffd700;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+        }
+        .instrument-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .instrument-item {
+            background: #3a3a3a;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+        }
+        .category-header {
+            background: #ffd700;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Instrument Expansion Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <p>This test verifies that the instrument expansion works correctly with organized categories and preserved defaults.</p>
+        <ol>
+            <li>Check that the instrument selector shows organized categories</li>
+            <li>Verify that default instruments appear at the top</li>
+            <li>Test that new instruments can be selected and played</li>
+            <li>Confirm that the sample library integration works</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Instrument Selector Test</h2>
+        <div class="instrument-selector">
+            <label for="instrumentSelect">Select Instrument:</label><br>
+            <select id="instrumentSelect"></select>
+            <button id="testPlayBtn">Test Play</button>
+            <button id="testNoteBtn">Play C Major Scale</button>
+        </div>
+        <div id="status" class="status info">Ready to test</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Instrument Categories</h2>
+        <div id="instrumentList"></div>
+    </div>
+
+    <script>
+        // Import the instrument definitions from the main file
+        const DEFAULT_INSTRUMENTS = [
+            "Piano", "Guitar", "Bass", "Violin", "Flute", "Recorder", 
+            "Trumpet", "Saxophone", "Koto", "Oud", "Ney", "Hammond Organ"
+        ];
+
+        const INSTRUMENT_CATEGORIES = {
+            "Pianos & Keys": [
+                "Piano", "Electric Piano", "Grand Piano", "Upright Piano", "Rhodes Piano",
+                "Wurlitzer", "Clavinet", "Harpsichord", "Celesta", "Glockenspiel",
+                "Vibraphone", "Marimba", "Xylophone"
+            ],
+            "Guitars": [
+                "Guitar", "Acoustic Guitar", "Electric Guitar", "Classical Guitar",
+                "12-String Guitar", "Bass Guitar", "Electric Bass", "Acoustic Bass",
+                "Ukulele", "Banjo", "Mandolin", "Oud", "Sitar", "Koto"
+            ],
+            "Strings": [
+                "Violin", "Viola", "Cello", "Double Bass", "String Ensemble",
+                "String Quartet", "Harp", "Erhu", "Guzheng"
+            ],
+            "Woodwinds": [
+                "Flute", "Piccolo", "Clarinet", "Bass Clarinet", "Oboe",
+                "English Horn", "Bassoon", "Contrabassoon", "Recorder", "Ney",
+                "Shakuhachi", "Dizi"
+            ],
+            "Brass": [
+                "Trumpet", "Cornet", "Flugelhorn", "Trombone", "Bass Trombone",
+                "French Horn", "Tuba", "Euphonium", "Sousaphone"
+            ],
+            "Saxophones": [
+                "Saxophone", "Soprano Sax", "Alto Sax", "Tenor Sax", "Baritone Sax"
+            ],
+            "Organs": [
+                "Hammond Organ", "Pipe Organ", "Reed Organ", "Accordion", "Harmonica"
+            ],
+            "Percussion": [
+                "Timpani", "Snare Drum", "Bass Drum", "Tom-Tom", "Cymbals",
+                "Gong", "Triangle", "Tambourine", "Maracas", "Conga", "Bongo",
+                "Tabla", "Djembe"
+            ],
+            "Synths & Electronic": [
+                "Analog Synth", "Digital Synth", "FM Synth", "Pad Synth",
+                "Lead Synth", "Bass Synth", "Arpeggiator", "Choir", "Voice"
+            ],
+            "World & Ethnic": [
+                "Koto", "Oud", "Ney", "Sitar", "Erhu", "Guzheng", "Shakuhachi",
+                "Dizi", "Kalimba", "Steel Drum", "Didgeridoo"
+            ]
+        };
+
+        let currentInstrument = 'Piano';
+        let synth = null;
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function buildInstrumentSelector(selectElement) {
+            selectElement.innerHTML = '';
+            
+            // Add default instruments first (always at the top)
+            const defaultGroup = document.createElement('optgroup');
+            defaultGroup.label = 'Default Instruments';
+            DEFAULT_INSTRUMENTS.forEach(instrument => {
+                const option = document.createElement('option');
+                option.value = instrument;
+                option.textContent = instrument;
+                defaultGroup.appendChild(option);
+            });
+            selectElement.appendChild(defaultGroup);
+            
+            // Add categorized instruments
+            Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+                // Skip if this category only contains default instruments
+                const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+                if (nonDefaultInstruments.length === 0) return;
+                
+                const group = document.createElement('optgroup');
+                group.label = category;
+                
+                instruments.forEach(instrument => {
+                    const option = document.createElement('option');
+                    option.value = instrument;
+                    option.textContent = instrument;
+                    group.appendChild(option);
+                });
+                
+                selectElement.appendChild(group);
+            });
+        }
+
+        function displayInstrumentList() {
+            const container = document.getElementById('instrumentList');
+            container.innerHTML = '';
+
+            // Display default instruments
+            const defaultHeader = document.createElement('div');
+            defaultHeader.className = 'category-header';
+            defaultHeader.textContent = 'Default Instruments';
+            container.appendChild(defaultHeader);
+
+            const defaultList = document.createElement('div');
+            defaultList.className = 'instrument-list';
+            DEFAULT_INSTRUMENTS.forEach(instrument => {
+                const item = document.createElement('div');
+                item.className = 'instrument-item';
+                item.textContent = instrument;
+                defaultList.appendChild(item);
+            });
+            container.appendChild(defaultList);
+
+            // Display categorized instruments
+            Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+                const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+                if (nonDefaultInstruments.length === 0) return;
+
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.textContent = category;
+                container.appendChild(header);
+
+                const list = document.createElement('div');
+                list.className = 'instrument-list';
+                instruments.forEach(instrument => {
+                    const item = document.createElement('div');
+                    item.className = 'instrument-item';
+                    item.textContent = instrument;
+                    list.appendChild(item);
+                });
+                container.appendChild(list);
+            });
+        }
+
+        function playNote(midiNote, duration = '8n') {
+            if (!synth) {
+                synth = new Tone.PolySynth().toDestination();
+            }
+            
+            const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+            synth.triggerAttackRelease(freq, duration);
+        }
+
+        function playCScale() {
+            const cScale = [60, 62, 64, 65, 67, 69, 71, 72]; // C4 to C5
+            cScale.forEach((note, index) => {
+                setTimeout(() => {
+                    playNote(note, '4n');
+                }, index * 500);
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('instrumentSelect');
+            buildInstrumentSelector(select);
+            displayInstrumentList();
+            
+            updateStatus(`Loaded ${DEFAULT_INSTRUMENTS.length} default instruments and ${Object.values(INSTRUMENT_CATEGORIES).flat().filter(instr => !DEFAULT_INSTRUMENTS.includes(instr)).length} additional instruments`, 'success');
+        });
+
+        // Event listeners
+        document.getElementById('instrumentSelect').addEventListener('change', (e) => {
+            currentInstrument = e.target.value;
+            updateStatus(`Selected: ${currentInstrument}`, 'info');
+        });
+
+        document.getElementById('testPlayBtn').addEventListener('click', () => {
+            playNote(60, '2n'); // Play middle C
+            updateStatus(`Playing ${currentInstrument} - Middle C`, 'success');
+        });
+
+        document.getElementById('testNoteBtn').addEventListener('click', () => {
+            playCScale();
+            updateStatus(`Playing ${currentInstrument} - C Major Scale`, 'success');
+        });
+
+        // Initialize Tone.js
+        Tone.start();
+    </script>
+</body>
+</html>

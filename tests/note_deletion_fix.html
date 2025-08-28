@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Deletion Fix Test</title>
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Note Deletion Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <p>This test verifies that notes stop playing after being deleted from the sequencer.</p>
+        <ol>
+            <li>Click "Start Sequencer" to begin playback</li>
+            <li>Click "Add Test Notes" to add some notes to the sequencer</li>
+            <li>Click "Delete Notes" to remove the notes</li>
+            <li>Verify that the notes stop playing immediately after deletion</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Controls</h2>
+        <button id="startBtn">Start Sequencer</button>
+        <button id="stopBtn">Stop Sequencer</button>
+        <button id="addNotesBtn">Add Test Notes</button>
+        <button id="deleteNotesBtn">Delete Notes</button>
+        <button id="clearAllBtn">Clear All Notes</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Status</h2>
+        <div id="status" class="status info">Ready to test</div>
+    </div>
+
+    <script>
+        // Simple sequencer implementation to test the fix
+        let sequencerState = 'stopped';
+        let notes = [];
+        let scheduledEvents = [];
+        
+        // Create a simple synth
+        const synth = new Tone.PolySynth().toDestination();
+        
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function startSequencer() {
+            if (sequencerState === 'playing') return;
+            
+            Tone.Transport.bpm.value = 120;
+            Tone.Transport.start();
+            sequencerState = 'playing';
+            updateStatus('Sequencer started', 'success');
+        }
+        
+        function stopSequencer() {
+            if (sequencerState === 'stopped') return;
+            
+            // Clear all scheduled events
+            Tone.Transport.cancel();
+            // Release all notes
+            synth.releaseAll();
+            
+            Tone.Transport.stop();
+            sequencerState = 'stopped';
+            updateStatus('Sequencer stopped', 'info');
+        }
+        
+        function addTestNotes() {
+            // Add some test notes
+            const testNotes = [
+                { tick: 0, dur: 48, midi: 60, vel: 0.8 },    // C4
+                { tick: 48, dur: 48, midi: 62, vel: 0.8 },   // D4
+                { tick: 96, dur: 48, midi: 64, vel: 0.8 },   // E4
+                { tick: 144, dur: 48, midi: 65, vel: 0.8 },  // F4
+            ];
+            
+            notes = [...notes, ...testNotes];
+            updateStatus(`Added ${testNotes.length} test notes. Total notes: ${notes.length}`, 'success');
+            
+            if (sequencerState === 'playing') {
+                scheduleNotes();
+            }
+        }
+        
+        function deleteNotes() {
+            if (notes.length === 0) {
+                updateStatus('No notes to delete', 'error');
+                return;
+            }
+            
+            // Simulate the fix: clear scheduled events and release all notes
+            if (sequencerState === 'playing') {
+                // Clear all scheduled events
+                Tone.Transport.cancel();
+                // Release all notes
+                synth.releaseAll();
+                // Reschedule remaining notes (in this case, none)
+                scheduleNotes();
+            }
+            
+            notes = [];
+            updateStatus('Notes deleted and playback stopped', 'success');
+        }
+        
+        function clearAllNotes() {
+            if (sequencerState === 'playing') {
+                // Clear all scheduled events and release all notes
+                Tone.Transport.cancel();
+                synth.releaseAll();
+                scheduleNotes();
+            }
+            
+            notes = [];
+            updateStatus('All notes cleared', 'success');
+        }
+        
+        function scheduleNotes() {
+            // Clear any existing scheduled events
+            Tone.Transport.cancel();
+            
+            // Schedule all notes
+            notes.forEach(note => {
+                const time = `${note.tick}i`;
+                const duration = `${note.dur}i`;
+                
+                Tone.Transport.schedule((time) => {
+                    synth.triggerAttackRelease(note.midi, duration, time, note.vel);
+                }, time);
+            });
+        }
+        
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', startSequencer);
+        document.getElementById('stopBtn').addEventListener('click', stopSequencer);
+        document.getElementById('addNotesBtn').addEventListener('click', addTestNotes);
+        document.getElementById('deleteNotesBtn').addEventListener('click', deleteNotes);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllNotes);
+        
+        // Initialize Tone.js
+        Tone.start();
+    </script>
+</body>
+</html>

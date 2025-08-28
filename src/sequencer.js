@@ -15,9 +15,10 @@ import {
 
 
 // ========================= UTIL: THEORY =========================
-const INSTRUMENTS = [
+// Default instruments (always available)
+const DEFAULT_INSTRUMENTS = [
   "Piano",
-  "Guitar",
+  "Guitar", 
   "Bass",
   "Violin",
   "Flute",
@@ -29,6 +30,142 @@ const INSTRUMENTS = [
   "Ney",
   "Hammond Organ"
 ];
+
+// Extended instrument categories
+const INSTRUMENT_CATEGORIES = {
+  "Pianos & Keys": [
+    "Piano",
+    "Electric Piano",
+    "Grand Piano",
+    "Upright Piano",
+    "Rhodes Piano",
+    "Wurlitzer",
+    "Clavinet",
+    "Harpsichord",
+    "Celesta",
+    "Glockenspiel",
+    "Vibraphone",
+    "Marimba",
+    "Xylophone"
+  ],
+  "Guitars": [
+    "Guitar",
+    "Acoustic Guitar",
+    "Electric Guitar",
+    "Classical Guitar",
+    "12-String Guitar",
+    "Bass Guitar",
+    "Electric Bass",
+    "Acoustic Bass",
+    "Ukulele",
+    "Banjo",
+    "Mandolin",
+    "Oud",
+    "Sitar",
+    "Koto"
+  ],
+  "Strings": [
+    "Violin",
+    "Viola",
+    "Cello",
+    "Double Bass",
+    "String Ensemble",
+    "String Quartet",
+    "Harp",
+    "Erhu",
+    "Guzheng"
+  ],
+  "Woodwinds": [
+    "Flute",
+    "Piccolo",
+    "Clarinet",
+    "Bass Clarinet",
+    "Oboe",
+    "English Horn",
+    "Bassoon",
+    "Contrabassoon",
+    "Recorder",
+    "Ney",
+    "Shakuhachi",
+    "Dizi"
+  ],
+  "Brass": [
+    "Trumpet",
+    "Cornet",
+    "Flugelhorn",
+    "Trombone",
+    "Bass Trombone",
+    "French Horn",
+    "Tuba",
+    "Euphonium",
+    "Sousaphone"
+  ],
+  "Saxophones": [
+    "Saxophone",
+    "Soprano Sax",
+    "Alto Sax",
+    "Tenor Sax",
+    "Baritone Sax"
+  ],
+  "Organs": [
+    "Hammond Organ",
+    "Pipe Organ",
+    "Reed Organ",
+    "Accordion",
+    "Harmonica"
+  ],
+  "Percussion": [
+    "Timpani",
+    "Snare Drum",
+    "Bass Drum",
+    "Tom-Tom",
+    "Cymbals",
+    "Gong",
+    "Triangle",
+    "Tambourine",
+    "Maracas",
+    "Conga",
+    "Bongo",
+    "Tabla",
+    "Djembe"
+  ],
+  "Synths & Electronic": [
+    "Analog Synth",
+    "Digital Synth",
+    "FM Synth",
+    "Pad Synth",
+    "Lead Synth",
+    "Bass Synth",
+    "Arpeggiator",
+    "Choir",
+    "Voice"
+  ],
+  "World & Ethnic": [
+    "Koto",
+    "Oud",
+    "Ney",
+    "Sitar",
+    "Erhu",
+    "Guzheng",
+    "Shakuhachi",
+    "Dizi",
+    "Kalimba",
+    "Steel Drum",
+    "Didgeridoo"
+  ]
+};
+
+// Flatten all instruments for backward compatibility
+const INSTRUMENTS = [...DEFAULT_INSTRUMENTS];
+
+// Add all instruments from categories to the main list
+Object.values(INSTRUMENT_CATEGORIES).forEach(category => {
+  category.forEach(instrument => {
+    if (!INSTRUMENTS.includes(instrument)) {
+      INSTRUMENTS.push(instrument);
+    }
+  });
+});
 const INSTRUMENT_ICONS = {
   Flute: 'assets/instruments/flute_openmoji.svg',
     Recorder: 'assets/instruments/recorder_openmoji.svg',
@@ -38,20 +175,7 @@ const INSTRUMENT_ICONS = {
   Koto: 'assets/instruments/koto_openmoji.svg',
 };
 
-const SURGE_PRESETS = {
-  'Piano': 'piano.fxp',
-  'Guitar': 'guitar.fxp',
-  'Bass': 'bass.fxp',
-  'Violin': 'violin.fxp',
-  'Flute': 'flute.fxp',
-  'Recorder': 'recorder.fxp',
-  'Trumpet': 'trumpet.fxp',
-  'Saxophone': 'saxophone.fxp',
-  'Koto': 'koto.fxp',
-  'Oud': 'oud.fxp',
-  'Ney': 'ney.fxp',
-  'Hammond Organ': 'organ.fxp'
-};
+
 
 
 
@@ -141,6 +265,20 @@ function makeSynth(type, env, options = {}) {
         console.warn(`${type} trigger error:`, e);
       }
     },
+    release(midi, time = Tone.now()) {
+      try {
+        synth.triggerRelease(midiToFreq(midi), time);
+      } catch(e) {
+        // Ignore release errors
+      }
+    },
+    releaseAll() {
+      try {
+        synth.releaseAll();
+      } catch(e) {
+        // Ignore releaseAll errors
+      }
+    },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
@@ -151,7 +289,36 @@ function makeSynth(type, env, options = {}) {
 
 // ========================= SAMPLE-BASED INSTRUMENTS =========================
 let sampleLibrary = null;
-const SAMPLED_INSTRUMENTS = ['piano', 'saxophone', 'trumpet', 'violin', 'guitar-acoustic', 'flute'];
+
+// Extended list of sampled instruments from tonejs-instruments
+const SAMPLED_INSTRUMENTS = [
+  // Pianos & Keys
+  'piano', 'electric-piano', 'grand-piano', 'upright-piano', 'rhodes', 'wurlitzer', 'clavinet', 'harpsichord', 'celesta', 'glockenspiel', 'vibraphone', 'marimba', 'xylophone',
+  
+  // Guitars
+  'guitar-acoustic', 'guitar-electric', 'guitar-classical', 'guitar-12-string', 'bass-electric', 'bass-acoustic', 'ukulele', 'banjo', 'mandolin', 'sitar',
+  
+  // Strings
+  'violin', 'viola', 'cello', 'double-bass', 'string-ensemble', 'harp', 'erhu', 'guzheng',
+  
+  // Woodwinds
+  'flute', 'piccolo', 'clarinet', 'bass-clarinet', 'oboe', 'english-horn', 'bassoon', 'contrabassoon', 'recorder', 'shakuhachi', 'dizi',
+  
+  // Brass
+  'trumpet', 'cornet', 'flugelhorn', 'trombone', 'bass-trombone', 'french-horn', 'tuba', 'euphonium',
+  
+  // Saxophones
+  'saxophone', 'soprano-sax', 'alto-sax', 'tenor-sax', 'baritone-sax',
+  
+  // Organs
+  'organ', 'pipe-organ', 'accordion', 'harmonica',
+  
+  // Percussion
+  'timpani', 'snare-drum', 'bass-drum', 'tom-tom', 'cymbals', 'gong', 'triangle', 'tambourine', 'maracas', 'conga', 'bongo', 'tabla', 'djembe',
+  
+  // World & Ethnic
+  'koto', 'oud', 'ney', 'kalimba', 'steel-drum', 'didgeridoo'
+];
 
 function makeSampler(instrumentName) {
   if (!sampleLibrary || !sampleLibrary[instrumentName]) {
@@ -185,6 +352,13 @@ function makeSampler(instrumentName) {
         // Ignore release errors for samplers
       }
     },
+    releaseAll() {
+      try {
+        sampler.releaseAll();
+      } catch(e) {
+        // Ignore releaseAll errors for samplers
+      }
+    },
     setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
     dispose() {
@@ -213,6 +387,7 @@ async function initSampleLibrary() {
 }
 
 const SEQ_INSTR = {
+  // Default instruments (existing)
   Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
   Guitar: () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
   Bass: () => makeSynth('MonoSynth', ENV.Bass),
@@ -224,7 +399,107 @@ const SEQ_INSTR = {
   Koto: () => makeSynth('PluckSynth', ENV.Koto, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
   Oud: () => makeSynth('PluckSynth', ENV.Oud, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
   Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
-  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
+  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  
+  // Extended Pianos & Keys
+  'Electric Piano': () => makeSampler('electric-piano') || makeSynth('PolySynth', ENV.Piano),
+  'Grand Piano': () => makeSampler('grand-piano') || makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  'Upright Piano': () => makeSampler('upright-piano') || makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  'Rhodes Piano': () => makeSampler('rhodes') || makeSynth('PolySynth', ENV.Piano),
+  'Wurlitzer': () => makeSampler('wurlitzer') || makeSynth('PolySynth', ENV.Piano),
+  'Clavinet': () => makeSampler('clavinet') || makeSynth('PluckSynth', ENV.Guitar),
+  'Harpsichord': () => makeSampler('harpsichord') || makeSynth('PluckSynth', ENV.Guitar),
+  'Celesta': () => makeSampler('celesta') || makeSynth('PolySynth', ENV.Piano),
+  'Glockenspiel': () => makeSampler('glockenspiel') || makeSynth('PolySynth', ENV.Piano),
+  'Vibraphone': () => makeSampler('vibraphone') || makeSynth('PolySynth', ENV.Piano),
+  'Marimba': () => makeSampler('marimba') || makeSynth('PolySynth', ENV.Piano),
+  'Xylophone': () => makeSampler('xylophone') || makeSynth('PolySynth', ENV.Piano),
+  
+  // Extended Guitars
+  'Acoustic Guitar': () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  'Electric Guitar': () => makeSampler('guitar-electric') || makeSynth('PluckSynth', ENV.Guitar),
+  'Classical Guitar': () => makeSampler('guitar-classical') || makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  '12-String Guitar': () => makeSampler('guitar-12-string') || makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  'Bass Guitar': () => makeSynth('MonoSynth', ENV.Bass),
+  'Electric Bass': () => makeSampler('bass-electric') || makeSynth('MonoSynth', ENV.Bass),
+  'Acoustic Bass': () => makeSampler('bass-acoustic') || makeSynth('MonoSynth', ENV.Bass),
+  'Ukulele': () => makeSampler('ukulele') || makeSynth('PluckSynth', ENV.Guitar),
+  'Banjo': () => makeSampler('banjo') || makeSynth('PluckSynth', ENV.Guitar),
+  'Mandolin': () => makeSampler('mandolin') || makeSynth('PluckSynth', ENV.Guitar),
+  'Sitar': () => makeSampler('sitar') || makeSynth('PluckSynth', ENV.Guitar),
+  
+  // Extended Strings
+  'Viola': () => makeSampler('viola') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Cello': () => makeSampler('cello') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Double Bass': () => makeSampler('double-bass') || makeSynth('MonoSynth', ENV.Bass),
+  'String Ensemble': () => makeSampler('string-ensemble') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'String Quartet': () => makeSampler('string-ensemble') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Harp': () => makeSampler('harp') || makeSynth('PluckSynth', ENV.Guitar),
+  'Erhu': () => makeSampler('erhu') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Guzheng': () => makeSampler('guzheng') || makeSynth('PluckSynth', ENV.Guitar),
+  
+  // Extended Woodwinds
+  'Piccolo': () => makeSampler('piccolo') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Clarinet': () => makeSampler('clarinet') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Bass Clarinet': () => makeSampler('bass-clarinet') || makeSynth('PolySynth', ENV.Bass),
+  'Oboe': () => makeSampler('oboe') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'English Horn': () => makeSampler('english-horn') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Bassoon': () => makeSampler('bassoon') || makeSynth('PolySynth', ENV.Bass),
+  'Contrabassoon': () => makeSampler('contrabassoon') || makeSynth('PolySynth', ENV.Bass),
+  'Shakuhachi': () => makeSampler('shakuhachi') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Dizi': () => makeSampler('dizi') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  
+  // Extended Brass
+  'Cornet': () => makeSampler('cornet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Flugelhorn': () => makeSampler('flugelhorn') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Trombone': () => makeSampler('trombone') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Bass Trombone': () => makeSampler('bass-trombone') || makeSynth('PolySynth', ENV.Bass),
+  'French Horn': () => makeSampler('french-horn') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Tuba': () => makeSampler('tuba') || makeSynth('PolySynth', ENV.Bass),
+  'Euphonium': () => makeSampler('euphonium') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  
+  // Extended Saxophones
+  'Soprano Sax': () => makeSampler('soprano-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Alto Sax': () => makeSampler('alto-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Tenor Sax': () => makeSampler('tenor-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Baritone Sax': () => makeSampler('baritone-sax') || makeSynth('PolySynth', ENV.Bass),
+  
+  // Extended Organs
+  'Pipe Organ': () => makeSampler('pipe-organ') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Reed Organ': () => makeSampler('organ') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Accordion': () => makeSampler('accordion') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Harmonica': () => makeSampler('harmonica') || makeSynth('PolySynth', ENV['Hammond Organ']),
+  
+  // Percussion (synthesized)
+  'Timpani': () => makeMembrane('C2', { pitchDecay: 0.1, octaves: 2, envelope: { attack: 0.001, decay: 1.0, sustain: 0, release: 0.5 } }),
+  'Snare Drum': () => makeNoise({ type: 'bandpass', frequency: 2000 }, { attack: 0.001, decay: 0.2, sustain: 0 }),
+  'Bass Drum': () => makeMembrane('C1', { pitchDecay: 0.01, octaves: 2, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 } }),
+  'Tom-Tom': () => makeMembrane('A2', { pitchDecay: 0.05, octaves: 1.5, envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.2 } }),
+  'Cymbals': () => makeMetal({ frequency: 200, envelope: { attack: 0.001, decay: 0.8, release: 0.3 } }),
+  'Gong': () => makeMetal({ frequency: 150, envelope: { attack: 0.001, decay: 2.0, release: 1.0 } }),
+  'Triangle': () => makeMetal({ frequency: 800, envelope: { attack: 0.001, decay: 0.5, release: 0.2 } }),
+  'Tambourine': () => makeClap({ filterFreq: 1500, bursts: 2, decay: 0.3 }),
+  'Maracas': () => makeClap({ filterFreq: 2000, bursts: 3, decay: 0.2 }),
+  'Conga': () => makeMembrane('E3', { pitchDecay: 0.008, octaves: 1.5, envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 } }),
+  'Bongo': () => makeMembrane('A3', { pitchDecay: 0.005, octaves: 1.5, envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.05 } }),
+  'Tabla': () => makeMembrane('D3', { pitchDecay: 0.01, octaves: 2.5, envelope: { attack: 0.001, decay: 0.4, sustain: 0, release: 0.15 } }),
+  'Djembe': () => makeMembrane('C3', { pitchDecay: 0.015, octaves: 2, envelope: { attack: 0.001, decay: 0.5, sustain: 0, release: 0.2 } }),
+  
+  // Synths & Electronic
+  'Analog Synth': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'sawtooth' } }),
+  'Digital Synth': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'square' } }),
+  'FM Synth': () => makeSynth('AMSynth', ENV.Piano),
+  'Pad Synth': () => makeSynth('PolySynth', ENV.Piano, { envelope: { attack: 0.5, decay: 0.3, sustain: 0.7, release: 1.0 } }),
+  'Lead Synth': () => makeSynth('MonoSynth', ENV.Piano, { envelope: { attack: 0.1, decay: 0.2, sustain: 0.8, release: 0.3 } }),
+  'Bass Synth': () => makeSynth('MonoSynth', ENV.Bass),
+  'Arpeggiator': () => makeSynth('PolySynth', ENV.Piano),
+  'Choir': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'sine' }, envelope: { attack: 0.3, decay: 0.5, sustain: 0.6, release: 1.0 } }),
+  'Voice': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'triangle' }, envelope: { attack: 0.2, decay: 0.4, sustain: 0.5, release: 0.8 } }),
+  
+  // World & Ethnic
+  'Kalimba': () => makeSampler('kalimba') || makeSynth('PluckSynth', ENV.Guitar),
+  'Steel Drum': () => makeMetal({ frequency: 300, envelope: { attack: 0.001, decay: 0.6, release: 0.3 } }),
+  'Didgeridoo': () => makeSynth('PolySynth', ENV.Bass, { oscillator: { type: 'sawtooth' }, envelope: { attack: 0.5, decay: 0.8, sustain: 0.9, release: 1.5 } })
 };
 
 function createSeqInstrument(name){
@@ -463,7 +738,16 @@ function deleteSelected() {
   track.clips[0].notes = track.clips[0].notes.filter(note => !selectedNotes.has(note));
   selectedNotes.clear();
   drawPianoRoll();
-  if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+  if(Tone.Transport.state==='started') {
+    // Clear all scheduled events and release all notes
+    Tone.Transport.cancel();
+    song.tracks.forEach(t => {
+      if(t.player && t.player.releaseAll) {
+        t.player.releaseAll();
+      }
+    });
+    scheduleSong(activeTrack);
+  }
 }
 
 function copySelected() {
@@ -659,6 +943,9 @@ function makeMembrane(pitch, opts){
         console.warn('MembraneSynth trigger error:', e);
       }
     },
+    releaseAll() {
+      // Drums don't need releaseAll as they're percussive
+    },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     dispose(){ synth.dispose(); gain.dispose(); panner.dispose(); }
@@ -678,6 +965,9 @@ function makeNoise(filterOpts, envOpts){
         console.warn('NoiseSynth trigger error:', e);
       }
     },
+    releaseAll() {
+      // Drums don't need releaseAll as they're percussive
+    },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
     dispose(){ synth.dispose(); filter.dispose(); gain.dispose(); panner.dispose(); }
@@ -690,6 +980,9 @@ function makeMetal(opts){
   return {
     trigger(note, time=Tone.now(), velocity=1, duration='8n'){
       synth.triggerAttackRelease(midiToFreq(note), duration, time, velocity);
+    },
+    releaseAll() {
+      // Drums don't need releaseAll as they're percussive
     },
     setVolume(v){ gain.gain.value = v; },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
@@ -706,6 +999,9 @@ function makeClap({filterFreq, bursts, decay}){
       for(let i=0;i<bursts;i++){
         noise.triggerAttackRelease('16n', time + i*0.02, velocity);
       }
+    },
+    releaseAll() {
+      // Drums don't need releaseAll as they're percussive
     },
     setVolume(v){ gain.gain.value = v; },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
@@ -1683,7 +1979,16 @@ pianoRoll.addEventListener('pointerdown', ev => {
       clip.notes.splice(clip.notes.indexOf(foundNote), 1);
       selectedNotes.delete(foundNote);
       drawPianoRoll();
-      if(Tone.Transport.state==='started') scheduleSong(activeTrack);
+      if(Tone.Transport.state==='started') {
+        // Clear all scheduled events and release all notes
+        Tone.Transport.cancel();
+        song.tracks.forEach(t => {
+          if(t.player && t.player.releaseAll) {
+            t.player.releaseAll();
+          }
+        });
+        scheduleSong(activeTrack);
+      }
       return;
     } else if(ev.shiftKey) {
       // Shift+Click = Toggle selection
@@ -1914,25 +2219,72 @@ function initSequencer(){
   song.tracks.forEach((track, idx) => {
     const row=document.createElement('div');
     row.className='flex items-center gap-2';
-    const instrOpts = INSTRUMENTS.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
-    const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
+    
+    // Create instrument selector with categories
+    const instrumentSelect = document.createElement('select');
+    instrumentSelect.className = 'bg-slate-800/80 border border-slate-700 rounded px-2 py-1';
+    
+    // Add default instruments first
+    const defaultGroup = document.createElement('optgroup');
+    defaultGroup.label = 'Default Instruments';
+    DEFAULT_INSTRUMENTS.forEach(instrument => {
+      const option = document.createElement('option');
+      option.value = instrument;
+      option.textContent = instrument;
+      if (instrument === track.instrument) option.selected = true;
+      defaultGroup.appendChild(option);
+    });
+    instrumentSelect.appendChild(defaultGroup);
+    
+    // Add categorized instruments
+    Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+      // Skip if this category only contains default instruments
+      const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+      if (nonDefaultInstruments.length === 0) return;
+      
+      const group = document.createElement('optgroup');
+      group.label = category;
+      
+      instruments.forEach(instrument => {
+        const option = document.createElement('option');
+        option.value = instrument;
+        option.textContent = instrument;
+        if (instrument === track.instrument) option.selected = true;
+        group.appendChild(option);
+      });
+      
+      instrumentSelect.appendChild(group);
+    });
+    
+    // Add drums
+    const drumGroup = document.createElement('optgroup');
+    drumGroup.label = 'Drums (Sequencer)';
+    DRUM_NAMES.forEach(drum => {
+      const option = document.createElement('option');
+      option.value = drum;
+      option.textContent = drum;
+      if (drum === track.instrument) option.selected = true;
+      drumGroup.appendChild(option);
+    });
+    instrumentSelect.appendChild(drumGroup);
+    
     row.innerHTML=
       `<span class="w-32">${track.instrument}</span>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
       `<input type="range" min="-1" max="1" step="0.01" value="${track.pan}" class="w-24" />`+
-      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
-      instrOpts+
-      `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
-      `</select>`+
       `<input type="color" id="trk-${idx}-color" class="w-8 h-8 rounded" value="${track.color||'#ffffff'}">`+
       `<button id="trk-${idx}-clrReset" class="px-2 py-1 text-xs rounded bg-slate-700" aria-label="Reset track color" title="Reset track color">Reset</button>`;
+    
+    // Insert the instrument selector in the right position
+    const controls = row.querySelector('input[type="range"]:last-of-type');
+    controls.parentNode.insertBefore(instrumentSelect, controls.nextSibling);
     seqTracks.appendChild(row);
     const muteBtn = row.querySelector('[data-mute]');
     const soloBtn = row.querySelector('[data-solo]');
     const [volSlider, panSlider] = row.querySelectorAll('input[type="range"]');
-    const sel = row.querySelector('select');
+    const sel = instrumentSelect; // Use the instrument selector we created
     const clrInput = row.querySelector(`#trk-${idx}-color`);
     const clrReset = row.querySelector(`#trk-${idx}-clrReset`);
     muteBtn.addEventListener('click', (e)=>{
@@ -1991,7 +2343,43 @@ function updateSelButtons(){
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
-fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
+
+// Build organized instrument selector with categories
+function buildInstrumentSelector(selectElement) {
+  selectElement.innerHTML = '';
+  
+  // Add default instruments first (always at the top)
+  const defaultGroup = document.createElement('optgroup');
+  defaultGroup.label = 'Default Instruments';
+  DEFAULT_INSTRUMENTS.forEach(instrument => {
+    const option = document.createElement('option');
+    option.value = instrument;
+    option.textContent = instrument;
+    defaultGroup.appendChild(option);
+  });
+  selectElement.appendChild(defaultGroup);
+  
+  // Add categorized instruments
+  Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+    // Skip if this category only contains default instruments
+    const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+    if (nonDefaultInstruments.length === 0) return;
+    
+    const group = document.createElement('optgroup');
+    group.label = category;
+    
+    instruments.forEach(instrument => {
+      const option = document.createElement('option');
+      option.value = instrument;
+      option.textContent = instrument;
+      group.appendChild(option);
+    });
+    
+    selectElement.appendChild(group);
+  });
+}
+
+fillSelect(selKey, KEYS); selKey.value = keyRoot; buildInstrumentSelector(selInstr); selInstr.value=instrument; updateInstrumentIcon();
 fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
 fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
 function populateModeOptions(){
@@ -4356,7 +4744,23 @@ function showVelocityEditor() {
 seqColorScheme.addEventListener('change', e=>applySeqColorScheme(e.target.value));
 seqZoomX.addEventListener('input', e=>{ ui.zoomX = Number(e.target.value); drawPianoRoll(); });
 seqZoomY.addEventListener('input', e=>{ ui.zoomY = Number(e.target.value); drawPianoRoll(); });
-seqClearAll.addEventListener('click', ()=>{ if(confirm('Clear all notes on active track?')){ song.tracks[activeTrack].clips[0].notes=[]; drawPianoRoll(); if(Tone.Transport.state==='started') scheduleSong(activeTrack); }});
+seqClearAll.addEventListener('click', ()=>{ 
+  if(confirm('Clear all notes on active track?')){
+    song.tracks[activeTrack].clips[0].notes=[];
+    selectedNotes.clear();
+    drawPianoRoll(); 
+    if(Tone.Transport.state==='started') {
+      // Clear all scheduled events and release all notes
+      Tone.Transport.cancel();
+      song.tracks.forEach(t => {
+        if(t.player && t.player.releaseAll) {
+          t.player.releaseAll();
+        }
+      });
+      scheduleSong(activeTrack);
+    }
+  }
+});
 seqExportWav.addEventListener('click', handleExportWav);
 seqExportMp3.addEventListener('click', handleExportMp3);
 $('#btnClearSel').addEventListener('click', clearSelection);
