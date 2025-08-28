@@ -48,13 +48,14 @@
     .glass { background: rgba(2, 6, 23, 0.6); backdrop-filter: saturate(150%) blur(8px); }
     .focus-ring:focus-visible { outline: 2px solid #4ab0ff; outline-offset: 2px; border-radius: 8px; }
     .topbar { position: sticky; top: 0; z-index: 40; }
+    #topTransportBar.collapsed #topTransportControls { display:none; }
+    #topTransportBar.collapsed #topTransportLabel { display:inline; }
   </style>
 </head>
 <body class="min-h-screen w-full skin-default">
   <div class="max-w-6xl mx-auto p-6">
       <header class="mb-6 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-2">
         <h1 class="text-2xl md:text-3xl font-bold">Chord and Key</h1>
-        <div class="text-xs text-slate-400">Audio starts on first click • Tone.js</div>
         <select id="skinSelector" aria-label="Theme" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
           <option value="default">Default</option>
           <option value="solarized">Solarized</option>
@@ -103,20 +104,24 @@
       </div>
 
       <!-- Sticky Transport Bar -->
-      <div id="topTransportBar" class="fixed top-2 left-1/2 -translate-x-1/2 z-40 glass border border-slate-700 rounded-xl p-2 shadow-card">
+      <div id="topTransportBar" class="fixed top-2 left-1/2 -translate-x-1/2 z-40 glass border border-slate-700 rounded-xl p-2 shadow-card collapsed" aria-expanded="false">
         <div class="flex items-center gap-2">
-          <button id="topPlay" class="focus-ring px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium" aria-label="Play">Play</button>
-          <button id="topPause" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Pause">Pause</button>
-          <button id="topStop" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Stop">Stop</button>
-          <div class="flex items-center gap-2 ml-3">
-            <label class="text-sm text-slate-300">BPM</label>
-            <input id="topBpm" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
-            <label class="text-sm text-slate-300">TS</label>
-            <input id="topTSNum" type="number" min="1" max="16" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" /> /
-            <input id="topTSDen" type="number" min="1" max="32" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" />
+          <span id="topTransportLabel" class="text-xs text-slate-300 hidden">Transport</span>
+          <div id="topTransportControls" class="flex items-center gap-2">
+            <button id="topPlay" class="focus-ring px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium" aria-label="Play">Play</button>
+            <button id="topPause" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Pause">Pause</button>
+            <button id="topStop" class="focus-ring px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-sm" aria-label="Stop">Stop</button>
+            <div class="flex items-center gap-2 ml-3">
+              <label class="text-sm text-slate-300">BPM</label>
+              <input id="topBpm" type="number" class="w-20 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="120" />
+              <label class="text-sm text-slate-300">TS</label>
+              <input id="topTSNum" type="number" min="1" max="16" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" /> /
+              <input id="topTSDen" type="number" min="1" max="32" class="w-14 bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1" value="4" />
+            </div>
           </div>
           <div class="ml-auto flex items-center gap-2">
             <button id="openCmdPalette" class="focus-ring px-2 py-1 rounded-lg border border-slate-700 text-slate-200 text-sm" aria-label="Open Command Palette">Ctrl/Cmd+K</button>
+            <button id="topBarToggle" class="focus-ring px-2 py-1 rounded-lg border border-slate-700 text-slate-200 text-sm" aria-expanded="false" aria-controls="topTransportControls" title="Expand">▸</button>
           </div>
         </div>
       </div>
@@ -5943,6 +5948,28 @@ document.addEventListener('pointerdown', function _unlockOnce(){
   const topTSD = document.getElementById('topTSDen');
   if(topTSN){ topTSN.addEventListener('change',()=>{ const el=document.querySelector('#seqTSNum'); if(el){ el.value=topTSN.value; el.dispatchEvent(new Event('input',{bubbles:true})); }}); }
   if(topTSD){ topTSD.addEventListener('change',()=>{ const el=document.querySelector('#seqTSDen'); if(el){ el.value=topTSD.value; el.dispatchEvent(new Event('input',{bubbles:true})); }}); }
+
+  // Top transport minimize/expand
+  (function(){
+    const bar = document.getElementById('topTransportBar');
+    const toggle = document.getElementById('topBarToggle');
+    if(!bar || !toggle) return;
+    function apply(collapsed){
+      bar.classList.toggle('collapsed', collapsed);
+      bar.setAttribute('aria-expanded', collapsed? 'false':'true');
+      toggle.setAttribute('aria-expanded', collapsed? 'false':'true');
+      toggle.textContent = collapsed ? '▸' : '▾';
+      toggle.title = collapsed ? 'Expand' : 'Minimize';
+    }
+    const saved = localStorage.getItem('topBarCollapsed');
+    const initialCollapsed = (saved === null) ? true : (saved === '1');
+    apply(initialCollapsed);
+    toggle.addEventListener('click', ()=>{
+      const collapsed = !bar.classList.contains('collapsed');
+      apply(collapsed);
+      localStorage.setItem('topBarCollapsed', collapsed? '1':'0');
+    });
+  })();
 
   // Toasts from #seqStatus changes
   (function(){
