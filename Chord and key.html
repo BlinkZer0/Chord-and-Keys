@@ -30,6 +30,7 @@
     #devTests .chevron { display:inline-block; transition: transform 0.2s; transform: rotate(-90deg); }
     #devTests[open] .chevron { transform: rotate(0deg); }
     .key-selected { box-shadow: 0 0 5px 2px rgba(34,197,94,.7); }
+    .key-playing { box-shadow: 0 0 8px 3px rgba(59,130,246,.85); outline: 2px solid rgba(59,130,246,.7); outline-offset: 2px; }
     .glass { background: rgba(2, 6, 23, 0.6); backdrop-filter: saturate(150%) blur(8px); }
     .focus-ring:focus-visible { outline: 2px solid #4ab0ff; outline-offset: 2px; border-radius: 8px; }
     .topbar { position: sticky; top: 0; z-index: 40; }
@@ -721,13 +722,37 @@ const SEQ_INSTR = {
   'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
 };
 
-function createSeqInstrument(name){
+// Channel presets for melodic tracks (non-drum)
+const CHANNEL_PRESETS = {
+  'Default': { },
+  'Bright Keys': { type:'PolySynth', env:{ osc:'triangle', a:.003, d:.18, s:.45, r:.9, filter:{frequency:3500, Q:1.1} } },
+  'Warm Pad': { type:'PolySynth', env:{ osc:'sawtooth', a:.2, d:.6, s:.85, r:1.8, filter:{frequency:1800, Q:.7}, vibrato:{rate:5, depth:.06} } },
+  'Soft Pluck': { type:'PluckSynth', options:{ pluckOptions:{ attackNoise:.25, dampening:2200, resonance:.8 } }, env:{ maxSustain:2 } },
+  'Brittle Pluck': { type:'PluckSynth', options:{ pluckOptions:{ attackNoise:.6, dampening:1800, resonance:.9 } }, env:{ maxSustain:1.6 } },
+  'Bass Sub': { type:'MonoSynth', env:{ osc:'sine', a:.01, d:.25, s:.6, r:.8, filter:{frequency:400, Q:1.5}, maxSustain:3 } },
+  'Bass Punch': { type:'MonoSynth', env:{ osc:'square', a:.008, d:.18, s:.5, r:.6, filter:{frequency:600, Q:1.2}, maxSustain:2.5 } },
+  'Lead Silk': { type:'PolySynth', env:{ osc:'sawtooth', a:.02, d:.2, s:.6, r:.7, vibrato:{rate:6.5, depth:.05}, filter:{frequency:3800, Q:1.1} } },
+  'Strings Smooth': { type:'PolySynth', env:{ osc:'sawtooth', a:.05, d:.3, s:.85, r:1.2, vibrato:{rate:6, depth:.05}, filter:{frequency:3600, Q:1.2} } },
+  'Organ Soft': { type:'PolySynth', env:{ osc:'square', a:.01, d:.25, s:.92, r:.6, tremolo:{rate:5, depth:.25}, filter:{frequency:4200, Q:.3} } },
+  'Flute Airy': { type:'PolySynth', env:{ osc:'sine', a:.06, d:.15, s:.85, r:.4, vibrato:{rate:5, depth:.05}, filter:{frequency:4800, Q:.5} } },
+};
+const CHANNEL_PRESET_NAMES = Object.keys(CHANNEL_PRESETS);
+
+function createSeqInstrument(name, presetName){
   try {
+    // Use presets when explicitly chosen (and not drums)
+    if(presetName && presetName !== 'Default' && !DRUMS[name]){
+      const preset = CHANNEL_PRESETS[presetName] || {};
+      const base = ENV[name] || ENV.Piano;
+      const env = { ...base, ...(preset.env||{}) };
+      const opts = preset.options || {};
+      const type = preset.type || 'PolySynth';
+      return makeSynth(type, env, opts);
+    }
     const factory = SEQ_INSTR[name];
     if(factory) {
       return factory();
     }
-
     // Fallback to makePoly with appropriate envelope
     const env = ENV[name] || ENV.Piano;
     return makeSynth('PolySynth', env);
@@ -1233,23 +1258,28 @@ async function playMidiNotes(list, {instrument='Piano', tempo=110, asChord=false
   const now=Tone.now();
   if(asChord){
     _synth.triggerAttackRelease(list.map(midiToFreq), beat*2, now);
+    // Piano highlight for chord
+    list.forEach(m => schedulePianoHighlight(m, 0, beat*2));
     return;
   }
   if(strum){
     list.forEach((m,i)=>{
       const t=now + i*(beat/6);
       _synth.triggerAttackRelease(midiToFreq(m), beat*1.2, t);
+      schedulePianoHighlight(m, i*(beat/6), beat*1.2);
     });
     return;
   }
   if(noteDur!==undefined && list.length===1){
     _synth.triggerAttackRelease(midiToFreq(list[0]), noteDur, now);
+    schedulePianoHighlight(list[0], 0, typeof noteDur==='number'?noteDur:beat);
     return;
   }
   const seq=list;
   seq.forEach((m,i)=>{
     const t=now + i*(beat*0.6);
     _synth.triggerAttackRelease(midiToFreq(m), beat*0.9, t);
+    schedulePianoHighlight(m, i*(beat*0.6), beat*0.9);
   });
 }
 // Limitation: only oscillator-based synth; sample instruments would require per-voice pitch bend.
@@ -1272,6 +1302,28 @@ const listenChord = $('#listenChord'); const listenScale = $('#listenScale'); co
 const btnPlaySelChord = $('#btnPlaySelChord'); const btnPlaySelArp = $('#btnPlaySelArp'); const btnSendToSeq = $('#btnSendToSeq');
 const heldSustainSnap = $('#heldSustainSnap');
 const tempoInput = $('#tempo');
+
+// === Piano key highlighting when notes play ===
+const _playingCounts = new Map(); // midi -> active count
+function highlightPianoKey(midi, durSeconds){
+  const key = pianoHost?.querySelector?.(`[data-midi="${midi}"]`);
+  if(!key) return;
+  const current = _playingCounts.get(midi) || 0;
+  _playingCounts.set(midi, current + 1);
+  (key).classList.add('key-playing');
+  setTimeout(()=>{
+    const left = (_playingCounts.get(midi)||1) - 1;
+    if(left <= 0){ _playingCounts.delete(midi); (key).classList.remove('key-playing'); }
+    else _playingCounts.set(midi, left);
+  }, Math.max(50, Math.floor((durSeconds||0.2)*1000)));
+}
+function schedulePianoHighlight(midi, delaySec, durSec){
+  setTimeout(()=> highlightPianoKey(midi, durSec), Math.max(0, Math.floor((delaySec||0)*1000)));
+}
+function highlightPianoKeyAtTime(midi, timeSec, durSec){
+  const delay = Math.max(0, timeSec - Tone.now());
+  schedulePianoHighlight(midi, delay, durSec);
+}
 const sequencerHost = $('#sequencerHost');
 const seqPlay = $('#seqPlay'); const seqPause = $('#seqPause'); const seqStop = $('#seqStop'); const seqBpm = $('#seqBpm');
 const seqLoop = $('#seqLoop'); const seqClick = $('#seqClick');
@@ -1454,6 +1506,7 @@ const song = {
     id:'trk'+i,
     name,
     instrument: name,
+    preset: 'Default',
     clips: [{ id:'clip0', start:0, length:192*64, loop:false, notes: [] }],
     mute:false,
     solo:false,
@@ -1565,12 +1618,12 @@ async function scheduleSong(trackIdx){
         try{
           await ensureTone(track.instrument);
           const drumFactory = DRUMS[track.instrument];
-          track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument);
+          track.player = drumFactory ? drumFactory() : createSeqInstrument(track.instrument, track.preset);
           track.player?.setVolume?.(track.volume ?? 0.8);
           track.player?.setPan?.(track.pan ?? 0);
         }catch(err){
           console.error(`Failed to create player for ${track.instrument}:`, err);
-          track.player = createSeqInstrument('Piano');
+          track.player = createSeqInstrument('Piano', track.preset);
           track.player?.setVolume?.(track.volume ?? 0.8);
           track.player?.setPan?.(track.pan ?? 0);
         }
@@ -1618,6 +1671,7 @@ function scheduleAhead(){
           Tone.Transport.schedule(time => {
             const durTicks = Math.min(n.dur, maxDurTicks);
             track.player.trigger(n.midi, time, n.vel ?? 0.8, `${durTicks}i`);
+            try { highlightPianoKeyAtTime(n.midi, time, ticksToSeconds(durTicks)); } catch{}
             track.player.release?.(n.midi, time + ticksToSeconds(durTicks));
           }, `${when}i`);
         }
@@ -1655,7 +1709,7 @@ function loadSong(data){
   song.bpm = data.bpm;
   song.ts = data.ts || song.ts;
   song.loop = data.loop || song.loop;
-  song.tracks = data.tracks.map(t=>({ ...t, player:null, part:null }));
+  song.tracks = data.tracks.map(t=>({ preset: (t.preset||'Default'), ...t, player:null, part:null }));
   Tone.Transport.PPQ = song.ppq;
   setBpm(song.bpm);
   updateLoop();
@@ -2298,23 +2352,27 @@ function initSequencer(){
     row.className='flex items-center gap-2';
     const instrOpts = INSTRUMENTS.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
     const drumOpts = DRUM_NAMES.map(t=>`<option${t===track.instrument?' selected':''}>${t}</option>`).join('');
+    const presetOpts = (window.CHANNEL_PRESET_NAMES||CHANNEL_PRESET_NAMES).map(n=>`<option${(track.preset||'Default')===n?' selected':''}>${n}</option>`).join('');
     row.innerHTML=
       `<span class="w-32">${track.instrument}</span>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-mute aria-label="Mute track" title="Mute track">M</button>`+
       `<button class="px-2 py-1 text-xs rounded bg-slate-700" data-solo aria-label="Solo track" title="Solo track">S</button>`+
       `<input type="range" min="0" max="1" step="0.01" value="${track.volume}" class="w-24" />`+
       `<input type="range" min="-1" max="1" step="0.01" value="${track.pan}" class="w-24" />`+
-      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1">`+
+      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1" data-role="instrument">`+
       instrOpts+
       `<optgroup label="Drums (Sequencer)">${drumOpts}</optgroup>`+
       `</select>`+
+      `<label class="text-xs text-slate-300 ml-2">Preset</label>`+
+      `<select class="bg-slate-800/80 border border-slate-700 rounded px-2 py-1" data-role="preset">${presetOpts}</select>`+
       `<input type="color" id="trk-${idx}-color" class="w-8 h-8 rounded" value="${track.color||'#ffffff'}">`+
       `<button id="trk-${idx}-clrReset" class="px-2 py-1 text-xs rounded bg-slate-700" aria-label="Reset track color" title="Reset track color">Reset</button>`;
     seqTracks.appendChild(row);
     const muteBtn = row.querySelector('[data-mute]');
     const soloBtn = row.querySelector('[data-solo]');
     const [volSlider, panSlider] = row.querySelectorAll('input[type="range"]');
-    const sel = row.querySelector('select');
+    const sel = row.querySelector('select[data-role="instrument"]');
+    const presetSel = row.querySelector('select[data-role="preset"]');
     const clrInput = row.querySelector(`#trk-${idx}-color`);
     const clrReset = row.querySelector(`#trk-${idx}-clrReset`);
     muteBtn.addEventListener('click', (e)=>{
@@ -2335,12 +2393,22 @@ function initSequencer(){
       track.pan = Number(e.target.value);
       if(track.player && track.player.setPan) track.player.setPan(track.pan);
     });
+    function updatePresetDisable(){ if(presetSel) presetSel.disabled = !!DRUMS[track.instrument]; }
+    updatePresetDisable();
     sel.addEventListener('change', e=>{
       track.instrument = e.target.value;
       row.querySelector('span').textContent = track.instrument;
       if(track.player){ track.player.dispose(); track.player=null; }
       if(Tone.Transport.state==='started') scheduleSong(idx);
+      updatePresetDisable();
     });
+    if(presetSel){
+      presetSel.addEventListener('change', e=>{
+        track.preset = e.target.value;
+        if(track.player){ track.player.dispose(); track.player=null; }
+        if(Tone.Transport.state==='started') scheduleSong(idx);
+      });
+    }
     clrInput.addEventListener('input', e=>{
       track.color = e.target.value;
       track.colorOverridden = true;
@@ -4787,7 +4855,7 @@ async function renderSongToBuffer(song){
     const nodes=[];
     song.tracks.forEach(tr=>{
       const drumFactory = DRUMS[tr.instrument];
-      const node = drumFactory?drumFactory():createSeqInstrument(tr.instrument);
+      const node = drumFactory?drumFactory():createSeqInstrument(tr.instrument, tr.preset||'Default');
       node.setVolume?.(tr.volume ?? 0.8);
       nodes.push(node);
       if(tr.mute) return;
