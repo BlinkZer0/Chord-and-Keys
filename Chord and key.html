@@ -468,9 +468,10 @@ const PITCH_STEP = 0.5; // smallest interval in semitones
 const OCTAVE = 12;      // semitones per octave
 const ENHARMONIC_MAP = {"Db":"C#","Eb":"D#","Gb":"F#","Ab":"G#","Bb":"A#","E#":"F","B#":"C","Fb":"E","Cb":"B"};
 const KEYS = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
-const INSTRUMENTS = [
+// Default instruments (always available)
+const DEFAULT_INSTRUMENTS = [
   "Piano",
-  "Guitar",
+  "Guitar", 
   "Bass",
   "Violin",
   "Flute",
@@ -482,13 +483,242 @@ const INSTRUMENTS = [
   "Ney",
   "Hammond Organ"
 ];
+
+// Extended instrument categories
+const INSTRUMENT_CATEGORIES = {
+  "Pianos & Keys": [
+    "Piano",
+    "Electric Piano",
+    "Grand Piano",
+    "Upright Piano",
+    "Rhodes Piano",
+    "Wurlitzer",
+    "Clavinet",
+    "Harpsichord",
+    "Celesta",
+    "Glockenspiel",
+    "Vibraphone",
+    "Marimba",
+    "Xylophone"
+  ],
+  "Guitars": [
+    "Guitar",
+    "Acoustic Guitar",
+    "Electric Guitar",
+    "Classical Guitar",
+    "12-String Guitar",
+    "Bass Guitar",
+    "Electric Bass",
+    "Acoustic Bass",
+    "Ukulele",
+    "Banjo",
+    "Mandolin",
+    "Oud",
+    "Sitar",
+    "Koto"
+  ],
+  "Strings": [
+    "Violin",
+    "Viola",
+    "Cello",
+    "Double Bass",
+    "String Ensemble",
+    "String Quartet",
+    "Harp",
+    "Erhu",
+    "Guzheng"
+  ],
+  "Woodwinds": [
+    "Flute",
+    "Piccolo",
+    "Clarinet",
+    "Bass Clarinet",
+    "Oboe",
+    "English Horn",
+    "Bassoon",
+    "Contrabassoon",
+    "Recorder",
+    "Ney",
+    "Shakuhachi",
+    "Dizi"
+  ],
+  "Brass": [
+    "Trumpet",
+    "Cornet",
+    "Flugelhorn",
+    "Trombone",
+    "Bass Trombone",
+    "French Horn",
+    "Tuba",
+    "Euphonium",
+    "Sousaphone"
+  ],
+  "Saxophones": [
+    "Saxophone",
+    "Soprano Sax",
+    "Alto Sax",
+    "Tenor Sax",
+    "Baritone Sax"
+  ],
+  "Organs": [
+    "Hammond Organ",
+    "Pipe Organ",
+    "Reed Organ",
+    "Accordion",
+    "Harmonica"
+  ],
+  "Percussion": [
+    "Timpani",
+    "Snare Drum",
+    "Bass Drum",
+    "Tom-Tom",
+    "Cymbals",
+    "Gong",
+    "Triangle",
+    "Tambourine",
+    "Maracas",
+    "Conga",
+    "Bongo",
+    "Tabla",
+    "Djembe"
+  ],
+  "Synths & Electronic": [
+    "Analog Synth",
+    "Digital Synth",
+    "FM Synth",
+    "Pad Synth",
+    "Lead Synth",
+    "Bass Synth",
+    "Arpeggiator",
+    "Choir",
+    "Voice"
+  ],
+  "World & Ethnic": [
+    "Koto",
+    "Oud",
+    "Ney",
+    "Sitar",
+    "Erhu",
+    "Guzheng",
+    "Shakuhachi",
+    "Dizi",
+    "Kalimba",
+    "Steel Drum",
+    "Didgeridoo"
+  ]
+};
+
+// Flatten all instruments for backward compatibility
+const INSTRUMENTS = [...DEFAULT_INSTRUMENTS];
+
+// Add all instruments from categories to the main list
+Object.values(INSTRUMENT_CATEGORIES).forEach(category => {
+  category.forEach(instrument => {
+    if (!INSTRUMENTS.includes(instrument)) {
+      INSTRUMENTS.push(instrument);
+    }
+  });
+});
 const INSTRUMENT_ICONS = {
+  // Default instruments
   Flute: 'assets/instruments/flute_openmoji.svg',
   Recorder: 'assets/instruments/recorder_openmoji.svg',
   Ney: 'assets/instruments/ney_openmoji.svg',
   Saxophone: 'assets/instruments/saxophone_openmoji.svg',
   Trumpet: 'assets/instruments/trumpet_openmoji.svg',
   Koto: 'assets/instruments/koto_openmoji.svg',
+  
+  // Extended instruments - using emoji fallbacks for missing icons
+  'Electric Piano': '🎹',
+  'Grand Piano': '🎹',
+  'Upright Piano': '🎹',
+  'Rhodes Piano': '🎹',
+  'Wurlitzer': '🎹',
+  'Clavinet': '🎹',
+  'Harpsichord': '🎹',
+  'Celesta': '🎹',
+  'Glockenspiel': '🎹',
+  'Vibraphone': '🎹',
+  'Marimba': '🎹',
+  'Xylophone': '🎹',
+  
+  'Acoustic Guitar': '🎸',
+  'Electric Guitar': '🎸',
+  'Classical Guitar': '🎸',
+  '12-String Guitar': '🎸',
+  'Bass Guitar': '🎸',
+  'Electric Bass': '🎸',
+  'Acoustic Bass': '🎸',
+  'Ukulele': '🎸',
+  'Banjo': '🎸',
+  'Mandolin': '🎸',
+  'Sitar': '🎸',
+  
+  'Viola': '🎻',
+  'Cello': '🎻',
+  'Double Bass': '🎻',
+  'String Ensemble': '🎻',
+  'String Quartet': '🎻',
+  'Harp': '🎻',
+  'Erhu': '🎻',
+  'Guzheng': '🎻',
+  
+  'Piccolo': '🎷',
+  'Clarinet': '🎷',
+  'Bass Clarinet': '🎷',
+  'Oboe': '🎷',
+  'English Horn': '🎷',
+  'Bassoon': '🎷',
+  'Contrabassoon': '🎷',
+  'Shakuhachi': '🎷',
+  'Dizi': '🎷',
+  
+  'Cornet': '🎺',
+  'Flugelhorn': '🎺',
+  'Trombone': '🎺',
+  'Bass Trombone': '🎺',
+  'French Horn': '🎺',
+  'Tuba': '🎺',
+  'Euphonium': '🎺',
+  'Sousaphone': '🎺',
+  
+  'Soprano Sax': '🎷',
+  'Alto Sax': '🎷',
+  'Tenor Sax': '🎷',
+  'Baritone Sax': '🎷',
+  
+  'Pipe Organ': '🪗',
+  'Reed Organ': '🪗',
+  'Accordion': '🪗',
+  'Harmonica': '🪗',
+  
+  'Timpani': '🥁',
+  'Snare Drum': '🥁',
+  'Bass Drum': '🥁',
+  'Tom-Tom': '🥁',
+  'Cymbals': '🥁',
+  'Gong': '🥁',
+  'Triangle': '🥁',
+  'Tambourine': '🥁',
+  'Maracas': '🥁',
+  'Conga': '🥁',
+  'Bongo': '🥁',
+  'Tabla': '🥁',
+  'Djembe': '🥁',
+  
+  'Analog Synth': '🎛️',
+  'Digital Synth': '🎛️',
+  'FM Synth': '🎛️',
+  'Pad Synth': '🎛️',
+  'Lead Synth': '🎛️',
+  'Bass Synth': '🎛️',
+  'Arpeggiator': '🎛️',
+  'Choir': '🎛️',
+  'Voice': '🎛️',
+  
+  'Kalimba': '🌍',
+  'Steel Drum': '🌍',
+  'Didgeridoo': '🌍',
 };
 
 // Modes and scales. Quarter‑tone maqam patterns based on MaqamWorld theory (https://www.maqamworld.com/)
@@ -629,6 +859,79 @@ let _synth=null; let _started=false; const ENV={
   Oud:{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
   Ney:{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
   'Hammond Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
+  
+  // Extended instrument envelopes
+  'Electric Piano':{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
+  'Grand Piano':{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
+  'Upright Piano':{a:.005,d:.3,s:.3,r:1.2,osc:'triangle',filter:{frequency:2500,Q:1},maxSustain:4},
+  'Rhodes Piano':{a:.01,d:.2,s:.4,r:1.0,osc:'triangle',filter:{frequency:3000,Q:0.8},maxSustain:4},
+  'Wurlitzer':{a:.01,d:.2,s:.4,r:1.0,osc:'triangle',filter:{frequency:3000,Q:0.8},maxSustain:4},
+  'Clavinet':{a:.002,d:.1,s:0,r:0.5,osc:'square',filter:{frequency:4000,Q:2},maxSustain:2},
+  'Harpsichord':{a:.002,d:.1,s:0,r:0.5,osc:'square',filter:{frequency:4000,Q:2},maxSustain:2},
+  'Celesta':{a:.01,d:.1,s:.2,r:2.0,osc:'sine',filter:{frequency:8000,Q:0.3},maxSustain:6},
+  'Glockenspiel':{a:.01,d:.1,s:.2,r:2.0,osc:'sine',filter:{frequency:8000,Q:0.3},maxSustain:6},
+  'Vibraphone':{a:.01,d:.2,s:.3,r:1.5,osc:'sine',filter:{frequency:6000,Q:0.5},maxSustain:5},
+  'Marimba':{a:.01,d:.2,s:.3,r:1.5,osc:'sine',filter:{frequency:6000,Q:0.5},maxSustain:5},
+  'Xylophone':{a:.01,d:.2,s:.3,r:1.5,osc:'sine',filter:{frequency:6000,Q:0.5},maxSustain:5},
+  
+  // Extended string instruments
+  'Viola':{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:3000,Q:1.2},maxSustain:5},
+  'Cello':{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:2000,Q:1.2},maxSustain:5},
+  'Double Bass':{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2},maxSustain:3},
+  'String Ensemble':{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
+  'String Quartet':{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
+  'Harp':{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
+  'Erhu':{a:.05,d:.2,s:.8,r:.8,osc:'sawtooth',vibrato:{rate:6.5,depth:0.08},filter:{frequency:4000,Q:1.2},maxSustain:5},
+  'Guzheng':{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
+  
+  // Extended woodwind instruments
+  'Piccolo':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:8000,Q:0.5},maxSustain:4},
+  'Clarinet':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:4000,Q:0.5},maxSustain:4},
+  'Bass Clarinet':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:2000,Q:0.5},maxSustain:4},
+  'Oboe':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:5000,Q:0.5},maxSustain:4},
+  'English Horn':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:3000,Q:0.5},maxSustain:4},
+  'Bassoon':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:2000,Q:0.5},maxSustain:4},
+  'Contrabassoon':{a:.06,d:.15,s:.85,r:.4,osc:'sine',vibrato:{rate:5,depth:0.05},filter:{frequency:1500,Q:0.5},maxSustain:4},
+  'Shakuhachi':{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
+  'Dizi':{a:.12,d:.2,s:.8,r:.6,osc:'sine',vibrato:{rate:4.5,depth:0.06},filter:{frequency:2200,Q:0.6},maxSustain:4},
+  
+  // Extended brass instruments
+  'Cornet':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Flugelhorn':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Trombone':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Bass Trombone':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:2000,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'French Horn':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:3500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Tuba':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:1500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Euphonium':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:2500,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  'Sousaphone':{a:.02,d:.25,s:.7,r:.6,osc:'square',filter:{frequency:1200,Q:1.5},vibrato:{rate:4,depth:0.03},maxSustain:3},
+  
+  // Extended saxophone instruments
+  'Soprano Sax':{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:4000,Q:1.1},maxSustain:4},
+  'Alto Sax':{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2800,Q:1.1},maxSustain:4},
+  'Tenor Sax':{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:2200,Q:1.1},maxSustain:4},
+  'Baritone Sax':{a:.03,d:.25,s:.7,r:.4,osc:'sawtooth',vibrato:{rate:5.5,depth:0.04},filter:{frequency:1500,Q:1.1},maxSustain:4},
+  
+  // Extended organ instruments
+  'Pipe Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
+  'Reed Organ':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
+  'Accordion':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},tremolo:{rate:6,depth:0.3},maxSustain:6},
+  'Harmonica':{a:.01,d:.3,s:.9,r:.8,osc:'square',filter:{frequency:5000,Q:0.3},maxSustain:6},
+  
+  // Synth instruments
+  'Analog Synth':{a:.005,d:.3,s:.3,r:1.2,osc:'sawtooth',filter:{frequency:2500,Q:1},maxSustain:4},
+  'Digital Synth':{a:.005,d:.3,s:.3,r:1.2,osc:'square',filter:{frequency:2500,Q:1},maxSustain:4},
+  'FM Synth':{a:.005,d:.3,s:.3,r:1.2,osc:'sine',filter:{frequency:2500,Q:1},maxSustain:4},
+  'Pad Synth':{a:.5,d:.3,s:.7,r:1.0,osc:'triangle',filter:{frequency:2000,Q:0.5},maxSustain:4},
+  'Lead Synth':{a:.01,d:.1,s:.8,r:.3,osc:'sawtooth',filter:{frequency:5000,Q:2},maxSustain:3},
+  'Bass Synth':{a:.01,d:.3,s:.5,r:.9,osc:'square',filter:{frequency:800,Q:2},maxSustain:3},
+  'Arpeggiator':{a:.01,d:.05,s:.1,r:.2,osc:'triangle',filter:{frequency:3000,Q:1},maxSustain:2},
+  'Choir':{a:.3,d:.5,s:.6,r:1.0,osc:'sine',filter:{frequency:2500,Q:0.5},maxSustain:4},
+  'Voice':{a:.2,d:.4,s:.5,r:.8,osc:'triangle',filter:{frequency:3000,Q:0.8},maxSustain:4},
+  
+  // World instruments
+  'Kalimba':{a:.002,d:.3,s:0,r:1.8,osc:'triangle',filter:{frequency:3600,Q:0.9},maxSustain:3},
+  'Steel Drum':{a:.001,d:.6,r:.3,osc:'sine',filter:{frequency:300,Q:0.5},maxSustain:3},
+  'Didgeridoo':{a:.5,d:.8,s:.9,r:1.5,osc:'sawtooth',filter:{frequency:150,Q:0.3},maxSustain:6},
 };
 
 // Master bus + limiter + analyser (lazy init to avoid auto AudioContext)
@@ -852,6 +1155,7 @@ async function initSampleLibrary() {
 }
 
 const SEQ_INSTR = {
+  // Default instruments (existing)
   Piano: () => makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
   Guitar: () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar, { pluckOptions: { attackNoise: 0.5, dampening: 1800, resonance: 0.8 } }),
   Bass: () => makeSynth('MonoSynth', ENV.Bass),
@@ -863,7 +1167,93 @@ const SEQ_INSTR = {
   Koto: () => makeSynth('PluckSynth', ENV.Koto, { pluckOptions: { attackNoise: 0.2, dampening: 2000, resonance: 0.9 } }),
   Oud: () => makeSynth('PluckSynth', ENV.Oud, { pluckOptions: { attackNoise: 0.3, dampening: 1500, resonance: 0.85 } }),
   Ney: () => makeSynth('PolySynth', ENV.Ney, { vibrato: true }),
-  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true })
+  'Hammond Organ': () => makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  
+  // Extended Pianos & Keys
+  'Electric Piano': () => makeSampler('electric-piano') || makeSynth('PolySynth', ENV.Piano),
+  'Grand Piano': () => makeSampler('grand-piano') || makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  'Upright Piano': () => makeSampler('upright-piano') || makeSampler('piano') || makeSynth('PolySynth', ENV.Piano),
+  'Rhodes Piano': () => makeSampler('rhodes') || makeSynth('PolySynth', ENV.Piano),
+  'Wurlitzer': () => makeSampler('wurlitzer') || makeSynth('PolySynth', ENV.Piano),
+  'Clavinet': () => makeSampler('clavinet') || makeSynth('PluckSynth', ENV.Guitar),
+  'Harpsichord': () => makeSampler('harpsichord') || makeSynth('PluckSynth', ENV.Guitar),
+  'Celesta': () => makeSampler('celesta') || makeSynth('PolySynth', ENV.Piano),
+  'Glockenspiel': () => makeSampler('glockenspiel') || makeSynth('PolySynth', ENV.Piano),
+  'Vibraphone': () => makeSampler('vibraphone') || makeSynth('PolySynth', ENV.Piano),
+  'Marimba': () => makeSampler('marimba') || makeSynth('PolySynth', ENV.Piano),
+  'Xylophone': () => makeSampler('xylophone') || makeSynth('PolySynth', ENV.Piano),
+  
+  // Extended Guitars
+  'Acoustic Guitar': () => makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  'Electric Guitar': () => makeSampler('guitar-electric') || makeSynth('PluckSynth', ENV.Guitar),
+  'Classical Guitar': () => makeSampler('guitar-classical') || makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  '12-String Guitar': () => makeSampler('guitar-12-string') || makeSampler('guitar-acoustic') || makeSynth('PluckSynth', ENV.Guitar),
+  'Bass Guitar': () => makeSynth('MonoSynth', ENV.Bass),
+  'Electric Bass': () => makeSampler('bass-electric') || makeSynth('MonoSynth', ENV.Bass),
+  'Acoustic Bass': () => makeSampler('bass-acoustic') || makeSynth('MonoSynth', ENV.Bass),
+  'Ukulele': () => makeSampler('ukulele') || makeSynth('PluckSynth', ENV.Guitar),
+  'Banjo': () => makeSampler('banjo') || makeSynth('PluckSynth', ENV.Guitar),
+  'Mandolin': () => makeSampler('mandolin') || makeSynth('PluckSynth', ENV.Guitar),
+  'Sitar': () => makeSampler('sitar') || makeSynth('PluckSynth', ENV.Guitar),
+  
+  // Extended Strings
+  'Viola': () => makeSampler('viola') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Cello': () => makeSampler('cello') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Double Bass': () => makeSampler('double-bass') || makeSynth('MonoSynth', ENV.Bass),
+  'String Ensemble': () => makeSampler('string-ensemble') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'String Quartet': () => makeSampler('string-ensemble') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Harp': () => makeSampler('harp') || makeSynth('PluckSynth', ENV.Guitar),
+  'Erhu': () => makeSampler('erhu') || makeSynth('PolySynth', ENV.Violin, { vibrato: true }),
+  'Guzheng': () => makeSampler('guzheng') || makeSynth('PluckSynth', ENV.Guitar),
+  
+  // Extended Woodwinds
+  'Piccolo': () => makeSampler('piccolo') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Clarinet': () => makeSampler('clarinet') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Bass Clarinet': () => makeSampler('bass-clarinet') || makeSynth('PolySynth', ENV.Bass),
+  'Oboe': () => makeSampler('oboe') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'English Horn': () => makeSampler('english-horn') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Bassoon': () => makeSampler('bassoon') || makeSynth('PolySynth', ENV.Bass),
+  'Contrabassoon': () => makeSampler('contrabassoon') || makeSynth('PolySynth', ENV.Bass),
+  'Shakuhachi': () => makeSampler('shakuhachi') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  'Dizi': () => makeSampler('dizi') || makeSynth('PolySynth', ENV.Flute, { vibrato: true }),
+  
+  // Extended Brass
+  'Cornet': () => makeSampler('cornet') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Flugelhorn': () => makeSampler('flugelhorn') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Trombone': () => makeSampler('trombone') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Bass Trombone': () => makeSampler('bass-trombone') || makeSynth('PolySynth', ENV.Bass),
+  'French Horn': () => makeSampler('french-horn') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Tuba': () => makeSampler('tuba') || makeSynth('PolySynth', ENV.Bass),
+  'Euphonium': () => makeSampler('euphonium') || makeSynth('PolySynth', ENV.Trumpet, { vibrato: true }),
+  'Sousaphone': () => makeSampler('tuba') || makeSynth('PolySynth', ENV.Bass),
+  
+  // Extended Saxophones
+  'Soprano Sax': () => makeSampler('soprano-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Alto Sax': () => makeSampler('alto-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Tenor Sax': () => makeSampler('tenor-sax') || makeSynth('PolySynth', ENV.Saxophone, { vibrato: true }),
+  'Baritone Sax': () => makeSampler('baritone-sax') || makeSynth('PolySynth', ENV.Bass),
+  
+  // Extended Organs
+  'Pipe Organ': () => makeSampler('pipe-organ') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Reed Organ': () => makeSampler('organ') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Accordion': () => makeSampler('accordion') || makeSynth('PolySynth', ENV['Hammond Organ'], { tremolo: true }),
+  'Harmonica': () => makeSampler('harmonica') || makeSynth('PolySynth', ENV['Hammond Organ']),
+  
+  // Synths & Electronic
+  'Analog Synth': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'sawtooth' } }),
+  'Digital Synth': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'square' } }),
+  'FM Synth': () => makeSynth('AMSynth', ENV.Piano),
+  'Pad Synth': () => makeSynth('PolySynth', ENV.Piano, { envelope: { attack: 0.5, decay: 0.3, sustain: 0.7, release: 1.0 } }),
+  'Lead Synth': () => makeSynth('MonoSynth', ENV.Piano, { envelope: { attack: 0.1, decay: 0.2, sustain: 0.8, release: 0.3 } }),
+  'Bass Synth': () => makeSynth('MonoSynth', ENV.Bass),
+  'Arpeggiator': () => makeSynth('PolySynth', ENV.Piano),
+  'Choir': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'sine' }, envelope: { attack: 0.3, decay: 0.5, sustain: 0.6, release: 1.0 } }),
+  'Voice': () => makeSynth('PolySynth', ENV.Piano, { oscillator: { type: 'triangle' }, envelope: { attack: 0.2, decay: 0.4, sustain: 0.5, release: 0.8 } }),
+  
+  // World & Ethnic
+  'Kalimba': () => makeSampler('kalimba') || makeSynth('PluckSynth', ENV.Guitar),
+  'Steel Drum': () => makeMetal({ frequency: 300, envelope: { attack: 0.001, decay: 0.6, release: 0.3 } }),
+  'Didgeridoo': () => makeSynth('PolySynth', ENV.Bass, { oscillator: { type: 'sawtooth' }, envelope: { attack: 0.5, decay: 0.8, sustain: 0.9, release: 1.5 } })
 };
 
 // Preset categories for melodic synths (sequencer only). Default keeps the original instrument.
@@ -1508,7 +1898,22 @@ const DRUMS = {
   'Clap Vintage': () => makeClap({filterFreq:800,bursts:4,decay:.3}),
   'Hand Conga': () => makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
   'Hand Bongo': () => makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
-  'Hand Tabla': () => makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}})
+  'Hand Tabla': () => makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}}),
+  
+  // Additional percussion instruments
+  'Timpani': () => makeMembrane('C2',{pitchDecay:.1,octaves:2,envelope:{attack:.001,decay:1.0,sustain:0,release:.5}}),
+  'Snare Drum': () => makeNoise({type:'bandpass',frequency:2000},{attack:.001,decay:.2,sustain:0}),
+  'Bass Drum': () => makeMembrane('C1',{pitchDecay:.01,octaves:2,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
+  'Tom-Tom': () => makeMembrane('A2',{pitchDecay:.05,octaves:1.5,envelope:{attack:.001,decay:.4,sustain:0,release:.2}}),
+  'Cymbals': () => makeMetal({frequency:200,envelope:{attack:.001,decay:.8,release:.3}}),
+  'Gong': () => makeMetal({frequency:150,envelope:{attack:.001,decay:2.0,release:1.0}}),
+  'Triangle': () => makeMetal({frequency:800,envelope:{attack:.001,decay:.5,release:.2}}),
+  'Tambourine': () => makeClap({filterFreq:1500,bursts:2,decay:.3}),
+  'Maracas': () => makeClap({filterFreq:2000,bursts:3,decay:.2}),
+  'Conga': () => makeMembrane('E3',{pitchDecay:.008,octaves:1.5,envelope:{attack:.001,decay:.3,sustain:0,release:.1}}),
+  'Bongo': () => makeMembrane('A3',{pitchDecay:.005,octaves:1.5,envelope:{attack:.001,decay:.2,sustain:0,release:.05}}),
+  'Tabla': () => makeMembrane('D3',{pitchDecay:.01,octaves:2.5,envelope:{attack:.001,decay:.4,sustain:0,release:.15}}),
+  'Djembe': () => makeMembrane('C3',{pitchDecay:.015,octaves:2,envelope:{attack:.001,decay:.5,sustain:0,release:.2}})
 };
 const DRUM_NAMES = Object.keys(DRUMS);
 // Plays MIDI notes using the synth. Notes are sequenced by default;
@@ -2983,7 +3388,60 @@ function updateSelButtons(){
 
 // Build selects
 function fillSelect(el, arr){ el.innerHTML = arr.map(v=>`<option value="${v}">${v}</option>`).join(''); }
-fillSelect(selKey, KEYS); selKey.value = keyRoot; fillSelect(selInstr, INSTRUMENTS); selInstr.value=instrument; updateInstrumentIcon();
+
+// Build organized instrument selector with categories
+function buildInstrumentSelector(selectElement) {
+  selectElement.innerHTML = '';
+  
+  // Add default instruments first (always at the top)
+  const defaultGroup = document.createElement('optgroup');
+  defaultGroup.label = '🎵 Default Instruments';
+  DEFAULT_INSTRUMENTS.forEach(instrument => {
+    const option = document.createElement('option');
+    option.value = instrument;
+    option.textContent = instrument;
+    defaultGroup.appendChild(option);
+  });
+  selectElement.appendChild(defaultGroup);
+  
+  // Add categorized instruments with emojis and better organization
+  const categoryEmojis = {
+    'Pianos & Keys': '🎹',
+    'Guitars': '🎸',
+    'Strings': '🎻',
+    'Woodwinds': '🎷',
+    'Brass': '🎺',
+    'Saxophones': '🎷',
+    'Organs': '🪗',
+    'Percussion': '🥁',
+    'Synths & Electronic': '🎛️',
+    'World & Ethnic': '🌍'
+  };
+  
+  Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+    // Skip if this category only contains default instruments
+    const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+    if (nonDefaultInstruments.length === 0) return;
+    
+    const group = document.createElement('optgroup');
+    const emoji = categoryEmojis[category] || '🎵';
+    group.label = `${emoji} ${category}`;
+    
+    // Sort instruments alphabetically within each category
+    const sortedInstruments = [...instruments].sort();
+    
+    sortedInstruments.forEach(instrument => {
+      const option = document.createElement('option');
+      option.value = instrument;
+      option.textContent = instrument;
+      group.appendChild(option);
+    });
+    
+    selectElement.appendChild(group);
+  });
+}
+
+fillSelect(selKey, KEYS); selKey.value = keyRoot; buildInstrumentSelector(selInstr); selInstr.value=instrument; updateInstrumentIcon();
 fillSelect(selQuality, Object.keys(CHORD_QUALITIES)); selQuality.value=chordQuality;
 fillSelect(selSystem, Object.keys(MODE_SYSTEMS)); selSystem.value = system;
 function populateModeOptions(){

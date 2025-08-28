@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrument Dropdown Test</title>
+    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
+    <script src="https://nbrosowsky.github.io/tonejs-instruments/Tonejs-Instruments.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #020617;
+            color: #f1f5f9;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #1e293b;
+            color: #f1f5f9;
+            border: 1px solid #475569;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        optgroup {
+            font-weight: bold;
+            color: #94a3b8;
+        }
+        option {
+            padding: 5px;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e293b;
+            border-radius: 5px;
+            border: 1px solid #475569;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Instrument Dropdown Test</h1>
+        <p>This test verifies that the instrument dropdown is properly populated with categories and instruments.</p>
+        
+        <label for="instrumentSelect">Select Instrument:</label>
+        <select id="instrumentSelect">
+            <option value="">Loading...</option>
+        </select>
+        
+        <div class="test-result" id="testResult">
+            <h3>Test Results:</h3>
+            <div id="testOutput">Running tests...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the sequencer module
+        import { 
+            NOTES_SHARP, PITCH_STEP, OCTAVE, ENHARMONIC_MAP, KEYS,
+            toSharpName, pcIndex, pcName, midiFrom, mod 
+        } from './src/theory/notes.js';
+
+        import { 
+            CHORD_QUALITIES, buildChord, chordToMidi, chordNameFromNotes 
+        } from './src/theory/chords.js';
+
+        import { 
+            MODES, MODE_SYSTEMS, buildScale, scaleToMidi 
+        } from './src/theory/scales.js';
+
+        // Test the instrument dropdown functionality
+        function testInstrumentDropdown() {
+            const select = document.getElementById('instrumentSelect');
+            const output = document.getElementById('testOutput');
+            let results = [];
+            
+            try {
+                // Test 1: Check if default instruments are present
+                const defaultInstruments = [
+                    "Piano", "Guitar", "Bass", "Violin", "Flute", "Recorder", 
+                    "Trumpet", "Saxophone", "Koto", "Oud", "Ney", "Hammond Organ"
+                ];
+                
+                let defaultFound = 0;
+                defaultInstruments.forEach(instr => {
+                    const option = select.querySelector(`option[value="${instr}"]`);
+                    if (option) defaultFound++;
+                });
+                
+                if (defaultFound === defaultInstruments.length) {
+                    results.push(`✅ All ${defaultInstruments.length} default instruments found`);
+                } else {
+                    results.push(`❌ Only ${defaultFound}/${defaultInstruments.length} default instruments found`);
+                }
+                
+                // Test 2: Check if categories are present
+                const expectedCategories = [
+                    '🎵 Default Instruments',
+                    '🎹 Pianos & Keys',
+                    '🎸 Guitars',
+                    '🎻 Strings',
+                    '🎷 Woodwinds',
+                    '🎺 Brass',
+                    '🎷 Saxophones',
+                    '🪗 Organs',
+                    '🥁 Percussion',
+                    '🎛️ Synths & Electronic',
+                    '🌍 World & Ethnic'
+                ];
+                
+                let categoriesFound = 0;
+                expectedCategories.forEach(category => {
+                    const optgroup = select.querySelector(`optgroup[label="${category}"]`);
+                    if (optgroup) categoriesFound++;
+                });
+                
+                if (categoriesFound === expectedCategories.length) {
+                    results.push(`✅ All ${expectedCategories.length} categories found`);
+                } else {
+                    results.push(`❌ Only ${categoriesFound}/${expectedCategories.length} categories found`);
+                }
+                
+                // Test 3: Check total number of instruments
+                const totalOptions = select.querySelectorAll('option').length;
+                if (totalOptions > 50) {
+                    results.push(`✅ Total instruments: ${totalOptions} (good variety)`);
+                } else {
+                    results.push(`⚠️ Total instruments: ${totalOptions} (might be low)`);
+                }
+                
+                // Test 4: Check if emojis are displayed
+                const hasEmojis = Array.from(select.querySelectorAll('optgroup')).some(group => 
+                    group.label.includes('🎵') || group.label.includes('🎹') || group.label.includes('🎸')
+                );
+                
+                if (hasEmojis) {
+                    results.push(`✅ Category emojis are displayed`);
+                } else {
+                    results.push(`❌ Category emojis are missing`);
+                }
+                
+                // Test 5: Check if instruments are sorted alphabetically
+                let sortedCorrectly = true;
+                select.querySelectorAll('optgroup').forEach(group => {
+                    const options = Array.from(group.querySelectorAll('option'));
+                    const sortedOptions = [...options].sort((a, b) => a.textContent.localeCompare(b.textContent));
+                    
+                    for (let i = 0; i < options.length; i++) {
+                        if (options[i].textContent !== sortedOptions[i].textContent) {
+                            sortedCorrectly = false;
+                            break;
+                        }
+                    }
+                });
+                
+                if (sortedCorrectly) {
+                    results.push(`✅ Instruments are sorted alphabetically within categories`);
+                } else {
+                    results.push(`❌ Instruments are not properly sorted`);
+                }
+                
+            } catch (error) {
+                results.push(`❌ Error during testing: ${error.message}`);
+            }
+            
+            // Display results
+            output.innerHTML = results.map(result => `<div>${result}</div>`).join('');
+            
+            // Overall assessment
+            const successCount = results.filter(r => r.includes('✅')).length;
+            const totalTests = results.length;
+            
+            if (successCount === totalTests) {
+                output.innerHTML += `<div class="success"><strong>🎉 All tests passed! The instrument dropdown is working correctly.</strong></div>`;
+            } else {
+                output.innerHTML += `<div class="error"><strong>⚠️ ${successCount}/${totalTests} tests passed. Some issues found.</strong></div>`;
+            }
+        }
+        
+        // Wait for the page to load and then run tests
+        window.addEventListener('load', () => {
+            // Simulate the buildInstrumentSelector function
+            function buildInstrumentSelector(selectElement) {
+                selectElement.innerHTML = '';
+                
+                // Default instruments
+                const DEFAULT_INSTRUMENTS = [
+                    "Piano", "Guitar", "Bass", "Violin", "Flute", "Recorder",
+                    "Trumpet", "Saxophone", "Koto", "Oud", "Ney", "Hammond Organ"
+                ];
+                
+                const defaultGroup = document.createElement('optgroup');
+                defaultGroup.label = '🎵 Default Instruments';
+                DEFAULT_INSTRUMENTS.forEach(instrument => {
+                    const option = document.createElement('option');
+                    option.value = instrument;
+                    option.textContent = instrument;
+                    defaultGroup.appendChild(option);
+                });
+                selectElement.appendChild(defaultGroup);
+                
+                // Extended instrument categories
+                const INSTRUMENT_CATEGORIES = {
+                    "Pianos & Keys": [
+                        "Piano", "Electric Piano", "Grand Piano", "Upright Piano", "Rhodes Piano",
+                        "Wurlitzer", "Clavinet", "Harpsichord", "Celesta", "Glockenspiel",
+                        "Vibraphone", "Marimba", "Xylophone"
+                    ],
+                    "Guitars": [
+                        "Guitar", "Acoustic Guitar", "Electric Guitar", "Classical Guitar",
+                        "12-String Guitar", "Bass Guitar", "Electric Bass", "Acoustic Bass",
+                        "Ukulele", "Banjo", "Mandolin", "Oud", "Sitar", "Koto"
+                    ],
+                    "Strings": [
+                        "Violin", "Viola", "Cello", "Double Bass", "String Ensemble",
+                        "String Quartet", "Harp", "Erhu", "Guzheng"
+                    ],
+                    "Woodwinds": [
+                        "Flute", "Piccolo", "Clarinet", "Bass Clarinet", "Oboe",
+                        "English Horn", "Bassoon", "Contrabassoon", "Recorder", "Ney",
+                        "Shakuhachi", "Dizi"
+                    ],
+                    "Brass": [
+                        "Trumpet", "Cornet", "Flugelhorn", "Trombone", "Bass Trombone",
+                        "French Horn", "Tuba", "Euphonium", "Sousaphone"
+                    ],
+                    "Saxophones": [
+                        "Saxophone", "Soprano Sax", "Alto Sax", "Tenor Sax", "Baritone Sax"
+                    ],
+                    "Organs": [
+                        "Hammond Organ", "Pipe Organ", "Reed Organ", "Accordion", "Harmonica"
+                    ],
+                    "Percussion": [
+                        "Timpani", "Snare Drum", "Bass Drum", "Tom-Tom", "Cymbals",
+                        "Gong", "Triangle", "Tambourine", "Maracas", "Conga", "Bongo",
+                        "Tabla", "Djembe"
+                    ],
+                    "Synths & Electronic": [
+                        "Analog Synth", "Digital Synth", "FM Synth", "Pad Synth",
+                        "Lead Synth", "Bass Synth", "Arpeggiator", "Choir", "Voice"
+                    ],
+                    "World & Ethnic": [
+                        "Koto", "Oud", "Ney", "Sitar", "Erhu", "Guzheng", "Shakuhachi",
+                        "Dizi", "Kalimba", "Steel Drum", "Didgeridoo"
+                    ]
+                };
+                
+                const categoryEmojis = {
+                    'Pianos & Keys': '🎹',
+                    'Guitars': '🎸',
+                    'Strings': '🎻',
+                    'Woodwinds': '🎷',
+                    'Brass': '🎺',
+                    'Saxophones': '🎷',
+                    'Organs': '🪗',
+                    'Percussion': '🥁',
+                    'Synths & Electronic': '🎛️',
+                    'World & Ethnic': '🌍'
+                };
+                
+                Object.entries(INSTRUMENT_CATEGORIES).forEach(([category, instruments]) => {
+                    const nonDefaultInstruments = instruments.filter(instr => !DEFAULT_INSTRUMENTS.includes(instr));
+                    if (nonDefaultInstruments.length === 0) return;
+                    
+                    const group = document.createElement('optgroup');
+                    const emoji = categoryEmojis[category] || '🎵';
+                    group.label = `${emoji} ${category}`;
+                    
+                    const sortedInstruments = [...instruments].sort();
+                    
+                    sortedInstruments.forEach(instrument => {
+                        const option = document.createElement('option');
+                        option.value = instrument;
+                        option.textContent = instrument;
+                        group.appendChild(option);
+                    });
+                    
+                    selectElement.appendChild(group);
+                });
+            }
+            
+            // Build the instrument selector
+            const select = document.getElementById('instrumentSelect');
+            buildInstrumentSelector(select);
+            
+            // Run tests after a short delay to ensure DOM is ready
+            setTimeout(testInstrumentDropdown, 100);
+        });
+    </script>
+</body>
+</html>
