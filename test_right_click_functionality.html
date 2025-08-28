@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Right-Click and Keyboard Shortcuts Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .note {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+        .note:hover {
+            background: #45a049;
+        }
+        .piano-key {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 15px 10px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            min-width: 40px;
+            text-align: center;
+        }
+        .piano-key:hover {
+            background: #f0f0f0;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        .instructions {
+            background: #444;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .event-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            background: #333;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Right-Click and Keyboard Shortcuts Test</h1>
+        
+        <div class="instructions">
+            <h3>Test Instructions:</h3>
+            <h4>Keyboard Shortcuts:</h4>
+            <ul>
+                <li><strong>Spacebar</strong>: Play/Pause toggle</li>
+                <li><strong>S key</strong>: Stop</li>
+                <li><strong>Home key</strong>: Jump to start</li>
+                <li><strong>End key</strong>: Jump to end</li>
+            </ul>
+            <h4>Right-Click Functionality:</h4>
+            <ul>
+                <li><strong>Right-click on note</strong>: Delete the note</li>
+                <li><strong>Long right-click on note</strong>: Show context menu</li>
+                <li><strong>Right-click on piano key</strong>: Delete all notes at that pitch</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Transport Controls Test</h3>
+            <button id="seqPlay">Play</button>
+            <button id="seqPause">Pause</button>
+            <button id="seqStop">Stop</button>
+            <button id="seqToStart">|&lt; To Start</button>
+            <button id="seqToEnd">&gt;| To End</button>
+            <div class="status">
+                <div id="transportStatus">State: stopped</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Note Right-Click Test</h3>
+            <p>Right-click on these notes to delete them, or long-press for context menu:</p>
+            <div id="notesContainer">
+                <div class="note" data-note-id="1">Note 1</div>
+                <div class="note" data-note-id="2">Note 2</div>
+                <div class="note" data-note-id="3">Note 3</div>
+                <div class="note" data-note-id="4">Note 4</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Piano Keys Right-Click Test</h3>
+            <p>Right-click on these piano keys to delete all notes at that pitch:</p>
+            <div id="pianoKeysContainer">
+                <div class="piano-key" data-pitch="C">C</div>
+                <div class="piano-key" data-pitch="D">D</div>
+                <div class="piano-key" data-pitch="E">E</div>
+                <div class="piano-key" data-pitch="F">F</div>
+                <div class="piano-key" data-pitch="G">G</div>
+                <div class="piano-key" data-pitch="A">A</div>
+                <div class="piano-key" data-pitch="B">B</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Event Log</h3>
+            <div id="eventLog" class="event-log"></div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="fixed hidden" style="background: #2a2a2a; border: 1px solid #555; border-radius: 4px; padding: 5px; z-index: 1000; min-width: 150px;">
+        <div class="context-item" style="padding: 8px; cursor: pointer; hover: background: #444;">Copy</div>
+        <div class="context-item" style="padding: 8px; cursor: pointer; hover: background: #444;">Cut</div>
+        <div class="context-item" style="padding: 8px; cursor: pointer; hover: background: #444;">Delete</div>
+        <hr style="border-color: #555; margin: 5px 0;">
+        <div class="context-item" style="padding: 8px; cursor: pointer; hover: background: #444;">Quantize</div>
+    </div>
+
+    <script>
+        let sequencerState = 'stopped';
+        let rightClickTimer = null;
+        let rightClickStartTime = 0;
+        const LONG_PRESS_DURATION = 500;
+
+        function logEvent(event) {
+            const log = document.getElementById('eventLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${event}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function updateTransportStatus() {
+            const status = document.getElementById('transportStatus');
+            status.textContent = `State: ${sequencerState}`;
+        }
+
+        // Transport controls
+        document.getElementById('seqPlay').addEventListener('click', () => {
+            if (sequencerState === 'stopped' || sequencerState === 'paused') {
+                sequencerState = 'playing';
+                logEvent('Play clicked');
+            }
+            updateTransportStatus();
+        });
+
+        document.getElementById('seqPause').addEventListener('click', () => {
+            if (sequencerState === 'playing') {
+                sequencerState = 'paused';
+                logEvent('Pause clicked');
+            }
+            updateTransportStatus();
+        });
+
+        document.getElementById('seqStop').addEventListener('click', () => {
+            sequencerState = 'stopped';
+            logEvent('Stop clicked');
+            updateTransportStatus();
+        });
+
+        document.getElementById('seqToStart').addEventListener('click', () => {
+            logEvent('Jump to start clicked');
+        });
+
+        document.getElementById('seqToEnd').addEventListener('click', () => {
+            logEvent('Jump to end clicked');
+        });
+
+        // Note right-click functionality
+        document.querySelectorAll('.note').forEach(note => {
+            note.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+
+            note.addEventListener('pointerdown', (e) => {
+                if (e.button === 2) { // Right mouse button
+                    e.preventDefault();
+                    rightClickStartTime = Date.now();
+                    
+                    rightClickTimer = setTimeout(() => {
+                        // Long press - show context menu
+                        logEvent(`Long right-click on ${note.textContent} - showing context menu`);
+                        showContextMenu(e.clientX, e.clientY);
+                    }, LONG_PRESS_DURATION);
+                }
+            });
+
+            note.addEventListener('pointerup', (e) => {
+                if (e.button === 2 && rightClickTimer) {
+                    clearTimeout(rightClickTimer);
+                    rightClickTimer = null;
+                    
+                    if (Date.now() - rightClickStartTime < LONG_PRESS_DURATION) {
+                        // Short right-click - delete note
+                        logEvent(`Right-click on ${note.textContent} - deleting note`);
+                        note.remove();
+                    }
+                }
+            });
+        });
+
+        // Piano key right-click functionality
+        document.querySelectorAll('.piano-key').forEach(key => {
+            key.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+            });
+
+            key.addEventListener('pointerdown', (e) => {
+                if (e.button === 2) { // Right mouse button
+                    e.preventDefault();
+                    logEvent(`Right-click on piano key ${key.textContent} - deleting all notes at this pitch`);
+                    // Simulate deleting notes at this pitch
+                    const notesAtPitch = document.querySelectorAll(`[data-pitch="${key.textContent}"]`);
+                    notesAtPitch.forEach(note => note.remove());
+                }
+            });
+        });
+
+        // Context menu functionality
+        function showContextMenu(x, y) {
+            const menu = document.getElementById('contextMenu');
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.remove('hidden');
+        }
+
+        function hideContextMenu() {
+            const menu = document.getElementById('contextMenu');
+            menu.classList.add('hidden');
+        }
+
+        // Hide context menu when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('contextMenu').contains(e.target)) {
+                hideContextMenu();
+            }
+        });
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                logEvent('Spacebar pressed');
+                if (sequencerState === 'playing') {
+                    document.getElementById('seqPause').click();
+                } else {
+                    document.getElementById('seqPlay').click();
+                }
+            } else if (e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                logEvent('S key pressed');
+                document.getElementById('seqStop').click();
+            } else if (e.code === 'Home') {
+                e.preventDefault();
+                logEvent('Home key pressed');
+                document.getElementById('seqToStart').click();
+            } else if (e.code === 'End') {
+                e.preventDefault();
+                logEvent('End key pressed');
+                document.getElementById('seqToEnd').click();
+            }
+        });
+
+        // Initialize
+        updateTransportStatus();
+        logEvent('Test started - Try the keyboard shortcuts and right-click functionality');
+    </script>
+</body>
+</html>

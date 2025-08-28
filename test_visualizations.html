@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualization Test</title>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            margin: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        .visualizer {
+            margin: 20px 0;
+            padding: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+        }
+        canvas {
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        select {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Visualization Test</h1>
+        
+        <div class="controls">
+            <h3>Controls</h3>
+            <button id="startBtn">Start Audio</button>
+            <button id="stopBtn">Stop Audio</button>
+            <button id="testToneBtn">Play Test Tone</button>
+            <br>
+            <label>Visualization Mode:</label>
+            <select id="vizMode">
+                <option value="waveform">Waveform</option>
+                <option value="fft">Spectrum</option>
+                <option value="spectrogram">Spectrogram</option>
+            </select>
+            <br>
+            <label>Frequency:</label>
+            <input type="range" id="freqSlider" min="100" max="2000" value="440" step="10">
+            <span id="freqDisplay">440 Hz</span>
+        </div>
+
+        <div class="visualizer">
+            <h3>Audio Visualizer</h3>
+            <canvas id="vizCanvas" width="800" height="300"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let masterBus = null;
+        let masterAnalyser = null;
+        let oscillator = null;
+        let spectrogramData = [];
+        const maxSpectrogramWidth = 800;
+
+        function initAudioGraph(mode = 'waveform') {
+            if (!masterBus) {
+                masterBus = new Tone.Gain(1);
+            }
+            if (!masterAnalyser) {
+                try {
+                    const analyzerType = mode === 'spectrogram' ? 'fft' : mode;
+                    const analyzerSize = mode === 'spectrogram' ? 2048 : (mode === 'fft' ? 1024 : 2048);
+                    masterAnalyser = new Tone.Analyser(analyzerType, analyzerSize);
+                    masterAnalyser._type = mode;
+                    masterBus.connect(masterAnalyser);
+                    masterBus.toDestination();
+                } catch (e) {
+                    console.warn('Failed to create analyzer:', e);
+                }
+            }
+        }
+
+        function ensureAnalyser() {
+            try {
+                const mode = document.getElementById('vizMode').value;
+                if (!masterAnalyser || (masterAnalyser._type && masterAnalyser._type !== mode)) {
+                    try { masterAnalyser.dispose?.(); } catch {}
+                    initAudioGraph(mode);
+                    try { masterAnalyser.smoothing = 0.8; } catch {}
+                }
+            } catch (e) {
+                console.warn('Analyzer setup failed:', e);
+            }
+        }
+
+        function draw() {
+            requestAnimationFrame(draw);
+            ensureAnalyser();
+            const canvas = document.getElementById('vizCanvas');
+            const ctx = canvas.getContext('2d');
+            const W = canvas.width, H = canvas.height;
+            const mode = document.getElementById('vizMode').value;
+
+            try {
+                if (mode === 'waveform') {
+                    const data = masterAnalyser.getValue();
+                    ctx.clearRect(0, 0, W, H);
+                    ctx.strokeStyle = '#60a5fa';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < data.length; i++) {
+                        const x = i / (data.length - 1) * W;
+                        const y = (1 - (data[i] + 1) / 2) * H;
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                } else if (mode === 'fft') {
+                    const data = masterAnalyser.getValue();
+                    ctx.clearRect(0, 0, W, H);
+
+                    // Create gradient background
+                    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+                    gradient.addColorStop(0, '#0f172a');
+                    gradient.addColorStop(1, '#1e293b');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, W, H);
+
+                    const barW = Math.max(1, Math.floor(W / data.length));
+
+                    for (let i = 0; i < data.length; i++) {
+                        const v = Math.max(-100, Math.min(0, data[i]));
+                        const mag = Math.pow(10, v / 20);
+
+                        // Frequency-based color mapping
+                        const freq = (i / data.length) * (Tone.context.sampleRate / 2);
+                        const hue = Math.min(360, Math.max(0, 240 - (freq / 2000) * 240));
+                        const saturation = 70 + mag * 30;
+                        const lightness = 40 + mag * 40;
+
+                        const h = Math.max(1, Math.floor(mag * H * 0.8));
+                        ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                        ctx.fillRect(i * barW, H - h, barW - 1, h);
+
+                        // Add subtle glow effect for stronger frequencies
+                        if (mag > 0.3) {
+                            ctx.shadowColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                            ctx.shadowBlur = 3;
+                            ctx.fillRect(i * barW, H - h, barW - 1, h);
+                            ctx.shadowBlur = 0;
+                        }
+                    }
+
+                    // Add frequency labels
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    const labelFreqs = [100, 500, 1000, 2000, 5000, 10000];
+                    labelFreqs.forEach(freq => {
+                        const binIndex = Math.floor((freq / (Tone.context.sampleRate / 2)) * data.length);
+                        if (binIndex < data.length) {
+                            const x = binIndex * barW + barW / 2;
+                            ctx.fillText(`${freq >= 1000 ? (freq / 1000).toFixed(1) + 'k' : freq}Hz`, x, H - 5);
+                        }
+                    });
+                } else if (mode === 'spectrogram') {
+                    const data = masterAnalyser.getValue();
+
+                    // Add new column to spectrogram data
+                    const newColumn = data.map(v => Math.max(-100, Math.min(0, v)));
+                    spectrogramData.push(newColumn);
+
+                    // Limit spectrogram width
+                    if (spectrogramData.length > maxSpectrogramWidth) {
+                        spectrogramData.shift();
+                    }
+
+                    // Clear canvas
+                    ctx.clearRect(0, 0, W, H);
+
+                    // Draw spectrogram
+                    const columnWidth = W / spectrogramData.length;
+
+                    for (let x = 0; x < spectrogramData.length; x++) {
+                        const column = spectrogramData[x];
+                        for (let y = 0; y < column.length; y++) {
+                            const v = column[y];
+                            const mag = Math.pow(10, v / 20);
+
+                            // Frequency-based color mapping (inverted Y axis for spectrogram)
+                            const freq = ((column.length - 1 - y) / column.length) * (Tone.context.sampleRate / 2);
+                            const hue = Math.min(360, Math.max(0, 240 - (freq / 2000) * 240));
+                            const saturation = 85;
+                            const lightness = Math.max(10, Math.min(90, 25 + mag * 65));
+
+                            ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                            ctx.fillRect(
+                                x * columnWidth,
+                                (y / column.length) * H,
+                                columnWidth,
+                                H / column.length
+                            );
+                        }
+                    }
+
+                    // Add time markers
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'right';
+                    for (let i = 0; i <= 4; i++) {
+                        const x = (i / 4) * W;
+                        const time = (i / 4) * (spectrogramData.length / 60);
+                        ctx.fillText(`${time.toFixed(1)}s`, x - 5, H - 5);
+                    }
+
+                    // Add frequency labels on the left
+                    ctx.textAlign = 'left';
+                    const labelFreqs = [100, 500, 1000, 2000, 5000, 10000];
+                    labelFreqs.forEach(freq => {
+                        const y = (1 - (freq / (Tone.context.sampleRate / 2))) * H;
+                        if (y >= 0 && y < H) {
+                            ctx.fillText(`${freq >= 1000 ? (freq / 1000).toFixed(1) + 'k' : freq}Hz`, 5, y + 3);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Visualization error:', e);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            await Tone.start();
+            initAudioGraph();
+            draw();
+        });
+
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator = null;
+            }
+        });
+
+        document.getElementById('testToneBtn').addEventListener('click', async () => {
+            await Tone.start();
+            initAudioGraph();
+            
+            if (oscillator) {
+                oscillator.stop();
+            }
+            
+            const freq = parseFloat(document.getElementById('freqSlider').value);
+            oscillator = new Tone.Oscillator(freq, "sine").connect(masterBus);
+            oscillator.start();
+            oscillator.stop("+2");
+        });
+
+        document.getElementById('freqSlider').addEventListener('input', (e) => {
+            document.getElementById('freqDisplay').textContent = e.target.value + ' Hz';
+        });
+
+        document.getElementById('vizMode').addEventListener('change', (e) => {
+            const newMode = e.target.value;
+            if (newMode === 'spectrogram') {
+                spectrogramData = [];
+            }
+            ensureAnalyser();
+        });
+
+        // Start drawing
+        draw();
+    </script>
+</body>
+</html>
