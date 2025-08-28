@@ -317,7 +317,13 @@
             <label for="noteAttrSelect" class="text-sm text-slate-300">Attribute</label>
             <select id="noteAttrSelect" class="bg-slate-800/80 border border-slate-700 rounded-lg px-2 py-1 text-sm">
               <option value="velocity" selected>Velocity</option>
-              <option value="pan" disabled>Pan (stub)</option>
+              <option value="pan">Pan</option>
+              <option value="cutoff">Filter Cutoff</option>
+              <option value="resonance">Filter Q</option>
+              <option value="attack">Attack</option>
+              <option value="release">Release</option>
+              <option value="vibrato">Vibrato Depth</option>
+              <option value="tremolo">Tremolo Depth</option>
             </select>
           </div>
         </div>
@@ -736,6 +742,11 @@ function makeSynth(type, env, options = {}) {
     },
     setVolume(v){ gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p){ panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    schedulePan(time, pan, durSec, basePan){ try { panner.pan.setValueAtTime?.(Math.max(-1,Math.min(1,pan)), time); if(basePan!==undefined) panner.pan.setValueAtTime?.(Math.max(-1,Math.min(1,basePan)), time + durSec); } catch{} },
+    scheduleFilter(time, freq, q, durSec){ try { if(filter){ Tone.Transport.schedule((t)=>{ try{ if(typeof freq==='number') filter.frequency.setValueAtTime?.(freq, t); if(typeof q==='number') filter.Q.setValueAtTime?.(q, t); Tone.Transport.scheduleOnce(()=>{ try{ if(typeof freq==='number') filter.frequency.setValueAtTime?.(env.filter?.frequency ?? filter.frequency.value, Tone.now()); if(typeof q==='number') filter.Q.setValueAtTime?.(env.filter?.Q ?? filter.Q.value, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
+    scheduleEnv(time, attack, release, durSec){ try { Tone.Transport.schedule((t)=>{ try{ const prev = synth.get().envelope || {}; const next = { envelope:{ attack: attack ?? prev.attack ?? env.a, release: release ?? prev.release ?? env.r } }; synth.set(next); Tone.Transport.scheduleOnce(()=>{ try{ synth.set({ envelope:{ attack: prev.attack ?? env.a, release: prev.release ?? env.r } }); }catch{} }, t + durSec); }catch{} }, time); } catch{} },
+    scheduleVibrato(time, depth, durSec){ try { if(vib){ Tone.Transport.schedule((t)=>{ try{ const prev = vib.depth?.value ?? 0; vib.depth?.setValueAtTime?.(depth, t); Tone.Transport.scheduleOnce(()=>{ try{ vib.depth?.setValueAtTime?.(prev, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
+    scheduleTremolo(time, depth, durSec){ try { if(trem){ Tone.Transport.schedule((t)=>{ try{ const prev = trem.depth?.value ?? 0; trem.depth?.setValueAtTime?.(depth, t); Tone.Transport.scheduleOnce(()=>{ try{ trem.depth?.setValueAtTime?.(prev, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
     setVibrato(rate,depth){ if(vib){ vib.frequency.value = rate; vib.depth = depth; } },
     setTremolo(rate,depth){ if(trem){ trem.frequency.value = rate; trem.depth = depth; } },
     dispose(){ synth.dispose(); gain.dispose(); if(vib) vib.dispose(); if(trem) trem.dispose(); if(filter) filter.dispose(); if(delay) delay.dispose(); if(reverb) reverb.dispose(); if(chorus) chorus.dispose(); panner.dispose(); }
@@ -754,6 +765,8 @@ function makeSampler(instrumentName, fx) {
   
   const panner = new Tone.Panner(0).connect(getMasterBus());
   let destination = panner;
+  // Optional inline FX to enable per-note attribute scheduling on samplers
+  let filter=null, vib=null, trem=null;
   let gainFx=null, delay=null, reverb=null, chorus=null;
   const gain = new Tone.Gain(1);
   gain.connect(destination);
@@ -761,6 +774,21 @@ function makeSampler(instrumentName, fx) {
   
   if (sampler) {
     sampler.disconnect();
+    // Insert musical FX chain before destination to allow scheduling
+    // Add a gentle lowpass filter by default so per-note cutoff/Q can modulate
+    try {
+      filter = new Tone.Filter(2500, 'lowpass', -12).connect(destination);
+      filter.Q.value = 1;
+      destination = filter;
+    } catch{}
+    try {
+      vib = new Tone.Vibrato(5, 0).connect(destination); // depth 0 by default
+      destination = vib;
+    } catch{}
+    try {
+      trem = new Tone.Tremolo(5, 0).start().connect(destination); // depth 0 by default
+      destination = trem;
+    } catch{}
     // Insert FX chain for sampler if requested
     if(fx?.delay){ const { time='8n', feedback=0.3, wet=0.3 } = fx.delay; delay = new Tone.FeedbackDelay(time, feedback); delay.wet.value=wet; delay.connect(destination); destination = delay; }
     if(fx?.reverb){ const { decay=2.2, preDelay=0.01, wet=0.3 } = fx.reverb; reverb = new Tone.Reverb({decay, preDelay}); reverb.wet.value=wet; reverb.connect(destination); destination = reverb; }
@@ -788,8 +816,15 @@ function makeSampler(instrumentName, fx) {
     },
     setVolume(v) { gain.gain.value = Math.max(0, Math.min(1, v)); },
     setPan(p) { panner.pan.value = Math.max(-1, Math.min(1, p)); },
+    schedulePan(time, pan, durSec, basePan){ try { panner.pan.setValueAtTime?.(Math.max(-1,Math.min(1,pan)), time); if(basePan!==undefined) panner.pan.setValueAtTime?.(Math.max(-1,Math.min(1,basePan)), time + durSec); } catch{} },
+    scheduleFilter(time, freq, q, durSec){ try { if(filter){ Tone.Transport.schedule((t)=>{ try{ if(typeof freq==='number') filter.frequency.setValueAtTime?.(freq, t); if(typeof q==='number') filter.Q.setValueAtTime?.(q, t); Tone.Transport.scheduleOnce(()=>{ try{ if(typeof freq==='number') filter.frequency.setValueAtTime?.(2500, Tone.now()); if(typeof q==='number') filter.Q.setValueAtTime?.(1, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
+    scheduleVibrato(time, depth, durSec){ try { if(vib){ Tone.Transport.schedule((t)=>{ try{ const prev = vib.depth?.value ?? 0; vib.depth?.setValueAtTime?.(depth, t); Tone.Transport.scheduleOnce(()=>{ try{ vib.depth?.setValueAtTime?.(prev, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
+    scheduleTremolo(time, depth, durSec){ try { if(trem){ Tone.Transport.schedule((t)=>{ try{ const prev = trem.depth?.value ?? 0; trem.depth?.setValueAtTime?.(depth, t); Tone.Transport.scheduleOnce(()=>{ try{ trem.depth?.setValueAtTime?.(prev, Tone.now()); }catch{} }, t + durSec); }catch{} }, time); } } catch{} },
     dispose() {
       if (sampler) sampler.disconnect();
+      if(filter) filter.dispose();
+      if(vib) vib.dispose();
+      if(trem) trem.dispose();
       if(gainFx) gainFx.dispose();
       if(delay) delay.dispose();
       if(reverb) reverb.dispose();
@@ -1760,6 +1795,8 @@ let lastNoteDur = song.ppq * song.ts.num;
 const MIN_MIDI = midiFrom('C',1); // Extended to C1 for full piano range
 const MAX_MIDI = MIN_MIDI + 7*12; // Extended to 7 octaves (C1 to C8) for full 88-key piano range
 let activeTrack = 0;
+// Fixed pixel height for the note attribute editor (velocity/pan)
+const NOTE_ATTR_HEIGHT = 120; // px
 let dragNote = null;
 let trackSwitchTimeout = null;
 const TRACK_SWITCH_DELAY = 500;
@@ -1900,12 +1937,56 @@ function scheduleAhead(){
           if(when < song.loop.start || when >= song.loop.end) return;
         }
         if(when >= scheduledUntil && when < endTick){
-          Tone.Transport.schedule(time => {
+          const idxInClip = clip.notes.indexOf(n);
+          const nextNote = idxInClip>=0 ? clip.notes[idxInClip+1] : null;
+          const scheduleSingle = (tick, midi, durTicks, vel) => {
+            Tone.Transport.schedule(t => {
+              const vt = Math.max(0.05, Math.min(1, vel));
+              if(typeof n.pan === 'number' && track.player?.schedulePan){
+                const durSec = ticksToSeconds(durTicks);
+                const basePan = track.pan ?? 0;
+                track.player.schedulePan(t, Math.max(-1, Math.min(1, n.pan)), durSec, basePan);
+              }
+              track.player.trigger(midi, t, vt, `${durTicks}i`);
+              try { highlightPianoKeyAtTime(midi, t, ticksToSeconds(durTicks)); } catch{}
+              track.player.release?.(midi, t + ticksToSeconds(durTicks));
+            }, `${tick}i`);
+          };
             const durTicks = Math.min(n.dur, maxDurTicks);
-            track.player.trigger(n.midi, time, n.vel ?? 0.8, `${durTicks}i`);
-            try { highlightPianoKeyAtTime(n.midi, time, ticksToSeconds(durTicks)); } catch{}
-            track.player.release?.(n.midi, time + ticksToSeconds(durTicks));
-          }, `${when}i`);
+            const vel = n.vel ?? 0.8;
+            if(n.slide && nextNote){
+            const steps = Math.max(4, Math.min(24, Math.floor(durTicks / Math.max(1, SIXTEENTH/2))));
+            for(let s=0;s<steps;s++){
+              const prog = s/steps;
+              const midi = Math.round(n.midi + (nextNote.midi - n.midi) * prog);
+              const stepStart = when + Math.floor((durTicks * s)/steps);
+              const stepDur = Math.max(1, Math.floor(durTicks/steps));
+              scheduleSingle(stepStart, midi, stepDur, vel);
+            }
+          } else {
+            // Apply per-note FX scheduling for synths
+            try{
+              const durSec = ticksToSeconds(durTicks);
+              if(track.player?.scheduleFilter){
+                const cutoff = n.cutoff; const q = n.resonance;
+                const cutHz = (typeof cutoff === 'number') ? (200 + cutoff * (8000-200)) : null;
+                const qVal = (typeof q === 'number') ? (0.1 + q * (10-0.1)) : null;
+                if(cutHz!==null || qVal!==null) track.player.scheduleFilter(`${when}i`, cutHz, qVal, durSec);
+              }
+              if(track.player?.scheduleEnv){
+                const a = (typeof n.attack==='number') ? (0.001 + n.attack * 0.2) : null;
+                const r = (typeof n.release==='number') ? (0.05 + n.release * 1.5) : null;
+                if(a!==null || r!==null) track.player.scheduleEnv(`${when}i`, a, r, durSec);
+              }
+              if(track.player?.scheduleVibrato && typeof n.vibrato==='number'){
+                const depth = n.vibrato * 0.2; track.player.scheduleVibrato(`${when}i`, depth, durSec);
+              }
+              if(track.player?.scheduleTremolo && typeof n.tremolo==='number'){
+                const depth = n.tremolo * 0.6; track.player.scheduleTremolo(`${when}i`, depth, durSec);
+              }
+            }catch{}
+            scheduleSingle(when, n.midi, durTicks, vel);
+          }
         }
       });
     });
@@ -2104,6 +2185,53 @@ function exportSongMidi(){
 
 function hexToRgba(hex,a){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); return `rgba(${r},${g},${b},${a})`; }
 function lightenColor(hex,amt){ const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); const lr=Math.min(255,Math.round(r+(255-r)*amt)),lg=Math.min(255,Math.round(g+(255-g)*amt)),lb=Math.min(255,Math.round(b+(255-b)*amt)); return `#${lr.toString(16).padStart(2,'0')}${lg.toString(16).padStart(2,'0')}${lb.toString(16).padStart(2,'0')}`; }
+
+// Canvas helpers for rounded, glossy note rendering
+function roundRectPath(ctx, x, y, w, h, r){
+  if(w <= 0 || h <= 0) return;
+  let rr = r;
+  if(typeof rr === 'number') rr = {tl:r, tr:r, br:r, bl:r};
+  const maxR = Math.min(Math.abs(w)/2, Math.abs(h)/2);
+  const tl = Math.min(rr.tl||0, maxR), tr = Math.min(rr.tr||0, maxR), br = Math.min(rr.br||0, maxR), bl = Math.min(rr.bl||0, maxR);
+  ctx.beginPath();
+  ctx.moveTo(x + tl, y);
+  ctx.lineTo(x + w - tr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + tr);
+  ctx.lineTo(x + w, y + h - br);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+  ctx.lineTo(x + bl, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - bl);
+  ctx.lineTo(x, y + tl);
+  ctx.quadraticCurveTo(x, y, x + tl, y);
+  ctx.closePath();
+}
+
+function drawNoteBubble(ctx, x, y, w, h, baseCol, sustainCol, sustainWidth, radius, withShadow){
+  const r = Math.max(0, radius||0);
+  // Optional soft shadow for bubble look
+  if(withShadow){ ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = Math.min(6, h*0.4); ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 1; }
+
+  // Base rounded rect
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.fillStyle = baseCol; ctx.fill();
+
+  // Left sustain segment: round only left corners
+  if(sustainWidth > 0){
+    const segW = Math.min(w, sustainWidth);
+    roundRectPath(ctx, x, y, segW, h, {tl:r, bl:r, tr:0, br:0});
+    ctx.fillStyle = sustainCol; ctx.fill();
+  }
+
+  // Gloss highlight overlay (subtle)
+  const grad = ctx.createLinearGradient(0, y, 0, y + h);
+  grad.addColorStop(0, 'rgba(255,255,255,0.18)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0.06)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  roundRectPath(ctx, x, y, w, h, r);
+  ctx.fillStyle = grad; ctx.fill();
+
+  if(withShadow){ ctx.restore(); }
+}
 function drawPianoRoll(){
   const clip = song.tracks[activeTrack].clips[0];
   // Auto-extend clip length if needed based on actual notes - generous buffer for large files
@@ -2185,15 +2313,17 @@ function drawPianoRoll(){
       n.midi >= bottomMidi && n.midi <= topMidi
     );
 
-    visibleNotes.forEach(n=>{
+  visibleNotes.forEach(n=>{
       const x=n.tick/SIXTEENTH*cellW - scrollLeft;
       const w=n.dur/SIXTEENTH*cellW;
       const y=(MAX_MIDI-n.midi-1)*cellH;
+      const radius = Math.min(8, cellH*0.4);
 
       // Highlight selected notes
       if(idx === activeTrack && selectedNotes.has(n)) {
         ctx.fillStyle = '#ff6b9d';
-        ctx.fillRect(x-2, y-2, w+4, cellH+4);
+        roundRectPath(ctx, x-2, y-2, w+4, cellH+4, radius+2);
+        ctx.fill();
         // Draw resize handles
         ctx.fillStyle = '#f1f5f9';
         ctx.fillRect(x-3, y + cellH/2 - 3, 6, 6);
@@ -2201,27 +2331,41 @@ function drawPianoRoll(){
       }
 
       const sustainWidth=Math.min(8,w*0.15);
-      ctx.fillStyle=sustainColor;
-      ctx.fillRect(x,y,sustainWidth,cellH);
-      ctx.fillStyle=baseColor;
-      ctx.fillRect(x+sustainWidth,y,w-sustainWidth,cellH);
+      // Slide notes slightly reduce opacity to 90%
+      const slideAlpha = n.slide ? 0.9 : 1;
+      const sustainCol = sustainColor.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},${Math.min(1, (parseFloat(a)||1)*slideAlpha)})`);
+      const baseCol = baseColor.replace(/rgba\(([^,]+),([^,]+),([^,]+),([^\)]+)\)/, (m,r,g,b,a)=>`rgba(${r},${g},${b},${Math.min(1, (parseFloat(a)||1)*slideAlpha)})`);
+      // Draw rounded, glossy bubble note
+      drawNoteBubble(ctx, x, y, w, cellH, baseCol, sustainCol, sustainWidth, radius, idx===activeTrack);
 
       // Add subtle border for clarity
       ctx.strokeStyle = 'rgba(0,0,0,0.4)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(x,y,w,cellH);
+      roundRectPath(ctx, x, y, w, cellH, radius);
+      ctx.stroke();
+
+      // Draw slide marker
+      if(n.slide){
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = `${Math.max(10, Math.min(14, cellH-4))}px monospace`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        ctx.fillText('S', x + w/2, y + cellH/2);
+      }
     });
   });
   if(dragNote){
     const dragColor = hexToRgba(song.tracks[activeTrack].color||'#60a5fa',0.8);
     const x=dragNote.tick/SIXTEENTH*cellW - scrollLeft; const w=dragNote.dur/SIXTEENTH*cellW; const y=(MAX_MIDI-dragNote.midi-1)*cellH;
     if(x+w>=0 && x<=width) {
-      ctx.fillStyle = dragColor;
-      ctx.fillRect(x,y,w,cellH);
+      const radius = Math.min(8, cellH*0.4);
+      // Draw drag preview as rounded bubble without sustain segment
+      drawNoteBubble(ctx, x, y, w, cellH, dragColor, dragColor, 0, radius, true);
       // Add pink border for drag preview
       ctx.strokeStyle = 'rgba(236,72,153,0.8)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x,y,w,cellH);
+      roundRectPath(ctx, x, y, w, cellH, radius);
+      ctx.stroke();
     }
   }
   
@@ -2256,8 +2400,8 @@ function drawPianoRoll(){
 }
 
 function drawNoteAttrBar(){
-  const width = pianoRollScroll.clientWidth;
-  const height = noteAttrBar.clientHeight;
+  const width = noteAttrBar.parentElement?.clientWidth || pianoRollScroll.clientWidth;
+  const height = NOTE_ATTR_HEIGHT;
   const dpr = window.devicePixelRatio || 1;
   noteAttrBar.width = width * dpr;
   noteAttrBar.height = height * dpr;
@@ -2274,21 +2418,56 @@ function drawNoteAttrBar(){
 
   song.tracks.forEach((track, idx) => {
     const alpha = idx === activeTrack ? 1 : 0.4;
-    ctx.fillStyle = hexToRgba(track.color || '#60a5fa', alpha);
-    const visible = track.clips[0].notes.filter(n => n.tick >= startTick && n.tick <= endTick);
+    const color = hexToRgba(track.color || '#60a5fa', alpha);
+    // Include notes that overlap the visible window (start before but extend into view)
+    const visible = track.clips[0].notes.filter(n => (n.tick + n.dur) >= startTick && n.tick <= endTick);
     visible.forEach(n => {
       const x = n.tick / SIXTEENTH * cellW - scrollLeft;
-      let v = 0;
-      switch(activeNoteAttr){
-        case 'velocity':
-          v = n.vel ?? 0;
-          break;
-        default:
-          v = 0; // stub for other attributes
+      const wDur = Math.max(2, n.dur / SIXTEENTH * cellW);
+      const barW = Math.max(2, cellW * 0.8);
+      const vx = Math.round(x) + 0.5; // crisp vertical
+      const lw = 2;
+
+      // Draw baseline for pan
+      if(activeNoteAttr === 'pan'){
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, height/2); ctx.lineTo(x+barW, height/2); ctx.stroke();
       }
-      const barH = v * height;
-      const barW = Math.max(1, cellW * 0.8);
-      ctx.fillRect(x, height - barH, barW, barH);
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+      if(activeNoteAttr === 'pan'){
+        const p = Math.max(-1, Math.min(1, n.pan ?? 0));
+        const half = height/2;
+        const h = Math.abs(p) * half;
+        const yAttr = p >= 0 ? (half - h) : (half + h);
+        // Vertical leg
+        ctx.beginPath(); ctx.moveTo(vx, half); ctx.lineTo(vx, yAttr); ctx.stroke();
+        // Horizontal leg spanning note duration
+        const x2 = Math.min(width - 1, vx + wDur);
+        ctx.beginPath(); ctx.moveTo(vx, yAttr); ctx.lineTo(x2, yAttr); ctx.stroke();
+      } else if(activeNoteAttr === 'velocity'){
+        const v = Math.max(0, Math.min(1, n.vel ?? 0));
+        const yAttr = height - (v * height);
+        // Vertical leg from bottom up to value
+        ctx.beginPath(); ctx.moveTo(vx, height - 0.5); ctx.lineTo(vx, yAttr); ctx.stroke();
+        // Horizontal leg spanning note duration
+        const x2 = Math.min(width - 1, vx + wDur);
+        ctx.beginPath(); ctx.moveTo(vx, yAttr); ctx.lineTo(x2, yAttr); ctx.stroke();
+      } else {
+        // Generic 0..1 attributes
+        const map = { cutoff:'cutoff', resonance:'resonance', attack:'attack', release:'release', vibrato:'vibrato', tremolo:'tremolo' };
+        const key = map[activeNoteAttr];
+        const v = Math.max(0, Math.min(1, n[key] ?? 0));
+        const yAttr = height - (v * height);
+        // Vertical leg
+        ctx.beginPath(); ctx.moveTo(vx, height - 0.5); ctx.lineTo(vx, yAttr); ctx.stroke();
+        // Horizontal leg spanning note duration
+        const x2 = Math.min(width - 1, vx + wDur);
+        ctx.beginPath(); ctx.moveTo(vx, yAttr); ctx.lineTo(x2, yAttr); ctx.stroke();
+      }
     });
   });
 }
@@ -2626,17 +2805,28 @@ function updateAttrFromEvent(ev){
   if(!attrDragNote) return;
   const rect = noteAttrBar.getBoundingClientRect();
   const y = ev.clientY - rect.top;
-  const height = noteAttrBar.clientHeight;
-  let v = 1 - y / height;
-  v = Math.max(0, Math.min(1, v));
+  const height = NOTE_ATTR_HEIGHT;
   if(activeNoteAttr === 'velocity'){
+    let v = 1 - y / height; // 0..1
+    v = Math.max(0, Math.min(1, v));
     attrDragNote.vel = v;
+  } else if(activeNoteAttr === 'pan'){
+    let p = (1 - (y / height)) * 2 - 1; // -1..1
+    p = Math.max(-1, Math.min(1, p));
+    attrDragNote.pan = p;
   } else {
-    // stub for other attributes
+    // Generic 0..1 attributes
+    let v = 1 - y / height;
+    v = Math.max(0, Math.min(1, v));
+    const map = {
+      cutoff: 'cutoff', resonance:'resonance', attack:'attack', release:'release', vibrato:'vibrato', tremolo:'tremolo'
+    };
+    const key = map[activeNoteAttr];
+    if(key) attrDragNote[key] = v;
   }
-  drawPianoRoll();
+  drawNoteAttrBar();
 }
-noteAttrBar.addEventListener('pointerdown', ev=>{
+  noteAttrBar.addEventListener('pointerdown', ev=>{
   const rect = noteAttrBar.getBoundingClientRect();
   const x = ev.clientX - rect.left + pianoRollScroll.scrollLeft;
   const cellW = 20*ui.zoomX;
@@ -2645,7 +2835,8 @@ noteAttrBar.addEventListener('pointerdown', ev=>{
   for(let i=notes.length-1;i>=0;i--){
     const n=notes[i];
     const bx = n.tick / SIXTEENTH * cellW;
-    if(x>=bx && x<=bx+barW){
+    const wDur = Math.max(barW, (n.dur / SIXTEENTH * cellW));
+    if(x>=bx && x<=bx+wDur){
       attrDragNote = n;
       saveState('Edit note attribute');
       noteAttrBar.setPointerCapture(ev.pointerId);
@@ -5006,11 +5197,32 @@ function showContextMenu(x, y, note) {
   menu.style.left = x + 'px';
   menu.style.top = y + 'px';
   menu.classList.remove('hidden');
+  try { const cb=document.getElementById('slideCheckbox'); if(cb){ cb.checked = !!(note && note.slide); } } catch{}
 }
 
 function hideContextMenu() {
   const menu = getNoteContextMenu(); if(menu) menu.classList.add('hidden');
   contextMenuNote = null;
+}
+
+function toggleSlideNote(checked){
+  try {
+    if(contextMenuNote){
+      saveState('Toggle slide note');
+      contextMenuNote.slide = !!checked;
+      drawPianoRoll();
+    }
+  } catch{}
+}
+
+function slideSelectedToNext(){
+  try {
+    if(selectedNotes && selectedNotes.size>0){
+      saveState('Slide selected to next');
+      selectedNotes.forEach(n => { n.slide = true; });
+      drawPianoRoll();
+    }
+  } catch{}
 }
 
 // Hide context menu on click elsewhere
@@ -5325,7 +5537,7 @@ document.addEventListener('pointerdown', function _unlockOnce(){
     if(!wrap || !canvas) return;
     const ctx = canvas.getContext('2d');
     let mode = localStorage.getItem('vizMode') || 'waveform';
-    let state = localStorage.getItem('vizState') || 'small'; // 'min'|'small'|'max'
+    let state = localStorage.getItem('vizState') || 'min'; // 'min'|'small'|'max'
     modeSel.value = mode;
 
     function applyState(){
@@ -5898,7 +6110,13 @@ document.addEventListener('pointerdown', function _unlockOnce(){
       t.clips[0].notes.forEach(n => {
         const x = Math.floor(n.tick / SIXTEENTH * cellW * pxPerTick);
         const w = Math.max(1, Math.floor(n.dur / SIXTEENTH * cellW * pxPerTick));
-        ctx.fillRect(x, y+1, w, Math.max(1, rowH-2));
+        const h = Math.max(1, rowH-2);
+        const r = Math.min(3, h/2);
+        if(typeof roundRectPath === 'function'){
+          roundRectPath(ctx, x, y+1, w, h, r); ctx.fill();
+        } else {
+          ctx.fillRect(x, y+1, w, h);
+        }
       });
     });
     
@@ -6035,6 +6253,10 @@ document.addEventListener('pointerdown', function _unlockOnce(){
   <hr class="border-slate-600 my-1">
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="quantizeSelected()" aria-label="Quantize" title="Quantize">Quantize</button>
   <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="showVelocityEditor()" aria-label="Edit Velocity" title="Edit Velocity">Edit Velocity...</button>
+  <label class="w-full px-4 py-2 text-left text-sm text-slate-200 flex items-center gap-2 hover:bg-slate-700 cursor-pointer">
+    <input id="slideCheckbox" type="checkbox" onchange="toggleSlideNote(this.checked)" /> Slide note
+  </label>
+  <button class="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-700" onclick="slideSelectedToNext()" aria-label="Slide Selected to Next" title="Slide Selected to Next">Slide selected → next</button>
 </div>
 
 

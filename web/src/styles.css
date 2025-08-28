@@ -102,3 +102,41 @@ canvas {
   stroke-width: 2;
 }
 
+/* Channel rack styles */
+.channel-rack {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #1e293b;
+}
+
+.channel-rack::-webkit-scrollbar {
+  width: 6px;
+}
+
+.channel-rack::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.channel-rack::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+.channel-rack::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Preset item hover effects */
+.preset-item:hover {
+  transform: translateX(2px);
+  transition: transform 0.1s ease;
+}
+
+/* Category and subcategory animations */
+.category-item, .subcategory-item {
+  transition: all 0.2s ease;
+}
+
+.category-item:hover, .subcategory-item:hover {
+  transform: translateX(1px);
+}
+
