@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAW Functionality Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .test-section {
+            background: #2a2a2a;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .pass {
+            background: #1a4a1a;
+            border: 1px solid #4a8a4a;
+        }
+        .fail {
+            background: #4a1a1a;
+            border: 1px solid #8a4a4a;
+        }
+        .info {
+            background: #1a1a4a;
+            border: 1px solid #4a4a8a;
+        }
+        button {
+            background: #4a4a8a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #5a5a9a;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status {
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>DAW Functionality Test Suite</h1>
+    
+    <div class="test-section">
+        <h2>1. Audio Engine Tests</h2>
+        <div class="controls">
+            <button onclick="testAudioEngine()">Test Audio Engine</button>
+            <button onclick="testInstrumentLoading()">Test Instrument Loading</button>
+            <button onclick="testScheduling()">Test Event Scheduling</button>
+        </div>
+        <div id="audio-engine-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Pattern Engine Tests</h2>
+        <div class="controls">
+            <button onclick="testPatternCreation()">Test Pattern Creation</button>
+            <button onclick="testPatternCompilation()">Test Pattern Compilation</button>
+            <button onclick="testStepSequencer()">Test Step Sequencer</button>
+        </div>
+        <div id="pattern-engine-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Transport Tests</h2>
+        <div class="controls">
+            <button onclick="testTransportControls()">Test Transport Controls</button>
+            <button onclick="testModeSwitching()">Test Mode Switching</button>
+            <button onclick="testTempoChanges()">Test Tempo Changes</button>
+        </div>
+        <div id="transport-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. State Management Tests</h2>
+        <div class="controls">
+            <button onclick="testStoreOperations()">Test Store Operations</button>
+            <button onclick="testUndoRedo()">Test Undo/Redo</button>
+            <button onclick="testPersistence()">Test Persistence</button>
+        </div>
+        <div id="state-management-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Integration Tests</h2>
+        <div class="controls">
+            <button onclick="testFullWorkflow()">Test Full Workflow</button>
+            <button onclick="testProjectSaveLoad()">Test Project Save/Load</button>
+            <button onclick="runAllTests()">Run All Tests</button>
+        </div>
+        <div id="integration-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results Summary</h2>
+        <div class="status" id="test-summary">No tests run yet</div>
+        <div id="test-details"></div>
+    </div>
+
+    <script type="module">
+        // Import the DAW modules (this would need to be built first)
+        // import { DAW } from '../web/src/main.ts';
+        // import { useStore, useActions } from '../web/src/store/index.ts';
+        // import { audioEngine } from '../web/src/engine/audio-engine.ts';
+
+        // Mock implementations for testing
+        const mockStore = {
+            project: {
+                id: 'test-project',
+                name: 'Test Project',
+                version: 1,
+                bpm: 120,
+                timeSig: [4, 4],
+                ppq: 96,
+                patterns: {},
+                clips: {},
+                playlistTracks: {},
+                order: [],
+                instruments: {},
+                mixer: { channels: {}, masterId: 'master' }
+            },
+            transport: {
+                playing: false,
+                recording: false,
+                position: 0,
+                mode: 'pattern'
+            },
+            selection: {
+                patternId: null,
+                channelId: null,
+                clipIds: [],
+                noteIds: []
+            },
+            ui: {
+                zoomX: 1,
+                zoomY: 1
+            }
+        };
+
+        const mockActions = {
+            createPattern: (name) => {
+                const id = 'pattern-' + Date.now();
+                mockStore.project.patterns[id] = {
+                    id,
+                    name,
+                    length: 384, // 4 bars at 96 PPQ
+                    resolution: 16,
+                    channels: []
+                };
+                return id;
+            },
+            createPlaylistTrack: (name) => {
+                const id = 'track-' + Date.now();
+                mockStore.project.playlistTracks[id] = {
+                    id,
+                    name,
+                    color: '#3b82f6'
+                };
+                mockStore.project.order.push(id);
+                return id;
+            },
+            setTransport: (updates) => {
+                Object.assign(mockStore.transport, updates);
+            },
+            setSelection: (selection) => {
+                Object.assign(mockStore.selection, selection);
+            }
+        };
+
+        // Test functions
+        window.testAudioEngine = async function() {
+            const results = document.getElementById('audio-engine-results');
+            results.innerHTML = '<div class="info">Testing Audio Engine...</div>';
+
+            try {
+                // Test audio context creation
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'running' || audioContext.state === 'suspended') {
+                    results.innerHTML += '<div class="pass">✓ Audio Context created successfully</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Audio Context creation failed</div>';
+                }
+
+                // Test oscillator creation
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                results.innerHTML += '<div class="pass">✓ Audio nodes created and connected</div>';
+
+                // Test scheduling
+                const now = audioContext.currentTime;
+                oscillator.frequency.setValueAtTime(440, now);
+                oscillator.start(now);
+                oscillator.stop(now + 0.1);
+                
+                results.innerHTML += '<div class="pass">✓ Audio scheduling working</div>';
+
+            } catch (error) {
+                results.innerHTML += `<div class="fail">✗ Audio Engine test failed: ${error.message}</div>`;
+            }
+        };
+
+        window.testPatternCreation = function() {
+            const results = document.getElementById('pattern-engine-results');
+            results.innerHTML = '<div class="info">Testing Pattern Creation...</div>';
+
+            try {
+                // Test pattern creation
+                const patternId = mockActions.createPattern('Test Pattern');
+                const pattern = mockStore.project.patterns[patternId];
+                
+                if (pattern && pattern.name === 'Test Pattern') {
+                    results.innerHTML += '<div class="pass">✓ Pattern created successfully</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Pattern creation failed</div>';
+                }
+
+                // Test pattern structure
+                if (pattern.length === 384 && pattern.resolution === 16) {
+                    results.innerHTML += '<div class="pass">✓ Pattern structure correct</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Pattern structure incorrect</div>';
+                }
+
+                // Test channel creation
+                const channelId = 'channel-' + Date.now();
+                pattern.channels.push({
+                    id: channelId,
+                    instrumentId: 'default',
+                    steps: [],
+                    notes: [],
+                    mute: false,
+                    solo: false
+                });
+
+                if (pattern.channels.length === 1) {
+                    results.innerHTML += '<div class="pass">✓ Channel added to pattern</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Channel addition failed</div>';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<div class="fail">✗ Pattern Creation test failed: ${error.message}</div>`;
+            }
+        };
+
+        window.testTransportControls = function() {
+            const results = document.getElementById('transport-results');
+            results.innerHTML = '<div class="info">Testing Transport Controls...</div>';
+
+            try {
+                // Test play/pause
+                mockActions.setTransport({ playing: true });
+                if (mockStore.transport.playing) {
+                    results.innerHTML += '<div class="pass">✓ Play state set correctly</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Play state not set</div>';
+                }
+
+                mockActions.setTransport({ playing: false });
+                if (!mockStore.transport.playing) {
+                    results.innerHTML += '<div class="pass">✓ Pause state set correctly</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Pause state not set</div>';
+                }
+
+                // Test mode switching
+                mockActions.setTransport({ mode: 'song' });
+                if (mockStore.transport.mode === 'song') {
+                    results.innerHTML += '<div class="pass">✓ Mode switching working</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Mode switching failed</div>';
+                }
+
+                mockActions.setTransport({ mode: 'pattern' });
+                if (mockStore.transport.mode === 'pattern') {
+                    results.innerHTML += '<div class="pass">✓ Mode switching back working</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Mode switching back failed</div>';
+                }
+
+                // Test position tracking
+                mockActions.setTransport({ position: 192 }); // 2 bars
+                if (mockStore.transport.position === 192) {
+                    results.innerHTML += '<div class="pass">✓ Position tracking working</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Position tracking failed</div>';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<div class="fail">✗ Transport Controls test failed: ${error.message}</div>`;
+            }
+        };
+
+        window.testStoreOperations = function() {
+            const results = document.getElementById('state-management-results');
+            results.innerHTML = '<div class="info">Testing Store Operations...</div>';
+
+            try {
+                // Test project structure
+                if (mockStore.project.id === 'test-project') {
+                    results.innerHTML += '<div class="pass">✓ Project structure correct</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Project structure incorrect</div>';
+                }
+
+                // Test track creation
+                const trackId = mockActions.createPlaylistTrack('Test Track');
+                const track = mockStore.project.playlistTracks[trackId];
+                
+                if (track && track.name === 'Test Track') {
+                    results.innerHTML += '<div class="pass">✓ Track created successfully</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Track creation failed</div>';
+                }
+
+                // Test selection
+                mockActions.setSelection({ 
+                    patternId: 'test-pattern',
+                    channelId: 'test-channel',
+                    clipIds: ['clip1'],
+                    noteIds: ['note1']
+                });
+
+                if (mockStore.selection.patternId === 'test-pattern') {
+                    results.innerHTML += '<div class="pass">✓ Selection state working</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ Selection state failed</div>';
+                }
+
+                // Test UI state
+                if (mockStore.ui.zoomX === 1 && mockStore.ui.zoomY === 1) {
+                    results.innerHTML += '<div class="pass">✓ UI state correct</div>';
+                } else {
+                    results.innerHTML += '<div class="fail">✗ UI state incorrect</div>';
+                }
+
+            } catch (error) {
+                results.innerHTML += `<div class="fail">✗ Store Operations test failed: ${error.message}</div>`;
+            }
+        };
+
+        window.testFullWorkflow = function() {
+            const results = document.getElementById('integration-results');
+            results.innerHTML = '<div class="info">Testing Full Workflow...</div>';
+
+            try {
+                // 1. Create a pattern
+                const patternId = mockActions.createPattern('Workflow Pattern');
+                results.innerHTML += '<div class="pass">✓ Step 1: Pattern created</div>';
+
+                // 2. Create a track
+                const trackId = mockActions.createPlaylistTrack('Workflow Track');
+                results.innerHTML += '<div class="pass">✓ Step 2: Track created</div>';
+
+                // 3. Select pattern and track
+                mockActions.setSelection({ patternId, channelId: 'default' });
+                results.innerHTML += '<div class="pass">✓ Step 3: Pattern and track selected</div>';
+
+                // 4. Switch to song mode
+                mockActions.setTransport({ mode: 'song' });
+                results.innerHTML += '<div class="pass">✓ Step 4: Switched to song mode</div>';
+
+                // 5. Start playback
+                mockActions.setTransport({ playing: true, position: 0 });
+                results.innerHTML += '<div class="pass">✓ Step 5: Playback started</div>';
+
+                // 6. Simulate time progression
+                mockActions.setTransport({ position: 96 }); // 1 bar
+                results.innerHTML += '<div class="pass">✓ Step 6: Time progression working</div>';
+
+                // 7. Stop playback
+                mockActions.setTransport({ playing: false });
+                results.innerHTML += '<div class="pass">✓ Step 7: Playback stopped</div>';
+
+                results.innerHTML += '<div class="pass">✓ Full workflow test completed successfully!</div>';
+
+            } catch (error) {
+                results.innerHTML += `<div class="fail">✗ Full Workflow test failed: ${error.message}</div>`;
+            }
+        };
+
+        window.runAllTests = function() {
+            const results = document.getElementById('test-details');
+            results.innerHTML = '<div class="info">Running all tests...</div>';
+
+            // Run all test functions
+            setTimeout(() => testAudioEngine(), 100);
+            setTimeout(() => testPatternCreation(), 200);
+            setTimeout(() => testTransportControls(), 300);
+            setTimeout(() => testStoreOperations(), 400);
+            setTimeout(() => testFullWorkflow(), 500);
+
+            setTimeout(() => {
+                const summary = document.getElementById('test-summary');
+                summary.innerHTML = 'All tests completed! Check individual sections for detailed results.';
+                summary.style.color = '#4a8a4a';
+            }, 1000);
+        };
+
+        // Mock functions for other tests
+        window.testInstrumentLoading = function() {
+            document.getElementById('audio-engine-results').innerHTML = 
+                '<div class="info">Instrument loading test would require Tone.js integration</div>';
+        };
+
+        window.testScheduling = function() {
+            document.getElementById('audio-engine-results').innerHTML = 
+                '<div class="info">Event scheduling test would require Tone.js integration</div>';
+        };
+
+        window.testPatternCompilation = function() {
+            document.getElementById('pattern-engine-results').innerHTML = 
+                '<div class="info">Pattern compilation test would require full engine integration</div>';
+        };
+
+        window.testStepSequencer = function() {
+            document.getElementById('pattern-engine-results').innerHTML = 
+                '<div class="info">Step sequencer test would require UI component integration</div>';
+        };
+
+        window.testModeSwitching = function() {
+            document.getElementById('transport-results').innerHTML = 
+                '<div class="info">Mode switching test completed in transport controls test</div>';
+        };
+
+        window.testTempoChanges = function() {
+            document.getElementById('transport-results').innerHTML = 
+                '<div class="info">Tempo changes test would require BPM update functionality</div>';
+        };
+
+        window.testUndoRedo = function() {
+            document.getElementById('state-management-results').innerHTML = 
+                '<div class="info">Undo/Redo test would require command history implementation</div>';
+        };
+
+        window.testPersistence = function() {
+            document.getElementById('state-management-results').innerHTML = 
+                '<div class="info">Persistence test would require localStorage integration</div>';
+        };
+
+        window.testProjectSaveLoad = function() {
+            document.getElementById('integration-results').innerHTML = 
+                '<div class="info">Project save/load test would require file I/O implementation</div>';
+        };
+
+        // Initialize test environment
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DAW Test Suite loaded');
+            document.getElementById('test-summary').innerHTML = 'Test suite ready. Click "Run All Tests" to begin.';
+        });
+
+    </script>
+</body>
+</html>

@@ -9,7 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "tone": "^14.8.49"
+    "tone": "^14.8.49",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "typescript": "^5.4.0",
@@ -19,4 +20,3 @@
     "autoprefixer": "^10.4.19"
   }
 }
-

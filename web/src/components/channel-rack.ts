@@ -1,355 +1,344 @@
-import { SynthPreset, organizePresets, searchPresets } from '../engine/synth-presets';
-
-export interface ChannelRackOptions {
-  onPresetSelect?: (preset: SynthPreset) => void;
-  onPresetPreview?: (preset: SynthPreset) => void;
-  defaultPresets?: string[];
-}
+import { useStore, useActions, usePattern, useSelectedPattern } from '../store';
+import type { PatternChannel, Step, Note, ID } from '../engine/types';
 
 export class ChannelRack {
   private container: HTMLElement;
-  private options: ChannelRackOptions;
-  private searchInput!: HTMLInputElement;
-  private treeContainer!: HTMLElement;
-  private selectedPreset: SynthPreset | null = null;
-  private expandedCategories = new Set<string>();
-  private expandedSubcategories = new Set<string>();
+  private patternId: ID | null = null;
+  private channels: Map<ID, HTMLElement> = new Map();
 
-  constructor(container: HTMLElement, options: ChannelRackOptions = {}) {
+  constructor(container: HTMLElement) {
     this.container = container;
-    this.options = options;
     this.render();
   }
 
-  private render() {
+  private renderMixerRouteOptions(selected?: ID): string {
+    const mixer = useStore.getState().project.mixer;
+    const ids = Object.keys(mixer.channels)
+      .filter(id => id !== mixer.masterId)
+      .sort((a, b) => {
+        const na = parseInt((a.split('-')[1] || '0'), 10);
+        const nb = parseInt((b.split('-')[1] || '0'), 10);
+        return na - nb;
+      });
+    return ids.map(id => `<option value="${id}" ${selected === id ? 'selected' : ''}>${mixer.channels[id].name}</option>`).join('');
+  }
+
+  setPattern(patternId: ID | null): void {
+    this.patternId = patternId;
+    this.render();
+  }
+
+  private render(): void {
     this.container.innerHTML = '';
-    this.container.className = 'channel-rack bg-slate-800 border border-slate-700 rounded-lg p-4 h-full overflow-hidden flex flex-col';
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'flex items-center justify-between mb-4';
     
-    const title = document.createElement('h3');
-    title.className = 'text-lg font-semibold text-slate-200';
-    title.textContent = 'Synth Presets';
-    
-    const presetCount = document.createElement('span');
-    presetCount.className = 'text-sm text-slate-400';
-    presetCount.textContent = `${organizePresets().flatMap(cat => cat.subcategories).reduce((sum, sub) => sum + sub.presets.length, 0)} presets`;
-    
-    header.appendChild(title);
-    header.appendChild(presetCount);
-
-    // Search bar
-    const searchContainer = document.createElement('div');
-    searchContainer.className = 'relative mb-4';
-    
-    this.searchInput = document.createElement('input');
-    this.searchInput.type = 'text';
-    this.searchInput.placeholder = 'Search presets...';
-    this.searchInput.className = 'w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
-    
-    const searchIcon = document.createElement('div');
-    searchIcon.className = 'absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400';
-    searchIcon.innerHTML = '🔍';
-    
-    searchContainer.appendChild(this.searchInput);
-    searchContainer.appendChild(searchIcon);
-
-    // Tree container
-    this.treeContainer = document.createElement('div');
-    this.treeContainer.className = 'flex-1 overflow-y-auto space-y-2';
-
-    // Add event listeners
-    this.searchInput.addEventListener('input', () => this.handleSearch());
-    this.searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.searchInput.value = '';
-        this.handleSearch();
-      }
-    });
-
-    // Assemble
-    this.container.appendChild(header);
-    this.container.appendChild(searchContainer);
-    this.container.appendChild(this.treeContainer);
-
-    // Render initial tree
-    this.renderTree();
-  }
-
-  private handleSearch() {
-    const query = this.searchInput.value.trim();
-    if (query === '') {
-      this.renderTree();
-    } else {
-      this.renderSearchResults(query);
-    }
-  }
-
-  private renderSearchResults(query: string) {
-    const results = searchPresets(query);
-    this.treeContainer.innerHTML = '';
-
-    if (results.length === 0) {
-      const noResults = document.createElement('div');
-      noResults.className = 'text-center py-8 text-slate-400';
-      noResults.textContent = 'No presets found';
-      this.treeContainer.appendChild(noResults);
+    if (!this.patternId) {
+      this.showEmptyState();
       return;
     }
 
-    // Group results by category
-    const grouped = results.reduce((acc, preset) => {
-      if (!acc[preset.category]) {
-        acc[preset.category] = [];
-      }
-      acc[preset.category].push(preset);
-      return acc;
-    }, {} as Record<string, SynthPreset[]>);
+    const pattern = useStore.getState().project.patterns[this.patternId];
+    if (!pattern) {
+      this.showEmptyState();
+      return;
+    }
 
-    Object.entries(grouped).forEach(([category, presets]) => {
-      const categoryElement = this.createCategoryElement(category, presets, true);
-      this.treeContainer.appendChild(categoryElement);
-    });
+    this.renderPattern(pattern);
   }
 
-  private renderTree() {
-    this.treeContainer.innerHTML = '';
-    const categories = organizePresets();
-
-    categories.forEach(category => {
-      const categoryElement = this.createCategoryElement(category.name, category.subcategories.flatMap(sub => sub.presets));
-      this.treeContainer.appendChild(categoryElement);
-    });
+  private showEmptyState(): void {
+    this.container.innerHTML = `
+      <div class="p-4 text-center text-slate-400">
+        <p class="text-sm">No pattern selected</p>
+        <p class="text-xs mt-1">Create a pattern to start editing</p>
+      </div>
+    `;
   }
 
-  private createCategoryElement(categoryName: string, presets: SynthPreset[], isSearchResult = false) {
-    const categoryDiv = document.createElement('div');
-    categoryDiv.className = 'category-item';
-
-    const categoryHeader = document.createElement('div');
-    categoryHeader.className = 'flex items-center justify-between p-2 bg-slate-700 rounded-md cursor-pointer hover:bg-slate-600 transition-colors';
+  private renderPattern(pattern: any): void {
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between p-3 border-b border-slate-700';
     
-    const categoryTitle = document.createElement('span');
-    categoryTitle.className = 'font-medium text-slate-200';
-    categoryTitle.textContent = categoryName;
+    header.innerHTML = `
+      <div class="flex items-center gap-2">
+        <h3 class="text-sm font-medium text-slate-200">${pattern.name}</h3>
+        <span class="text-xs text-slate-400">${pattern.channels.length} channels</span>
+      </div>
+      <button id="add-channel" class="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-500 text-white rounded">
+        Add Channel
+      </button>
+    `;
 
-    const presetCount = document.createElement('span');
-    presetCount.className = 'text-sm text-slate-400';
-    presetCount.textContent = `${presets.length}`;
+    this.container.appendChild(header);
 
-    const expandIcon = document.createElement('span');
-    expandIcon.className = 'text-slate-400 transition-transform';
-    expandIcon.textContent = this.expandedCategories.has(categoryName) ? '▼' : '▶';
-
-    categoryHeader.appendChild(categoryTitle);
-    categoryHeader.appendChild(presetCount);
-    categoryHeader.appendChild(expandIcon);
-
-    const subcategoriesContainer = document.createElement('div');
-    subcategoriesContainer.className = 'ml-4 mt-2 space-y-1';
-
-    if (isSearchResult) {
-      // For search results, show all presets directly
-      presets.forEach(preset => {
-        const presetElement = this.createPresetElement(preset);
-        subcategoriesContainer.appendChild(presetElement);
-      });
-    } else {
-      // For normal view, group by subcategory
-      const subcategories = organizePresets().find(cat => cat.name === categoryName)?.subcategories || [];
-      subcategories.forEach(subcategory => {
-        const subcategoryElement = this.createSubcategoryElement(subcategory.name, subcategory.presets);
-        subcategoriesContainer.appendChild(subcategoryElement);
-      });
-    }
-
-    // Toggle expansion
-    categoryHeader.addEventListener('click', () => {
-      const isExpanded = this.expandedCategories.has(categoryName);
-      if (isExpanded) {
-        this.expandedCategories.delete(categoryName);
-        expandIcon.textContent = '▶';
-        subcategoriesContainer.style.display = 'none';
-      } else {
-        this.expandedCategories.add(categoryName);
-        expandIcon.textContent = '▼';
-        subcategoriesContainer.style.display = 'block';
-      }
+    // Add channel button
+    header.querySelector('#add-channel')?.addEventListener('click', () => {
+      this.addChannel();
     });
 
-    // Set initial state
-    if (this.expandedCategories.has(categoryName)) {
-      subcategoriesContainer.style.display = 'block';
-    } else {
-      subcategoriesContainer.style.display = 'none';
-    }
-
-    categoryDiv.appendChild(categoryHeader);
-    categoryDiv.appendChild(subcategoriesContainer);
-
-    return categoryDiv;
-  }
-
-  private createSubcategoryElement(subcategoryName: string, presets: SynthPreset[]) {
-    const subcategoryDiv = document.createElement('div');
-    subcategoryDiv.className = 'subcategory-item';
-
-    const subcategoryHeader = document.createElement('div');
-    subcategoryHeader.className = 'flex items-center justify-between p-1 bg-slate-600 rounded cursor-pointer hover:bg-slate-500 transition-colors';
+    // Render channels
+    const channelsContainer = document.createElement('div');
+    channelsContainer.className = 'space-y-2 p-3';
     
-    const subcategoryTitle = document.createElement('span');
-    subcategoryTitle.className = 'text-sm font-medium text-slate-200';
-    subcategoryTitle.textContent = subcategoryName;
-
-    const presetCount = document.createElement('span');
-    presetCount.className = 'text-xs text-slate-400';
-    presetCount.textContent = `${presets.length}`;
-
-    const expandIcon = document.createElement('span');
-    expandIcon.className = 'text-slate-400 text-xs transition-transform';
-    expandIcon.textContent = this.expandedSubcategories.has(subcategoryName) ? '▼' : '▶';
-
-    subcategoryHeader.appendChild(subcategoryTitle);
-    subcategoryHeader.appendChild(presetCount);
-    subcategoryHeader.appendChild(expandIcon);
-
-    const presetsContainer = document.createElement('div');
-    presetsContainer.className = 'ml-4 mt-1 space-y-1';
-
-    presets.forEach(preset => {
-      const presetElement = this.createPresetElement(preset);
-      presetsContainer.appendChild(presetElement);
+    pattern.channels.forEach((channel: PatternChannel) => {
+      const channelElement = this.renderChannel(channel, pattern);
+      channelsContainer.appendChild(channelElement);
+      this.channels.set(channel.id, channelElement);
     });
 
-    // Toggle expansion
-    subcategoryHeader.addEventListener('click', () => {
-      const isExpanded = this.expandedSubcategories.has(subcategoryName);
-      if (isExpanded) {
-        this.expandedSubcategories.delete(subcategoryName);
-        expandIcon.textContent = '▶';
-        presetsContainer.style.display = 'none';
-      } else {
-        this.expandedSubcategories.add(subcategoryName);
-        expandIcon.textContent = '▼';
-        presetsContainer.style.display = 'block';
-      }
-    });
-
-    // Set initial state
-    if (this.expandedSubcategories.has(subcategoryName)) {
-      presetsContainer.style.display = 'block';
-    } else {
-      presetsContainer.style.display = 'none';
-    }
-
-    subcategoryDiv.appendChild(subcategoryHeader);
-    subcategoryDiv.appendChild(presetsContainer);
-
-    return subcategoryDiv;
+    this.container.appendChild(channelsContainer);
   }
 
-  private createPresetElement(preset: SynthPreset) {
-    const presetDiv = document.createElement('div');
-    presetDiv.className = 'preset-item flex items-center justify-between p-2 bg-slate-700 rounded cursor-pointer hover:bg-slate-600 transition-colors group';
+  private renderChannel(channel: PatternChannel, pattern: any): HTMLElement {
+    const channelElement = document.createElement('div');
+    channelElement.className = 'bg-slate-800 rounded-lg p-3 border border-slate-700';
+    
+    const instrument = useStore.getState().project.instruments[channel.instrumentId];
+    const instrumentName = instrument?.name || 'Unknown Instrument';
 
-    const presetInfo = document.createElement('div');
-    presetInfo.className = 'flex-1 min-w-0';
-
-    const presetName = document.createElement('div');
-    presetName.className = 'font-medium text-slate-200 truncate';
-    presetName.textContent = preset.name;
-
-    const presetDescription = document.createElement('div');
-    presetDescription.className = 'text-xs text-slate-400 truncate';
-    presetDescription.textContent = preset.description;
-
-    presetInfo.appendChild(presetName);
-    presetInfo.appendChild(presetDescription);
-
-    const presetActions = document.createElement('div');
-    presetActions.className = 'flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity';
-
-    // Preview button
-    const previewBtn = document.createElement('button');
-    previewBtn.className = 'p-1 text-slate-400 hover:text-blue-400 transition-colors';
-    previewBtn.innerHTML = '🔊';
-    previewBtn.title = 'Preview preset';
-    previewBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this.options.onPresetPreview?.(preset);
-    });
-
-    // Type indicator
-    const typeIndicator = document.createElement('div');
-    typeIndicator.className = `px-2 py-1 text-xs rounded-full ${
-      preset.type === 'synth' ? 'bg-blue-600 text-blue-100' :
-      preset.type === 'drum' ? 'bg-red-600 text-red-100' :
-      'bg-green-600 text-green-100'
-    }`;
-    typeIndicator.textContent = preset.type;
-
-    presetActions.appendChild(previewBtn);
-    presetActions.appendChild(typeIndicator);
-
-    presetDiv.appendChild(presetInfo);
-    presetDiv.appendChild(presetActions);
-
-    // Select preset
-    presetDiv.addEventListener('click', () => {
-      this.selectedPreset = preset;
-      this.options.onPresetSelect?.(preset);
+    channelElement.innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="mute-${channel.id}" ${channel.mute ? 'checked' : ''} class="rounded">
+          <label for="mute-${channel.id}" class="text-xs text-slate-300">Mute</label>
+          <input type="checkbox" id="solo-${channel.id}" ${channel.solo ? 'checked' : ''} class="rounded">
+          <label for="solo-${channel.id}" class="text-xs text-slate-300">Solo</label>
+        </div>
+        <button class="text-xs text-red-400 hover:text-red-300" data-action="delete-channel" data-channel-id="${channel.id}">
+          Delete
+        </button>
+      </div>
       
-      // Update visual selection
-      this.treeContainer.querySelectorAll('.preset-item').forEach(item => {
-        item.classList.remove('ring-2', 'ring-blue-500');
-      });
-      presetDiv.classList.add('ring-2', 'ring-blue-500');
+      <div class="mb-3">
+        <label class="block text-xs text-slate-400 mb-1">Instrument</label>
+        <select class="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm" data-channel-id="${channel.id}">
+          <option value="${channel.instrumentId}" selected>${instrumentName}</option>
+          <option value="piano">Piano</option>
+          <option value="bass">Bass</option>
+          <option value="drums">Drums</option>
+          <option value="synth">Synth</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-xs text-slate-400 mb-1">Mixer Track</label>
+        <select class="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-sm" data-action="route" data-channel-id="${channel.id}">
+          ${this.renderMixerRouteOptions(channel.mixerChannelId)}
+        </select>
+      </div>
+      
+      <div class="mb-3">
+        <label class="block text-xs text-slate-400 mb-1">Volume</label>
+        <input type="range" min="0" max="1" step="0.01" value="0.8" class="w-full" data-channel-id="${channel.id}">
+      </div>
+      
+      <div class="mb-3">
+        <label class="block text-xs text-slate-400 mb-1">Pan</label>
+        <input type="range" min="-1" max="1" step="0.01" value="0" class="w-full" data-channel-id="${channel.id}">
+      </div>
+      
+      <div class="flex gap-2 mb-3">
+        <button class="flex-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded" data-action="piano-roll" data-channel-id="${channel.id}">
+          Piano Roll
+        </button>
+        <button class="flex-1 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded" data-action="step-sequencer" data-channel-id="${channel.id}">
+          Step Seq
+        </button>
+      </div>
+      
+      <div class="step-sequencer" data-channel-id="${channel.id}" style="display: none;">
+        <div class="grid grid-cols-16 gap-1 mb-2">
+          ${this.renderStepGrid(channel, pattern)}
+        </div>
+        <div class="flex gap-2">
+          <input type="range" min="0" max="1" step="0.01" value="0.8" class="flex-1" data-action="velocity" data-channel-id="${channel.id}">
+          <span class="text-xs text-slate-400">Velocity</span>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    this.addChannelEventListeners(channelElement, channel, pattern);
+
+    return channelElement;
+  }
+
+  private renderStepGrid(channel: PatternChannel, pattern: any): string {
+    const steps = channel.steps || [];
+    const resolution = pattern.resolution;
+    
+    let html = '';
+    for (let i = 0; i < resolution; i++) {
+      const step = steps.find(s => s.stepIndex === i);
+      const isActive = step && step.velocity > 0;
+      
+      html += `
+        <button class="w-6 h-6 rounded text-xs ${isActive ? 'bg-blue-500 text-white' : 'bg-slate-700 text-slate-400'}" 
+                data-step="${i}" data-channel-id="${channel.id}">
+          ${i + 1}
+        </button>
+      `;
+    }
+    
+    return html;
+  }
+
+  private addChannelEventListeners(element: HTMLElement, channel: PatternChannel, pattern: any): void {
+    const actions = useActions();
+
+    // Mute/Solo toggles
+    element.querySelector(`#mute-${channel.id}`)?.addEventListener('change', (e) => {
+      const muted = (e.target as HTMLInputElement).checked;
+      // Update channel mute state
+      this.updateChannel(channel.id, { mute: muted });
     });
 
-    return presetDiv;
+    element.querySelector(`#solo-${channel.id}`)?.addEventListener('change', (e) => {
+      const solo = (e.target as HTMLInputElement).checked;
+      // Update channel solo state
+      this.updateChannel(channel.id, { solo });
+    });
+
+    // Delete channel
+    element.querySelector('[data-action="delete-channel"]')?.addEventListener('click', () => {
+      if (confirm('Delete this channel?')) {
+        this.deleteChannel(channel.id);
+      }
+    });
+
+    // Instrument selection
+    element.querySelector('select:not([data-action="route"])')?.addEventListener('change', (e) => {
+      const instrumentId = (e.target as HTMLSelectElement).value;
+      this.updateChannel(channel.id, { instrumentId });
+    });
+
+    // Routing selection
+    element.querySelector('[data-action="route"]')?.addEventListener('change', (e) => {
+      const insertId = (e.target as HTMLSelectElement).value as ID;
+      this.updateChannel(channel.id, { mixerChannelId: insertId });
+      // Route instrument output in engine
+      const ch = useStore.getState().project.patterns[this.patternId!].channels.find(c => c.id === channel.id);
+      if (ch) {
+        const instId = ch.instrumentId;
+        import('../engine/audio-engine').then(({ audioEngine }) => {
+          audioEngine.setInstrumentInsert(instId as ID, insertId);
+        });
+      }
+    });
+
+    // Piano Roll button
+    element.querySelector('[data-action="piano-roll"]')?.addEventListener('click', () => {
+      this.openPianoRoll(channel.id);
+    });
+
+    // Step Sequencer button
+    element.querySelector('[data-action="step-sequencer"]')?.addEventListener('click', () => {
+      this.toggleStepSequencer(channel.id);
+    });
+
+    // Step grid buttons
+    element.querySelectorAll('[data-step]').forEach(button => {
+      button.addEventListener('click', (e) => {
+        const stepIndex = parseInt((e.target as HTMLElement).dataset.step || '0');
+        this.toggleStep(channel.id, stepIndex);
+      });
+    });
+
+    // Velocity slider
+    element.querySelector('[data-action="velocity"]')?.addEventListener('input', (e) => {
+      const velocity = parseFloat((e.target as HTMLInputElement).value);
+      this.setStepVelocity(channel.id, velocity);
+    });
   }
 
-  public getSelectedPreset(): SynthPreset | null {
-    return this.selectedPreset;
+  private addChannel(): void {
+    if (!this.patternId) return;
+
+    const actions = useActions();
+    let instrumentId: ID | undefined = Object.keys(useStore.getState().project.instruments)[0] as ID | undefined;
+    if (!instrumentId) {
+      instrumentId = actions.createInstrument('Default Synth', 'synth', {});
+      // Also create a mixer channel for it (optional UI sync)
+      // Route to Insert 1 by default
+    }
+    const channelId = actions.addChannelToPattern(this.patternId, instrumentId);
+    // Default route to Insert 1
+    const defaultInsert = 'ins-1' as ID;
+    actions.updatePatternChannel(this.patternId, channelId, { mixerChannelId: defaultInsert } as any);
+    import('../engine/audio-engine').then(({ audioEngine }) => {
+      audioEngine.setInstrumentInsert(instrumentId as ID, defaultInsert);
+    });
+    this.render(); // Re-render to show new channel
   }
 
-  public selectPreset(presetId: string) {
-    const preset = organizePresets()
-      .flatMap(cat => cat.subcategories)
-      .flatMap(sub => sub.presets)
-      .find(p => p.id === presetId);
-    
-    if (preset) {
-      this.selectedPreset = preset;
-      this.options.onPresetSelect?.(preset);
+  private deleteChannel(channelId: ID): void {
+    if (!this.patternId) return;
+
+    const actions = useActions();
+    actions.deletePatternChannel(this.patternId, channelId);
+    this.render();
+  }
+
+  private updateChannel(channelId: ID, updates: Partial<PatternChannel>): void {
+    if (!this.patternId) return;
+
+    const actions = useActions();
+    actions.updatePatternChannel(this.patternId, channelId, updates);
+  }
+
+  private openPianoRoll(channelId: ID): void {
+    // Set selection to this channel
+    useStore.getState().dispatchCommand({
+      type: 'SetSelection',
+      selection: { 
+        patternId: this.patternId!,
+        channelId 
+      }
+    });
+
+    // In a real implementation, you'd open the piano roll view
+    console.log('Open piano roll for channel:', channelId);
+  }
+
+  private toggleStepSequencer(channelId: ID): void {
+    const stepSequencer = this.container.querySelector(`[data-channel-id="${channelId}"].step-sequencer`);
+    if (stepSequencer) {
+      const isVisible = stepSequencer.style.display !== 'none';
+      stepSequencer.style.display = isVisible ? 'none' : 'block';
     }
   }
 
-  public expandCategory(categoryName: string) {
-    this.expandedCategories.add(categoryName);
-    this.renderTree();
+  private toggleStep(channelId: ID, stepIndex: number): void {
+    if (!this.patternId) return;
+
+    const pattern = useStore.getState().project.patterns[this.patternId];
+    if (!pattern) return;
+
+    const channel = pattern.channels.find(c => c.id === channelId);
+    if (!channel) return;
+
+    const steps = channel.steps || [];
+    const existingStep = steps.find(s => s.stepIndex === stepIndex);
+
+    let updatedSteps: Step[];
+    if (existingStep) {
+      // Toggle step off
+      updatedSteps = steps.filter(s => s.stepIndex !== stepIndex);
+    } else {
+      // Add step
+      updatedSteps = [...steps, { stepIndex, velocity: 0.8, lengthSteps: 1 }];
+    }
+
+    this.updateChannel(channelId, { steps: updatedSteps });
+    this.render(); // Re-render to update step grid
   }
 
-  public collapseCategory(categoryName: string) {
-    this.expandedCategories.delete(categoryName);
-    this.renderTree();
+  private setStepVelocity(channelId: ID, velocity: number): void {
+    // In a real implementation, you'd update the velocity for the currently selected step
+    console.log('Set step velocity:', channelId, velocity);
   }
+}
 
-  public expandAll() {
-    organizePresets().forEach(category => {
-      this.expandedCategories.add(category.name);
-      category.subcategories.forEach(sub => {
-        this.expandedSubcategories.add(sub.name);
-      });
-    });
-    this.renderTree();
-  }
-
-  public collapseAll() {
-    this.expandedCategories.clear();
-    this.expandedSubcategories.clear();
-    this.renderTree();
-  }
+// Legacy compatibility
+export function mountChannelRack(container: HTMLElement, options?: any): ChannelRack {
+  return new ChannelRack(container);
 }
